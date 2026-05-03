@@ -1,0 +1,573 @@
+openapi: 3.1.0
+info:
+  title: Dash Homelab Backend API
+  version: 0.1.0
+  license:
+    name: Private
+    identifier: LicenseRef-Private
+servers:
+  - url: /
+security: []
+tags:
+  - name: Health
+    description: Process and dependency health checks.
+  - name: Dashboard
+    description: Render-ready dashboard data.
+  - name: Groups
+    description: Dashboard service groups.
+  - name: Services
+    description: Service cards and launch URLs.
+  - name: Layout
+    description: Drag/drop ordering persistence.
+  - name: Assets
+    description: Uploaded service icon files.
+  - name: Widgets
+    description: Dashboard widget instances and data.
+paths:
+  /health:
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Check backend health
+      responses:
+        "200":
+          description: Backend and database are healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok: { type: boolean }
+        "503": { $ref: "#/components/responses/InternalError" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/dashboard:
+    get:
+      tags: [Dashboard]
+      operationId: getDashboard
+      summary: Get dashboard
+      responses:
+        "200":
+          description: Full dashboard in render order.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+        "500": { $ref: "#/components/responses/InternalError" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/groups:
+    get:
+      tags: [Groups]
+      operationId: listGroups
+      summary: List groups
+      responses:
+        "200":
+          description: Groups in sort order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Group" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Groups]
+      operationId: createGroup
+      summary: Create group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateGroupRequest" }
+      responses:
+        "201":
+          description: Created group.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Group" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/groups/{groupId}:
+    parameters:
+      - $ref: "#/components/parameters/GroupId"
+    get:
+      tags: [Groups]
+      operationId: getGroup
+      summary: Get group
+      responses:
+        "200":
+          description: Group.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Group" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Groups]
+      operationId: patchGroup
+      summary: Patch group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatchGroupRequest" }
+      responses:
+        "200":
+          description: Updated group.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Group" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Groups]
+      operationId: deleteGroup
+      summary: Delete group
+      parameters:
+        - name: moveServicesToUngrouped
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/v1/services:
+    get:
+      tags: [Services]
+      operationId: listServices
+      summary: List services
+      responses:
+        "200":
+          description: Services with URLs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Service" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Services]
+      operationId: createService
+      summary: Create service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServiceRequest" }
+      responses:
+        "201":
+          description: Created service.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Service" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/services/{serviceId}:
+    parameters:
+      - $ref: "#/components/parameters/ServiceId"
+    get:
+      tags: [Services]
+      operationId: getService
+      summary: Get service
+      responses:
+        "200":
+          description: Service.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Service" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Services]
+      operationId: patchService
+      summary: Patch service
+      description: Replaces service fields and URL list atomically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ServiceRequest" }
+      responses:
+        "200":
+          description: Updated service.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Service" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Services]
+      operationId: deleteService
+      summary: Delete service
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/layout:
+    put:
+      tags: [Layout]
+      operationId: putLayout
+      summary: Update layout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LayoutRequest" }
+      responses:
+        "200":
+          description: Updated dashboard.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/assets/icons:
+    post:
+      tags: [Assets]
+      operationId: uploadIcon
+      summary: Upload icon
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Uploaded icon asset.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetFile" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "413": { $ref: "#/components/responses/UploadTooLarge" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+  /api/v1/widgets:
+    get:
+      tags: [Widgets]
+      operationId: listWidgets
+      summary: List widgets
+      responses:
+        "200":
+          description: Widget instances.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WidgetInstance" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+    post:
+      tags: [Widgets]
+      operationId: createWidget
+      summary: Create widget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WidgetRequest" }
+      responses:
+        "201":
+          description: Created widget.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WidgetInstance" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+  /api/v1/widgets/{widgetId}:
+    parameters:
+      - $ref: "#/components/parameters/WidgetId"
+    get:
+      tags: [Widgets]
+      operationId: getWidget
+      summary: Get widget
+      responses:
+        "200":
+          description: Widget.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WidgetInstance" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Widgets]
+      operationId: patchWidget
+      summary: Patch widget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WidgetRequest" }
+      responses:
+        "200":
+          description: Updated widget.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WidgetInstance" }
+        "400": { $ref: "#/components/responses/ValidationError" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [Widgets]
+      operationId: deleteWidget
+      summary: Delete widget
+      responses:
+        "204": { description: Deleted. }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/widgets/{widgetId}/data:
+    parameters:
+      - $ref: "#/components/parameters/WidgetId"
+    get:
+      tags: [Widgets]
+      operationId: getWidgetData
+      summary: Get widget data
+      responses:
+        "200":
+          description: Cached or refreshed widget data.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WidgetData" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/v1/widgets/{widgetId}/refresh:
+    parameters:
+      - $ref: "#/components/parameters/WidgetId"
+    post:
+      tags: [Widgets]
+      operationId: refreshWidget
+      summary: Refresh widget
+      responses:
+        "200":
+          description: Refreshed widget data.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WidgetData" }
+        "404": { $ref: "#/components/responses/NotFound" }
+components:
+  parameters:
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ServiceId:
+      name: serviceId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    WidgetId:
+      name: widgetId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    ValidationError:
+      description: Validation error.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Conflict:
+      description: Operation conflicts with current state.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    UploadTooLarge:
+      description: Uploaded file is too large.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    UnsupportedMediaType:
+      description: Uploaded file type is unsupported.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    InternalError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+  schemas:
+    Dashboard:
+      type: object
+      required: [groups, ungroupedServices, widgets]
+      properties:
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/Group" }
+        ungroupedServices:
+          type: array
+          items: { $ref: "#/components/schemas/Service" }
+        widgets:
+          type: array
+          items: { $ref: "#/components/schemas/WidgetInstance" }
+    Group:
+      type: object
+      required: [id, name, sortOrder, collapsed, services, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        sortOrder: { type: integer }
+        collapsed: { type: boolean }
+        services:
+          type: array
+          items: { $ref: "#/components/schemas/Service" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Service:
+      type: object
+      required: [id, groupId, name, iconUrl, iconAssetId, sortOrder, urls, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        groupId: { type: [string, "null"], format: uuid }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        iconUrl: { type: [string, "null"], format: uri }
+        iconAssetId: { type: [string, "null"], format: uuid }
+        sortOrder: { type: integer }
+        urls:
+          type: array
+          items: { $ref: "#/components/schemas/ServiceUrl" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ServiceUrl:
+      type: object
+      required: [id, label, kind, url, sortOrder, isPrimary]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 40 }
+        kind: { type: string, enum: [local, external, custom] }
+        url: { type: string, format: uri }
+        sortOrder: { type: integer }
+        isPrimary: { type: boolean }
+    WidgetInstance:
+      type: object
+      required: [id, type, title, enabled, sortOrder, config, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [clock, image, pihole, memos, immich] }
+        title: { type: string, minLength: 1, maxLength: 80 }
+        enabled: { type: boolean }
+        sortOrder: { type: integer }
+        config: { type: object, additionalProperties: true, description: "Pi-hole apiToken is masked in responses." }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    WidgetData:
+      type: object
+      required: [widgetId, status]
+      properties:
+        widgetId: { type: string, format: uuid }
+        status: { type: string, enum: [fresh, stale, error] }
+        data: { type: object, additionalProperties: true }
+        error: { type: [string, "null"] }
+        fetchedAt: { type: [string, "null"], format: date-time }
+        expiresAt: { type: [string, "null"], format: date-time }
+    AssetFile:
+      type: object
+      required: [id, originalName, storedName, mimeType, sizeBytes, publicPath, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        originalName: { type: string }
+        storedName: { type: string }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        publicPath: { type: string }
+        createdAt: { type: string, format: date-time }
+    CreateGroupRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+    PatchGroupRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        collapsed: { type: boolean }
+    ServiceRequest:
+      type: object
+      required: [name, urls]
+      properties:
+        groupId: { type: [string, "null"], format: uuid }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        iconUrl: { type: [string, "null"], format: uri }
+        iconAssetId: { type: [string, "null"], format: uuid }
+        urls:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/ServiceUrlInput" }
+    ServiceUrlInput:
+      type: object
+      required: [label, kind, url]
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string, minLength: 1, maxLength: 40 }
+        kind: { type: string, enum: [local, external, custom] }
+        url: { type: string, format: uri }
+        isPrimary: { type: boolean, default: false }
+    LayoutRequest:
+      type: object
+      required: [groupIds, widgetIds, ungroupedServiceIds, groupServices]
+      properties:
+        groupIds:
+          type: array
+          items: { type: string, format: uuid }
+        widgetIds:
+          type: array
+          items: { type: string, format: uuid }
+        ungroupedServiceIds:
+          type: array
+          items: { type: string, format: uuid }
+        groupServices:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string, format: uuid }
+    WidgetRequest:
+      type: object
+      required: [type, title, config]
+      properties:
+        type: { type: string, enum: [clock, image, pihole, memos] }
+        title: { type: string, minLength: 1, maxLength: 80 }
+        enabled: { type: boolean, default: true }
+        config:
+          oneOf:
+            - $ref: "#/components/schemas/ClockWidgetConfig"
+            - $ref: "#/components/schemas/ImageWidgetConfig"
+            - $ref: "#/components/schemas/PiHoleWidgetConfig"
+            - $ref: "#/components/schemas/MemosWidgetConfig"
+    ClockWidgetConfig:
+      type: object
+      properties:
+        timezones:
+          type: array
+          items: { type: string }
+    ImageWidgetConfig:
+      type: object
+      required: [imageUrl]
+      properties:
+        imageUrl: { type: string, format: uri }
+        linkUrl: { type: [string, "null"], format: uri }
+    PiHoleWidgetConfig:
+      type: object
+      required: [baseUrl, apiToken]
+      properties:
+        baseUrl: { type: string, format: uri }
+        apiToken: { type: string, writeOnly: true }
+    MemosWidgetConfig:
+      type: object
+      required: [baseUrl, apiToken]
+      properties:
+        baseUrl: { type: string, format: uri }
+        apiToken: { type: string, writeOnly: true }
+        pageSize: { type: integer, default: 5 }
+    ErrorResponse:
+      type: object
+      required: [code, message, details]
+      properties:
+        code:
+          type: string
+          enum:
+            - validation_error
+            - not_found
+            - conflict
+            - upload_too_large
+            - unsupported_media_type
+            - widget_fetch_failed
+            - internal_error
+        message: { type: string }
+        details: { type: ["object", "null"], additionalProperties: true }
