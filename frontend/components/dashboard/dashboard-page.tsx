@@ -11,6 +11,7 @@ import { GroupForm } from "@/components/groups/group-form";
 import { WidgetCard } from "@/components/widgets/widget-card";
 import { WidgetForm } from "@/components/widgets/widget-form";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Loader2, AlertCircle, LayoutGrid, List, Pencil, Trash2, GripVertical } from "lucide-react";
 import {
   DndContext,
@@ -27,74 +28,13 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  verticalListSortingStrategy,
   rectSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 
-/* ---------- Sortable wrappers ---------- */
-
-function SortableGroup({
-  group,
-  onEditService,
-  onDeleteService,
-  onEditGroup,
-}: {
-  group: Group;
-  onEditService: (s: Service) => void;
-  onDeleteService: (id: string) => void;
-  onEditGroup: (g: Group) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: group.id,
-    data: { type: "group" },
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <GroupSection
-        group={group}
-        onEditService={onEditService}
-        onDeleteService={onDeleteService}
-        onEditGroup={onEditGroup}
-        dragHandleProps={listeners}
-      />
-    </div>
-  );
-}
-
-function SortableService({
-  service,
-  onEdit,
-  onDelete,
-}: {
-  service: Service;
-  onEdit: (s: Service) => void;
-  onDelete: (id: string) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: service.id,
-    data: { type: "service", groupId: service.groupId },
-  });
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.4 : 1,
-  };
-
-  return (
-    <div ref={setNodeRef} style={style} {...attributes}>
-      <ServiceCard service={service} onEdit={onEdit} onDelete={onDelete} dragHandleProps={listeners} isDragging={isDragging} />
-    </div>
-  );
-}
+/* ---------- Sortable wrapper for widgets only ---------- */
 
 function SortableWidget({
   widget,
@@ -173,7 +113,7 @@ function ServiceListItem({
         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-accent" onClick={() => onEdit(service)}>
           <Pencil className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive hover:bg-destructive/10" onClick={() => onDelete(service.id)}>
+        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-destructive hover:bg-accent" onClick={() => onDelete(service.id)}>
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -181,41 +121,10 @@ function ServiceListItem({
   );
 }
 
-/* ---------- Drag Overlay ---------- */
+/* ---------- Drag Overlay (widgets only) ---------- */
 
 function DashboardDragOverlay({ activeId, dashboard }: { activeId: string; dashboard: Dashboard }) {
-  const allServices = [
-    ...dashboard.ungroupedServices,
-    ...dashboard.groups.flatMap((g) => g.services),
-  ];
-  const service = allServices.find((s) => s.id === activeId);
-  const group = dashboard.groups.find((g) => g.id === activeId);
   const widget = dashboard.widgets.find((w) => w.id === activeId);
-
-  if (service) {
-    return (
-      <div className="drag-overlay flex aspect-square w-28 flex-col items-center justify-center gap-2 rounded-2xl bg-card border border-ring/50 p-3 shadow-2xl">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-secondary to-accent font-mono text-sm font-bold text-secondary-foreground">
-          {service.name.slice(0, 2).toUpperCase()}
-        </div>
-        <span className="text-xs font-semibold text-center truncate w-full">{service.name}</span>
-      </div>
-    );
-  }
-
-  if (group) {
-    return (
-      <div className="drag-overlay flex w-64 items-center gap-3 rounded-xl bg-card border border-ring/50 px-4 py-3 shadow-2xl">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
-          <GripVertical className="h-4 w-4 text-accent-foreground" />
-        </div>
-        <div>
-          <span className="text-sm font-semibold">{group.name}</span>
-          <span className="text-xs text-muted-foreground ml-2">{group.services.length} apps</span>
-        </div>
-      </div>
-    );
-  }
 
   if (widget) {
     return (
@@ -231,7 +140,7 @@ function DashboardDragOverlay({ activeId, dashboard }: { activeId: string; dashb
     );
   }
 
-  return <div className="drag-overlay rounded-xl bg-card p-4 shadow-2xl border border-ring/50">Moving…</div>;
+  return null;
 }
 
 /* ---------- Main Dashboard ---------- */
@@ -273,95 +182,13 @@ export default function DashboardPage() {
     const activeIdStr = String(active.id);
     const overIdStr = String(over.id);
 
-    const allServiceIds = [
-      ...dashboard.ungroupedServices.map((s) => s.id),
-      ...dashboard.groups.flatMap((g) => g.services.map((s) => s.id)),
-    ];
     const groupIds = dashboard.groups.map((g) => g.id);
     const widgetIds = dashboard.widgets.map((w) => w.id);
 
-    const isActiveService = allServiceIds.includes(activeIdStr);
-    const isOverService = allServiceIds.includes(overIdStr);
-    const isActiveGroup = groupIds.includes(activeIdStr);
-    const isOverGroup = groupIds.includes(overIdStr);
     const isActiveWidget = widgetIds.includes(activeIdStr);
     const isOverWidget = widgetIds.includes(overIdStr);
 
-    // Service → Service (reorder / cross-group)
-    if (isActiveService && isOverService) {
-      const findServiceLocation = (sid: string): { groupId: string | null; index: number } => {
-        const ungroupedIdx = dashboard.ungroupedServices.findIndex((s) => s.id === sid);
-        if (ungroupedIdx !== -1) return { groupId: null, index: ungroupedIdx };
-        for (const g of dashboard.groups) {
-          const idx = g.services.findIndex((s) => s.id === sid);
-          if (idx !== -1) return { groupId: g.id, index: idx };
-        }
-        return { groupId: null, index: -1 };
-      };
-
-      const activeLoc = findServiceLocation(activeIdStr);
-      const overLoc = findServiceLocation(overIdStr);
-
-      const groupServices: Record<string, string[]> = {};
-      for (const g of dashboard.groups) {
-        const ids = [...g.services.map((s) => s.id)];
-        if (activeLoc.groupId === g.id) ids.splice(activeLoc.index, 1);
-        if (overLoc.groupId === g.id) {
-          const insertIdx = activeLoc.groupId === g.id && activeLoc.index < overLoc.index ? overLoc.index : overLoc.index;
-          ids.splice(insertIdx, 0, activeIdStr);
-        }
-        groupServices[g.id] = ids;
-      }
-
-      const ungroupedIds = [...dashboard.ungroupedServices.map((s) => s.id)];
-      if (activeLoc.groupId === null) ungroupedIds.splice(activeLoc.index, 1);
-      if (overLoc.groupId === null) {
-        const insertIdx = activeLoc.groupId === null && activeLoc.index < overLoc.index ? overLoc.index : overLoc.index;
-        ungroupedIds.splice(insertIdx, 0, activeIdStr);
-      }
-      if (activeLoc.groupId !== null && overLoc.groupId === null) {
-        ungroupedIds.splice(overLoc.index, 0, activeIdStr);
-      }
-
-      updateLayout.mutate({ groupIds, widgetIds, ungroupedServiceIds: ungroupedIds, groupServices });
-      return;
-    }
-
-    // Service → Group header (move into group)
-    if (isActiveService && isOverGroup) {
-      const groupServices: Record<string, string[]> = {};
-      const ungroupedIds = [...dashboard.ungroupedServices.map((s) => s.id)];
-
-      for (const g of dashboard.groups) {
-        const ids = g.services.map((s) => s.id);
-        const idx = ids.indexOf(activeIdStr);
-        if (idx !== -1) ids.splice(idx, 1);
-        if (g.id === overIdStr) ids.push(activeIdStr);
-        groupServices[g.id] = ids;
-      }
-      const uIdx = ungroupedIds.indexOf(activeIdStr);
-      if (uIdx !== -1) ungroupedIds.splice(uIdx, 1);
-
-      updateLayout.mutate({ groupIds, widgetIds, ungroupedServiceIds: ungroupedIds, groupServices });
-      return;
-    }
-
-    // Group reorder
-    if (isActiveGroup && isOverGroup) {
-      const newGroupIds = [...groupIds];
-      const fromIdx = newGroupIds.indexOf(activeIdStr);
-      const toIdx = newGroupIds.indexOf(overIdStr);
-      if (fromIdx !== -1 && toIdx !== -1) {
-        const [moved] = newGroupIds.splice(fromIdx, 1);
-        newGroupIds.splice(toIdx, 0, moved);
-        const groupServices: Record<string, string[]> = {};
-        for (const g of dashboard.groups) groupServices[g.id] = g.services.map((s) => s.id);
-        updateLayout.mutate({ groupIds: newGroupIds, widgetIds, ungroupedServiceIds: dashboard.ungroupedServices.map((s) => s.id), groupServices });
-      }
-      return;
-    }
-
-    // Widget reorder
+    // Widget reorder only
     if (isActiveWidget && isOverWidget) {
       const newWidgetIds = [...widgetIds];
       const fromIdx = newWidgetIds.indexOf(activeIdStr);
@@ -405,9 +232,9 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="flex h-screen flex-col bg-background">
-        <div className="h-14 border-b border-border/50" />
+        <div className="h-14 border-b border-border" />
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
             <AlertCircle className="h-6 w-6 text-destructive" />
           </div>
           <div className="text-center">
@@ -434,7 +261,7 @@ export default function DashboardPage() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center gap-6 py-32">
-            <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-gradient-to-br from-secondary to-accent border border-border/50 shadow-border-card">
+            <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-gradient-to-br from-secondary to-accent border border-border shadow-border-card">
               <LayoutGrid className="h-8 w-8 text-muted-foreground" />
             </div>
             <div className="text-center">
@@ -459,42 +286,44 @@ export default function DashboardPage() {
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            {/* Widgets strip */}
-            <section className="mb-8">
-              <div className="mb-4 flex items-center justify-between">
+            {/* Widgets section */}
+            <Card className="mb-6">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-0.5 rounded-full bg-ring" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Widgets</span>
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Widgets</CardTitle>
                 </div>
                 <Button variant="ghost" size="sm" onClick={openAddWidget} className="gap-1.5 text-xs rounded-lg hover:bg-accent">
                   <Plus className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Add Widget</span>
                 </Button>
-              </div>
-              {widgets.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <SortableContext items={widgets.map((w) => w.id)} strategy={rectSortingStrategy}>
-                    {widgets.map((w) => (
-                      <SortableWidget key={w.id} widget={w} onEdit={handleEditWidget} onDelete={handleDeleteWidget} />
-                    ))}
-                  </SortableContext>
-                </div>
-              ) : (
-                <button
-                  onClick={openAddWidget}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card p-6 text-sm text-muted-foreground transition-all hover:border-ring/40 hover:bg-accent hover:text-foreground"
-                >
-                  <Plus className="h-4 w-4" /> Add your first widget
-                </button>
-              )}
-            </section>
+              </CardHeader>
+              <CardContent>
+                {widgets.length > 0 ? (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <SortableContext items={widgets.map((w) => w.id)} strategy={rectSortingStrategy}>
+                      {widgets.map((w) => (
+                        <SortableWidget key={w.id} widget={w} onEdit={handleEditWidget} onDelete={handleDeleteWidget} />
+                      ))}
+                    </SortableContext>
+                  </div>
+                ) : (
+                  <button
+                    onClick={openAddWidget}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-secondary/50 p-6 text-sm text-muted-foreground transition-all hover:border-ring/40 hover:bg-accent hover:text-foreground"
+                  >
+                    <Plus className="h-4 w-4" /> Add your first widget
+                  </button>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Apps section */}
-            <section className="mb-4">
-              <div className="mb-4 flex items-center justify-between">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-0.5 rounded-full bg-ring" />
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Apps</span>
+                  <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Apps</CardTitle>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="flex items-center rounded-lg border border-border overflow-hidden mr-1 bg-card">
@@ -505,7 +334,7 @@ export default function DashboardPage() {
                     >
                       <LayoutGrid className="h-3.5 w-3.5" />
                     </button>
-                    <div className="w-px h-3.5 bg-border/50" />
+                    <div className="w-px h-3.5 bg-border" />
                     <button
                       onClick={() => setViewMode("list")}
                       className={cn("px-2.5 py-1.5 text-xs transition-colors rounded-r-lg", viewMode === "list" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:text-foreground")}
@@ -523,12 +352,11 @@ export default function DashboardPage() {
                     <span className="hidden sm:inline">App</span>
                   </Button>
                 </div>
-              </div>
-
-              {/* Groups */}
-              <SortableContext items={groups.map((g) => g.id)} strategy={verticalListSortingStrategy}>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Groups */}
                 {groups.map((g) => (
-                  <SortableGroup
+                  <GroupSection
                     key={g.id}
                     group={g}
                     onEditService={handleEditService}
@@ -536,23 +364,21 @@ export default function DashboardPage() {
                     onEditGroup={handleEditGroup}
                   />
                 ))}
-              </SortableContext>
 
-              {/* Ungrouped services */}
-              {ungrouped.length > 0 && (
-                <div className="mb-2">
-                  {groups.length > 0 && (
-                    <div className="mb-4 flex items-center gap-2">
-                      <div className="h-4 w-0.5 rounded-full bg-ring" />
-                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ungrouped</span>
-                      <span className="text-xs text-muted-foreground font-mono">{ungrouped.length}</span>
-                    </div>
-                  )}
-                  <SortableContext items={ungrouped.map((s) => s.id)} strategy={rectSortingStrategy}>
+                {/* Ungrouped services */}
+                {ungrouped.length > 0 && (
+                  <div>
+                    {groups.length > 0 && (
+                      <div className="mb-3 flex items-center gap-2">
+                        <div className="h-4 w-0.5 rounded-full bg-ring" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ungrouped</span>
+                        <span className="text-xs text-muted-foreground font-mono">{ungrouped.length}</span>
+                      </div>
+                    )}
                     {viewMode === "grid" ? (
                       <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
                         {ungrouped.map((s) => (
-                          <SortableService key={s.id} service={s} onEdit={handleEditService} onDelete={handleDeleteService} />
+                          <ServiceCard key={s.id} service={s} onEdit={handleEditService} onDelete={handleDeleteService} />
                         ))}
                         <AddAppTile onClick={openAddService} />
                       </div>
@@ -563,27 +389,25 @@ export default function DashboardPage() {
                         ))}
                       </div>
                     )}
-                  </SortableContext>
-                </div>
-              )}
+                  </div>
+                )}
 
-              {/* In-grid add tile when no ungrouped but groups exist */}
-              {ungrouped.length === 0 && groups.length > 0 && (
-                <div className="mt-2">
+                {/* Add tile when no ungrouped but groups exist */}
+                {ungrouped.length === 0 && groups.length > 0 && (
                   <AddAppTile onClick={openAddService} />
-                </div>
-              )}
+                )}
 
-              {/* No apps at all - show empty state within apps section */}
-              {groups.length === 0 && ungrouped.length === 0 && (
-                <button
-                  onClick={openAddService}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card p-8 text-sm text-muted-foreground transition-all hover:border-ring/40 hover:bg-accent hover:text-foreground"
-                >
-                  <Plus className="h-4 w-4" /> Add your first app
-                </button>
-              )}
-            </section>
+                {/* No apps at all - show empty state within apps section */}
+                {groups.length === 0 && ungrouped.length === 0 && (
+                  <button
+                    onClick={openAddService}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-secondary/50 p-8 text-sm text-muted-foreground transition-all hover:border-ring/40 hover:bg-accent hover:text-foreground"
+                  >
+                    <Plus className="h-4 w-4" /> Add your first app
+                  </button>
+                )}
+              </CardContent>
+            </Card>
 
             <DragOverlay>
               {activeId && dashboard ? (

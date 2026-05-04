@@ -1,11 +1,11 @@
-export type Theme = "light" | "dark" | "casaos";
+export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "dash-theme";
 
 export function getStoredTheme(): Theme {
   if (typeof window === "undefined") return "dark";
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark" || stored === "casaos") return stored;
+  if (stored === "light" || stored === "dark") return stored;
   return "dark";
 }
 
@@ -22,5 +22,4 @@ export function applyTheme(theme: Theme) {
 export const themeLabels: Record<Theme, string> = {
   light: "Light",
   dark: "Dark",
-  casaos: "CasaOS",
 };

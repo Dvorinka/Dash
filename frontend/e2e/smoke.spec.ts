@@ -10,9 +10,9 @@ test("smoke: theme toggle works", async ({ page }) => {
   await page.goto("http://localhost:3000");
   const toggle = page.getByLabel("Toggle theme");
   await toggle.click();
-  await page.getByText("CasaOS").click();
+  await page.getByText("Light").click();
   const theme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
-  expect(theme).toBe("casaos");
+  expect(theme).toBe("light");
 });
 
 test("smoke: empty state shows add button", async ({ page }) => {

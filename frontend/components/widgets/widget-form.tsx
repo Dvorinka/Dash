@@ -140,7 +140,7 @@ export function WidgetForm({ widget, open, onOpenChange }: WidgetFormProps) {
                     {tz.split("/").pop()?.replace("_", " ")}
                     <button
                       type="button"
-                      className="ml-0.5 rounded-full hover:bg-foreground/10"
+                      className="ml-0.5 rounded-full hover:bg-accent"
                       onClick={() => setSelectedTzs((prev) => prev.filter((t) => t !== tz))}
                     >
                       <X className="h-2.5 w-2.5" />

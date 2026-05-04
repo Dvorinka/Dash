@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="casaos"]));
+@custom-variant dark (&:where([data-theme="dark"]));
 
 /* ── Light (Vercel-inspired) ── */
 :root,
@@ -21,10 +21,11 @@
   --color-accent-foreground: #171717;
   --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
-  --color-border: rgba(0, 0, 0, 0.08);
+  --color-border: #e5e5e5;
   --color-ring: #0072f5;
   --color-signal: #ff5b4f;
-  --color-input: rgba(0, 0, 0, 0.08);
+  --color-input: #e5e5e5;
+  --color-overlay: #f5f5f5;
   --radius: 0.5rem;
   --font-geist-sans: "Geist", "Arial", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
   --font-geist-mono: "Geist Mono", "ui-monospace", "SFMono-Regular", "Roboto Mono", monospace;
@@ -32,57 +33,29 @@
 
 /* ── Dark (Rich warm dark — not pure black) ── */
 [data-theme="dark"] {
-  --color-background: #1b1b1b;
+  --color-background: #0d0d0d;
   --color-foreground: #ececec;
-  --color-card: #222222;
+  --color-card: #141414;
   --color-card-foreground: #ececec;
-  --color-popover: #262626;
+  --color-popover: #1a1a1a;
   --color-popover-foreground: #ececec;
   --color-primary: #ececec;
-  --color-primary-foreground: #1b1b1b;
-  --color-secondary: #2a2a2a;
+  --color-primary-foreground: #0d0d0d;
+  --color-secondary: #1a1a1a;
   --color-secondary-foreground: #ececec;
-  --color-muted: #2a2a2a;
+  --color-muted: #1a1a1a;
   --color-muted-foreground: #888888;
-  --color-accent: #2a2a2a;
+  --color-accent: #1a1a1a;
   --color-accent-foreground: #ececec;
   --color-destructive: #f43f5e;
   --color-destructive-foreground: #ececec;
-  --color-border: #333333;
+  --color-border: #262626;
   --color-ring: #3b82f6;
   --color-signal: #f43f5e;
-  --color-input: #333333;
+  --color-input: #262626;
+  --color-overlay: #050505;
 }
 
-/* ── CasaOS (Colorful dark) ── */
-[data-theme="casaos"] {
-  --color-background: #1b1b2e;
-  --color-foreground: #f1f5f9;
-  --color-card: #22223a;
-  --color-card-foreground: #f1f5f9;
-  --color-popover: #26264a;
-  --color-popover-foreground: #f1f5f9;
-  --color-primary: #60a5fa;
-  --color-primary-foreground: #1b1b2e;
-  --color-secondary: #2a2a4a;
-  --color-secondary-foreground: #f1f5f9;
-  --color-muted: #2a2a4a;
-  --color-muted-foreground: #94a3b8;
-  --color-accent: #2a2a4a;
-  --color-accent-foreground: #60a5fa;
-  --color-destructive: #f43f5e;
-  --color-destructive-foreground: #f1f5f9;
-  --color-border: #333355;
-  --color-ring: #60a5fa;
-  --color-signal: #f43f5e;
-  --color-input: #333355;
-}
-
-/* ── CasaOS background gradient ── */
-[data-theme="casaos"] body {
-  background: #1b1b2e;
-  background-attachment: fixed;
-}
 
 /* ── Base ── */
 * {
@@ -152,10 +125,6 @@ body {
   transform: translateY(-2px);
 }
 
-/* ── CasaOS card hover ── */
-[data-theme="casaos"] .service-card:hover {
-  transform: translateY(-4px);
-}
 
 /* ── Drag overlay ── */
 .drag-overlay {
@@ -212,14 +181,14 @@ body {
 
 /* ── Colorful badge variants ── */
 .badge-local {
-  background: rgba(16, 185, 129, 0.15);
+  background: #0f291e;
   color: #34d399;
 }
 .badge-external {
-  background: rgba(96, 165, 250, 0.15);
+  background: #162038;
   color: #60a5fa;
 }
 .badge-custom {
-  background: rgba(139, 92, 246, 0.15);
+  background: #231a38;
   color: #a78bfa;
 }

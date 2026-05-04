@@ -7,9 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MoreVertical, ExternalLink, Pencil, Trash2, GripVertical, Globe, Home, Settings } from "lucide-react";
+import { MoreVertical, ExternalLink, Pencil, Trash2, Globe, Home, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTheme } from "@/components/providers";
 
 function getInitials(name: string) {
   const words = name.trim().split(/\s+/);
@@ -130,18 +129,12 @@ export function ServiceCard({
   service,
   onEdit,
   onDelete,
-  isDragging = false,
-  dragHandleProps,
 }: {
   service: Service;
   onEdit: (s: Service) => void;
   onDelete: (id: string) => void;
-  isDragging?: boolean;
-  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const { theme } = useTheme();
-  const isCasaOS = theme === "casaos";
 
   const handleClick = () => {
     if (service.urls.length === 1) {
@@ -160,40 +153,22 @@ export function ServiceCard({
       <Card
         className={cn(
           "service-card group relative cursor-pointer overflow-hidden",
-          isCasaOS
-            ? "aspect-square rounded-[24px] border border-border bg-card shadow-[0_4px_16px_rgba(0,0,0,0.2)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-accent"
-            : "aspect-square rounded-2xl border border-border bg-card shadow-[0px_0px_0px_1px_var(--color-border)] hover:bg-accent hover:shadow-border-hover",
-          isDragging && "drag-overlay",
+          "aspect-square rounded-2xl border border-border bg-card shadow-[0px_0px_0px_1px_var(--color-border)] hover:bg-accent hover:shadow-border-hover",
         )}
         onClick={handleClick}
       >
         {/* Gradient accent line at top */}
-        <div className={cn(
-          "absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity",
-          isCasaOS ? "bg-gradient-to-r from-blue-400/60 via-purple-400/60 to-pink-400/60" : "bg-gradient-to-r from-ring/60 to-ring/20"
-        )} />
+        <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity bg-ring" />
 
         <div className="flex h-full flex-col items-center justify-center gap-2.5 p-4">
-          {dragHandleProps && (
-            <div
-              {...dragHandleProps}
-              className="absolute left-2 top-2 cursor-grab rounded-md p-1 opacity-0 transition-all group-hover:opacity-60 hover:opacity-100 hover:bg-accent"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <GripVertical className={cn("text-muted-foreground", isCasaOS ? "h-5 w-5" : "h-4 w-4")} />
-            </div>
-          )}
 
           {/* Icon container */}
-          <div className={cn(
-            "relative flex items-center justify-center transition-transform duration-300 group-hover:scale-110",
-            isCasaOS ? "h-[52px] w-[52px]" : "h-12 w-12"
-          )}>
+          <div className="relative flex items-center justify-center transition-transform duration-300 group-hover:scale-110 h-12 w-12">
             {iconSrc ? (
               <img
                 src={iconSrc}
                 alt={service.name}
-                className={cn("h-full w-full object-contain drop-shadow-lg", isCasaOS ? "rounded-2xl" : "rounded-xl")}
+                className="h-full w-full object-contain drop-shadow-lg rounded-xl"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                   (e.target as HTMLImageElement).nextElementSibling?.classList.remove("hidden");
@@ -202,10 +177,7 @@ export function ServiceCard({
             ) : null}
             <div
               className={cn(
-                "flex h-full w-full items-center justify-center rounded-xl font-mono font-bold text-secondary-foreground",
-                isCasaOS
-                  ? "bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-lg border border-white/10"
-                  : "bg-secondary text-sm",
+                "flex h-full w-full items-center justify-center rounded-xl font-mono font-bold text-secondary-foreground bg-secondary text-sm",
                 iconSrc && "hidden",
               )}
             >
@@ -215,10 +187,7 @@ export function ServiceCard({
           </div>
 
           {/* App name */}
-          <span className={cn(
-            "max-w-full truncate text-center font-semibold leading-tight",
-            isCasaOS ? "text-sm text-white/90" : "text-xs text-foreground"
-          )}>
+          <span className="max-w-full truncate text-center font-semibold leading-tight text-xs text-foreground">
             {service.name}
           </span>
 
@@ -257,10 +226,7 @@ export function ServiceCard({
               <Button
                 variant="ghost"
                 size="icon"
-                className={cn(
-                  "h-7 w-7 rounded-lg",
-                  isCasaOS ? "text-white/50 hover:text-white hover:bg-white/10" : "hover:bg-accent"
-                )}
+                className="h-7 w-7 rounded-lg hover:bg-accent"
               >
                 <MoreVertical className="h-3.5 w-3.5" />
               </Button>

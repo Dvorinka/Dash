@@ -4,27 +4,25 @@ import type { Group, Service } from "@/lib/api/schema";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { ServiceCard } from "@/components/services/service-card";
-import { ChevronDown, MoreVertical, Pencil, Trash2, GripVertical, FolderOpen } from "lucide-react";
+import { ChevronDown, MoreVertical, Pencil, Trash2, FolderOpen } from "lucide-react";
 import { useUpdateGroup, useDeleteGroup } from "@/lib/api/hooks";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { useTheme } from "@/components/providers";
 
 interface GroupSectionProps {
   group: Group;
   onEditService: (s: Service) => void;
   onDeleteService: (id: string) => void;
   onEditGroup: (g: Group) => void;
-  dragHandleProps?: React.HTMLAttributes<HTMLDivElement>;
 }
 
-export function GroupSection({ group, onEditService, onDeleteService, onEditGroup, dragHandleProps }: GroupSectionProps) {
+export function GroupSection({ group, onEditService, onDeleteService, onEditGroup }: GroupSectionProps) {
   const updateGroup = useUpdateGroup();
   const deleteGroup = useDeleteGroup();
   const [open, setOpen] = useState(!group.collapsed);
-  const { theme } = useTheme();
-  const isCasaOS = theme === "casaos";
 
   const handleToggle = () => {
     const next = !open;
@@ -42,28 +40,16 @@ export function GroupSection({ group, onEditService, onDeleteService, onEditGrou
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <div className={cn("mb-5 rounded-2xl group/group", isCasaOS && "bg-card border border-border")}>
+      <Card className="mb-4 overflow-hidden">
         {/* Group header */}
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          {dragHandleProps && (
-            <div
-              {...dragHandleProps}
-              className="cursor-grab rounded-md p-1 opacity-0 transition-opacity hover:bg-accent group-hover/group:opacity-60"
-            >
-              <GripVertical className="h-4 w-4 text-muted-foreground" />
-            </div>
-          )}
-
+        <div className="flex items-center gap-2 px-4 py-3">
           <CollapsibleTrigger asChild>
             <button
               className="flex flex-1 items-center gap-2.5 group/title min-w-0"
               onClick={handleToggle}
             >
-              <div className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
-                isCasaOS ? "bg-white/10" : "bg-accent"
-              )}>
-                <FolderOpen className={cn("h-3.5 w-3.5", isCasaOS ? "text-blue-300" : "text-accent-foreground")} />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors bg-accent">
+                <FolderOpen className="h-3.5 w-3.5 text-accent-foreground" />
               </div>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-sm font-semibold truncate">{group.name}</span>
@@ -94,12 +80,11 @@ export function GroupSection({ group, onEditService, onDeleteService, onEditGrou
           </DropdownMenu>
         </div>
 
-        {/* Divider */}
-        <div className={cn("mx-3 h-px", isCasaOS ? "bg-white/5" : "bg-border/40")} />
+        <Separator />
 
         {/* Services grid */}
         <CollapsibleContent>
-          <div className="p-3 pt-2">
+          <div className="p-4">
             <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
               {group.services.map((s) => (
                 <ServiceCard key={s.id} service={s} onEdit={onEditService} onDelete={onDeleteService} />
@@ -107,7 +92,7 @@ export function GroupSection({ group, onEditService, onDeleteService, onEditGrou
             </div>
           </div>
         </CollapsibleContent>
-      </div>
+      </Card>
     </Collapsible>
   );
 }
