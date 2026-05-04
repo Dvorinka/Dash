@@ -440,3 +440,824 @@ Use the package manager chosen during app scaffold. If using pnpm, scripts remai
 - Regenerate API client after any OpenAPI update.
 - Keep all frontend work isolated inside `/frontend`.
 
+
+
+
+# Dashboard Refactor & UX Plan
+
+## Core Product Direction
+
+The dashboard should feel empty, intentional, and flexible on first launch.
+
+Current issue:
+
+* The app starts with too much structure and too many assumptions.
+* Users feel boxed into layouts before they build their own workspace.
+
+New direction:
+
+* Start with a clean canvas.
+* Let users create widgets and apps only when needed.
+* Prioritize drag-and-drop, layout freedom, responsiveness, and visual clarity.
+* Make the dashboard feel closer to CasaOS in usability and visual hierarchy.
+
+---
+
+# 1. First Launch Experience
+
+## Current Problem
+
+Dashboard launches with widgets/groups already visible.
+
+## New Behavior
+
+On first launch:
+
+* No widgets
+* No pre-created services
+* No placeholder cards
+* No fake demo groups
+
+Only show:
+
+### Section 1 — Widgets
+
+Top-right:
+
+* Small `+ Add Widget` button
+
+### Section 2 — Apps / Services
+
+Top-right:
+
+* Small `+ Add App` button
+
+Layout example:
+
+```text
+Widgets ------------------------------------- [+]
+(empty state)
+
+Apps ---------------------------------------- [+]
+(empty state)
+```
+
+## Empty State Design
+
+Empty states should feel premium.
+
+Example:
+
+```text
+No widgets yet
+Create your first widget to customize your dashboard.
+```
+
+and:
+
+```text
+No apps added
+Start by adding your first app or service.
+```
+
+Avoid giant centered buttons.
+
+---
+
+# 2. Layout Architecture
+
+## Dashboard Sections
+
+The dashboard should always contain:
+
+1. Widgets Section
+2. Apps Section
+
+These are not groups.
+
+These are permanent layout containers.
+
+Groups belong inside Apps.
+
+---
+
+# 3. Widget System Improvements
+
+## Current Problems
+
+* Hard to resize
+* Limited placement
+* Dragging feels disconnected
+* Drag icon placement is awkward
+* Widgets feel static
+
+## Required Improvements
+
+### Fully Resizable Widgets
+
+Users should be able to:
+
+* Resize width
+* Resize height
+* Stretch across columns
+* Fill entire section width
+* Create masonry/grid layouts
+
+Examples:
+
+* Clock widget = small
+* Pi-hole widget = large
+* Analytics widget = full width
+
+Recommended implementation:
+
+### Use Grid-Based Resizing
+
+Strong recommendation:
+
+```text
+react-grid-layout
+```
+
+Benefits:
+
+* Resize handles
+* Dragging support
+* Collision detection
+* Snap-to-grid
+* Persistent positions
+* Responsive layouts
+
+---
+
+## Widget Drag Handle
+
+Current problem:
+
+* Drag handle outside widget feels detached.
+
+Fix:
+
+* Drag handle should exist inside widget card.
+* Top-right or top-left.
+
+Example:
+
+```text
+[ Widget Title        ⋮⋮ ]
+```
+
+Users should instantly understand:
+
+* drag
+* settings
+* resize
+
+---
+
+## Widget Responsiveness
+
+Widgets must:
+
+* Reflow on smaller screens
+* Collapse naturally on mobile
+* Maintain resize ratios
+* Support multiple breakpoints
+
+Recommended breakpoints:
+
+```text
+Desktop: 12-column grid
+Tablet: 6-column grid
+Mobile: 1-column stack
+```
+
+---
+
+# 4. Clock Widget Improvements
+
+## Current Problem
+
+Timezone entry requires manual input.
+
+## Better UX
+
+Replace manual timezone input with:
+
+### Searchable Dropdown
+
+Recommended:
+
+```text
+Europe/Prague
+Europe/London
+America/New_York
+Asia/Tokyo
+```
+
+### Better Option
+
+Checkbox multi-select dropdown:
+
+User can:
+
+* Add multiple clocks
+* Select timezone quickly
+* Remove timezone instantly
+
+Recommended libraries:
+
+```text
+react-select
+shadcn Command + Popover
+```
+
+---
+
+# 5. Widget Reliability
+
+## Pi-hole Widget
+
+### Must Validate:
+
+* API reachable
+* Token valid
+* IP correct
+* Live refresh updates
+* Error states visible
+
+Show:
+
+```text
+Cannot reach Pi-hole instance
+Check URL or API key
+```
+
+---
+
+## Memos Widget
+
+### Must Validate:
+
+Correct fields:
+
+* API endpoint
+* token/auth
+* user scope
+* response parsing
+
+Must not silently fail.
+
+---
+
+## Refresh Button Issue
+
+### Problem
+
+Refresh button exists but cannot be clicked.
+
+Likely causes:
+
+* z-index overlap
+* pointer-events disabled
+* absolute layer blocking
+* drag overlay intercepting clicks
+
+Fix:
+
+```css
+pointer-events: auto;
+z-index: 10;
+```
+
+Drag handles should not block interaction.
+
+---
+
+# 6. Drag & Drop — Highest Priority
+
+## Core Principle
+
+Drag-and-drop is the main feature.
+
+It must feel effortless.
+
+---
+
+## Current Problems
+
+* Dragging unreliable
+* No placement preview
+* Group movement broken
+* Cross-group movement inconsistent
+
+---
+
+## Required Behavior
+
+### Apps Should Be:
+
+* Fully draggable
+* Reorderable
+* Group movable
+* Cross-group movable
+* Smooth animations
+
+---
+
+## Placement Preview
+
+When dragging:
+
+Show:
+
+* Highlight insertion slot
+* Ghost preview
+* Position indicator
+
+Users must know exactly where the app will land.
+
+---
+
+## Recommended Library
+
+### Strong Recommendation
+
+```text
+@dnd-kit
+```
+
+Why:
+
+* Best React drag library currently
+* Excellent collision detection
+* Smooth performance
+* Group nesting support
+* Sortable containers
+* Keyboard accessible
+
+---
+
+## App Dragging Behavior
+
+Allow:
+
+```text
+Ungrouped → Group
+Group → Group
+Group → Ungrouped
+Reorder inside same group
+Move group itself
+```
+
+Must be instant.
+
+No modal.
+
+No confirmation.
+
+---
+
+# 7. Apps Section Improvements
+
+## Card View Problems
+
+Current card view:
+
+* Too rectangular
+* Icon too small
+* Doesn't feel visual enough
+
+---
+
+## New Card View
+
+Make app cards square.
+
+Inspired by CasaOS.
+
+### New Card Structure
+
+```text
+┌───────────────┐
+│               │
+│     ICON      │
+│               │
+│  App Name     │
+└───────────────┘
+```
+
+### Improvements
+
+* Larger icons
+* Centered content
+* Better spacing
+* More visual identity
+* Hover interaction
+* Rounded corners
+
+Recommended:
+
+```css
+aspect-ratio: 1 / 1;
+```
+
+---
+
+## List View
+
+Keep mostly unchanged.
+
+List view already works.
+
+---
+
+# 8. Groups System
+
+## Problems
+
+* Poor naming
+* Not visually distinct
+* Dragging unreliable
+* Cannot collapse
+
+---
+
+## New Group Requirements
+
+### Groups Should Support
+
+* Expand/collapse
+* Rename
+* Drag reorder
+* Nested app sorting
+* Instant moving between groups
+
+---
+
+## Group Header Layout
+
+```text
+Infrastructure ▼           [⋮]
+```
+
+Avoid:
+
+```text
+GRP2
+```
+
+Groups must feel human.
+
+---
+
+## Group Dragging
+
+Group itself should be draggable.
+
+Move entire group section vertically.
+
+---
+
+# 9. Modal Improvements
+
+## Problem
+
+Modals have transparent backgrounds.
+
+This reduces readability.
+
+---
+
+## Fix
+
+Use proper modal surface.
+
+Recommended:
+
+```css
+background: var(--surface);
+backdrop-filter: blur(16px);
+border: 1px solid rgba(255,255,255,.08);
+```
+
+No transparent forms.
+
+---
+
+# 10. Add App Flow
+
+## Current Problem
+
+Feels generic.
+
+---
+
+## Rename
+
+Replace:
+
+```text
+Add Service
+```
+
+with:
+
+```text
+Add App
+```
+
+---
+
+## Better Flow
+
+### Modal Structure
+
+Step 1:
+
+* Choose app type
+
+Step 2:
+
+* Configure details
+
+Step 3:
+
+* Add icon/logo
+
+Step 4:
+
+* Select group
+
+---
+
+## Add App Card
+
+When adding in-grid:
+
+Small add tile.
+
+Not giant button.
+
+Example:
+
+```text
++ Add App
+```
+
+Should visually match app cards.
+
+---
+
+# 11. URL Improvements
+
+## Current Problem
+
+URLs are visually weak.
+
+---
+
+## Better URL Display
+
+Show:
+
+```text
+https://app.domain.com
+```
+
+With:
+
+* favicon
+* hostname extraction
+* quick open
+* copy button
+
+Example:
+
+```text
+🌐 jellyfin.local
+```
+
+---
+
+# 12. CasaOS-Inspired Theme
+
+## Goal
+
+Add an optional theme.
+
+Not replacing current dark/light.
+
+Add third style:
+
+```text
+CasaOS Inspired
+```
+
+---
+
+## CasaOS Characteristics
+
+### Visual Style
+
+* Large spacing
+* Rounded containers
+* Soft shadows
+* Glassmorphism feel
+* Bigger cards
+* Centered icons
+* Calm background
+* Floating panels
+
+---
+
+## CasaOS Dashboard Characteristics
+
+### Keep
+
+* App grid focus
+* Icon-first navigation
+* Background image
+* Floating sections
+* Minimal chrome
+
+---
+
+## Remove from CasaOS Reference
+
+Do NOT include:
+
+* Search bar
+* Storage sync banner
+* Drive discovery cards
+
+Only use:
+
+* Layout feel
+* Card structure
+* App sizing
+* Background styling
+
+---
+
+## CasaOS Theme Structure
+
+### Background
+
+Use:
+
+* gradient
+* blurred wallpaper
+* ambient overlay
+
+---
+
+### Panels
+
+```css
+background: rgba(18, 24, 40, 0.65);
+backdrop-filter: blur(18px);
+border-radius: 24px;
+```
+
+---
+
+### App Cards
+
+```css
+aspect-ratio: 1;
+border-radius: 28px;
+transition: transform .2s ease;
+```
+
+Hover:
+
+```css
+transform: translateY(-3px);
+```
+
+---
+
+## Theme Switcher
+
+Add:
+
+```text
+Light
+Dark
+CasaOS Inspired
+```
+
+Store in:
+
+```text
+localStorage
+```
+
+---
+
+# 13. Recommended Tech Stack Improvements
+
+## Layout
+
+```text
+react-grid-layout
+```
+
+---
+
+## Drag & Drop
+
+```text
+@dnd-kit
+```
+
+---
+
+## Animations
+
+```text
+framer-motion
+```
+
+---
+
+## UI Components
+
+```text
+shadcn/ui
+```
+
+---
+
+## State
+
+```text
+zustand
+```
+
+---
+
+# 14. Priority Order
+
+## Phase 1 — Critical UX
+
+1. Empty dashboard state
+2. Widgets section + apps section
+3. Smaller add buttons
+4. Drag-and-drop fixes
+5. Placement preview
+6. Group movement
+7. App movement between groups
+
+---
+
+## Phase 2 — Widget System
+
+1. Resizable widgets
+2. Widget drag handles
+3. Better timezone picker
+4. Fix refresh buttons
+5. Widget validation
+
+---
+
+## Phase 3 — Visual Improvements
+
+1. Square app cards
+2. Better icon sizing
+3. Modal redesign
+4. Better group styling
+5. URL redesign
+
+---
+
+## Phase 4 — CasaOS Theme
+
+1. Theme architecture
+2. Background system
+3. Glass panels
+4. CasaOS grid cards
+5. Theme switcher
+
+---
+
+# 15. Biggest Product Rule
+
+The dashboard should feel like:
+
+* A workspace
+* A customizable OS
+* A clean home-lab control center
+* A visual launcher
+* Not a traditional admin panel
+
+Users should instantly understand:
+
+* Add
+* Move
+* Resize
+* Organize
+* Customize
+
+without reading instructions.

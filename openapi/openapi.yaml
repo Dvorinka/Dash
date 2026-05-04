@@ -521,7 +521,7 @@ components:
       type: object
       required: [type, title, config]
       properties:
-        type: { type: string, enum: [clock, image, pihole, memos] }
+        type: { type: string, enum: [clock, image, pihole, memos, immich] }
         title: { type: string, minLength: 1, maxLength: 80 }
         enabled: { type: boolean, default: true }
         config:
@@ -530,6 +530,7 @@ components:
             - $ref: "#/components/schemas/ImageWidgetConfig"
             - $ref: "#/components/schemas/PiHoleWidgetConfig"
             - $ref: "#/components/schemas/MemosWidgetConfig"
+            - $ref: "#/components/schemas/ImmichWidgetConfig"
     ClockWidgetConfig:
       type: object
       properties:
@@ -555,6 +556,12 @@ components:
         baseUrl: { type: string, format: uri }
         apiToken: { type: string, writeOnly: true }
         pageSize: { type: integer, default: 5 }
+    ImmichWidgetConfig:
+      type: object
+      required: [baseUrl, apiKey]
+      properties:
+        baseUrl: { type: string, format: uri }
+        apiKey: { type: string, writeOnly: true }
     ErrorResponse:
       type: object
       required: [code, message, details]

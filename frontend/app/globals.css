@@ -1,0 +1,225 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="casaos"]));
+
+/* ── Light (Vercel-inspired) ── */
+:root,
+[data-theme="light"] {
+  --color-background: #ffffff;
+  --color-foreground: #171717;
+  --color-card: #ffffff;
+  --color-card-foreground: #171717;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #171717;
+  --color-primary: #171717;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #171717;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #737373;
+  --color-accent: #f5f5f5;
+  --color-accent-foreground: #171717;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-ring: #0072f5;
+  --color-signal: #ff5b4f;
+  --color-input: rgba(0, 0, 0, 0.08);
+  --radius: 0.5rem;
+  --font-geist-sans: "Geist", "Arial", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  --font-geist-mono: "Geist Mono", "ui-monospace", "SFMono-Regular", "Roboto Mono", monospace;
+}
+
+/* ── Dark (Rich warm dark — not pure black) ── */
+[data-theme="dark"] {
+  --color-background: #1b1b1b;
+  --color-foreground: #ececec;
+  --color-card: #222222;
+  --color-card-foreground: #ececec;
+  --color-popover: #262626;
+  --color-popover-foreground: #ececec;
+  --color-primary: #ececec;
+  --color-primary-foreground: #1b1b1b;
+  --color-secondary: #2a2a2a;
+  --color-secondary-foreground: #ececec;
+  --color-muted: #2a2a2a;
+  --color-muted-foreground: #888888;
+  --color-accent: #2a2a2a;
+  --color-accent-foreground: #ececec;
+  --color-destructive: #f43f5e;
+  --color-destructive-foreground: #ececec;
+  --color-border: #333333;
+  --color-ring: #3b82f6;
+  --color-signal: #f43f5e;
+  --color-input: #333333;
+}
+
+/* ── CasaOS (Colorful dark) ── */
+[data-theme="casaos"] {
+  --color-background: #1b1b2e;
+  --color-foreground: #f1f5f9;
+  --color-card: #22223a;
+  --color-card-foreground: #f1f5f9;
+  --color-popover: #26264a;
+  --color-popover-foreground: #f1f5f9;
+  --color-primary: #60a5fa;
+  --color-primary-foreground: #1b1b2e;
+  --color-secondary: #2a2a4a;
+  --color-secondary-foreground: #f1f5f9;
+  --color-muted: #2a2a4a;
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #2a2a4a;
+  --color-accent-foreground: #60a5fa;
+  --color-destructive: #f43f5e;
+  --color-destructive-foreground: #f1f5f9;
+  --color-border: #333355;
+  --color-ring: #60a5fa;
+  --color-signal: #f43f5e;
+  --color-input: #333355;
+}
+
+/* ── CasaOS background gradient ── */
+[data-theme="casaos"] body {
+  background: #1b1b2e;
+  background-attachment: fixed;
+}
+
+/* ── Base ── */
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-geist-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Focus ring ── */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-muted-foreground);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-foreground);
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+/* ── Shadow-as-border utility ── */
+.shadow-border {
+  box-shadow: 0px 0px 0px 1px var(--color-border);
+}
+
+.shadow-border-card {
+  box-shadow:
+    0px 0px 0px 1px var(--color-border),
+    0px 2px 4px rgba(0, 0, 0, 0.04),
+    0px 8px 8px -8px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-border-hover {
+  box-shadow:
+    0px 0px 0px 1px var(--color-border),
+    0px 4px 8px rgba(0, 0, 0, 0.08),
+    0px 8px 16px -4px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Service card hover (all themes) ── */
+.service-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.service-card:hover {
+  transform: translateY(-2px);
+}
+
+/* ── CasaOS card hover ── */
+[data-theme="casaos"] .service-card:hover {
+  transform: translateY(-4px);
+}
+
+/* ── Drag overlay ── */
+.drag-overlay {
+  opacity: 0.95;
+  transform: scale(1.03);
+  box-shadow:
+    0px 0px 0px 2px var(--color-ring),
+    0px 12px 32px rgba(0, 0, 0, 0.25);
+  z-index: 50;
+}
+
+/* ── Drop indicator ── */
+.drop-indicator {
+  position: relative;
+}
+.drop-indicator::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px dashed var(--color-ring);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── Drop target line ── */
+.drop-target-line {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-ring);
+  box-shadow: 0 0 8px var(--color-ring);
+  margin: 4px 0;
+  animation: pulse-line 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-line {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ── Dialog / Modal backdrop ── */
+[data-state="open"] > [data-radix-dialog-overlay] {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* ── Dialog content surface ── */
+.dialog-surface {
+  background: var(--color-popover);
+  border: 1px solid var(--color-border);
+  box-shadow:
+    0px 0px 0px 1px var(--color-border),
+    0px 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Colorful badge variants ── */
+.badge-local {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+.badge-external {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+}
+.badge-custom {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+}
