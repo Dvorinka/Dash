@@ -157,8 +157,8 @@ export function ServiceCard({
         )}
         onClick={handleClick}
       >
-        {/* Gradient accent line at top */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity bg-ring" />
+        {/* Accent line at top */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity bg-muted-foreground" />
 
         <div className="flex h-full flex-col items-center justify-center gap-2.5 p-4">
 

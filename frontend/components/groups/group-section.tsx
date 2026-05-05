@@ -48,8 +48,8 @@ export function GroupSection({ group, onEditService, onDeleteService, onEditGrou
               className="flex flex-1 items-center gap-2.5 group/title min-w-0"
               onClick={handleToggle}
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors bg-accent">
-                <FolderOpen className="h-3.5 w-3.5 text-accent-foreground" />
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors bg-secondary">
+                <FolderOpen className="h-3.5 w-3.5 text-secondary-foreground" />
               </div>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="text-sm font-semibold truncate">{group.name}</span>

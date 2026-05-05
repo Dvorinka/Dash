@@ -68,7 +68,7 @@ function AddAppTile({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="service-card group flex aspect-square flex-col items-center justify-center gap-2.5 rounded-[24px] border border-dashed border-border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-accent hover:border-ring/40 hover:shadow-border-hover"
+      className="service-card group flex aspect-square flex-col items-center justify-center gap-2.5 rounded-[24px] border border-dashed border-border bg-card p-4 transition-all duration-300 hover:-translate-y-1 hover:bg-accent hover:border-muted-foreground/40 hover:shadow-border-hover"
     >
       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary transition-colors group-hover:bg-accent">
         <Plus className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-foreground" />
@@ -128,7 +128,7 @@ function DashboardDragOverlay({ activeId, dashboard }: { activeId: string; dashb
 
   if (widget) {
     return (
-      <div className="drag-overlay flex w-56 items-center gap-3 rounded-xl bg-card border border-ring/50 px-4 py-3 shadow-2xl">
+      <div className="drag-overlay flex w-56 items-center gap-3 rounded-xl bg-card border border-muted-foreground/40 px-4 py-3 shadow-2xl">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
           <GripVertical className="h-4 w-4 text-accent-foreground" />
         </div>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex h-screen flex-col bg-background">
-        <div className="h-14 border-b border-border/50" />
+        <div className="h-14 border-b border-border" />
         <div className="flex flex-1 items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
@@ -261,7 +261,7 @@ export default function DashboardPage() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center gap-6 py-32">
-            <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-gradient-to-br from-secondary to-accent border border-border shadow-border-card">
+            <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-secondary border border-border shadow-border-card">
               <LayoutGrid className="h-8 w-8 text-muted-foreground" />
             </div>
             <div className="text-center">
@@ -290,7 +290,7 @@ export default function DashboardPage() {
             <Card className="mb-6">
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-4 w-0.5 rounded-full bg-ring" />
+                  <div className="h-4 w-0.5 rounded-full bg-muted-foreground" />
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Widgets</CardTitle>
                 </div>
                 <Button variant="ghost" size="sm" onClick={openAddWidget} className="gap-1.5 text-xs rounded-lg hover:bg-accent">
@@ -310,7 +310,7 @@ export default function DashboardPage() {
                 ) : (
                   <button
                     onClick={openAddWidget}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-secondary/50 p-6 text-sm text-muted-foreground transition-all hover:border-ring/40 hover:bg-accent hover:text-foreground"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted p-6 text-sm text-muted-foreground transition-all hover:border-muted-foreground/40 hover:bg-accent hover:text-foreground"
                   >
                     <Plus className="h-4 w-4" /> Add your first widget
                   </button>
@@ -322,7 +322,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
-                  <div className="h-4 w-0.5 rounded-full bg-ring" />
+                  <div className="h-4 w-0.5 rounded-full bg-muted-foreground" />
                   <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Apps</CardTitle>
                 </div>
                 <div className="flex items-center gap-1">
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                   <div>
                     {groups.length > 0 && (
                       <div className="mb-3 flex items-center gap-2">
-                        <div className="h-4 w-0.5 rounded-full bg-ring" />
+                        <div className="h-4 w-0.5 rounded-full bg-muted-foreground" />
                         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Ungrouped</span>
                         <span className="text-xs text-muted-foreground font-mono">{ungrouped.length}</span>
                       </div>
@@ -401,7 +401,7 @@ export default function DashboardPage() {
                 {groups.length === 0 && ungrouped.length === 0 && (
                   <button
                     onClick={openAddService}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-secondary/50 p-8 text-sm text-muted-foreground transition-all hover:border-ring/40 hover:bg-accent hover:text-foreground"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted p-8 text-sm text-muted-foreground transition-all hover:border-muted-foreground/40 hover:bg-accent hover:text-foreground"
                   >
                     <Plus className="h-4 w-4" /> Add your first app
                   </button>

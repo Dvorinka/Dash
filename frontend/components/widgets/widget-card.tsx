@@ -37,9 +37,9 @@ export function WidgetCard({
   const typeIcon = widgetTypeIcons[widget.type] || <Activity className="h-3.5 w-3.5" />;
 
   return (
-    <Card className="group relative border-0 overflow-hidden rounded-2xl shadow-[0px_0px_0px_1px_var(--color-border)] hover:shadow-border-hover transition-all duration-200">
+    <Card className="group relative overflow-hidden rounded-2xl border border-border bg-card hover:shadow-border-hover transition-all duration-200">
       <div className={cn(
-        "absolute top-0 left-0 right-0 h-1 opacity-60 bg-ring"
+        "absolute top-0 left-0 right-0 h-0.5 opacity-40 bg-muted-foreground"
       )} />
       <CardHeader className="flex flex-row items-center justify-between pt-4 pb-2 px-4">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -156,7 +156,7 @@ function ImageContent({ config }: { config: Record<string, unknown> }) {
     <img
       src={imageUrl}
       alt="Widget image"
-      className="max-h-48 w-full rounded-xl object-cover border border-border/20 shadow-sm"
+      className="max-h-48 w-full rounded-xl object-cover border border-border shadow-sm"
       onError={(e) => {
         (e.target as HTMLImageElement).style.display = "none";
       }}

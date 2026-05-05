@@ -31,28 +31,28 @@
   --font-geist-mono: "Geist Mono", "ui-monospace", "SFMono-Regular", "Roboto Mono", monospace;
 }
 
-/* ── Dark (Rich warm dark — not pure black) ── */
+/* ── Dark (Neutral zinc-dark — no blue, layered depth) ── */
 [data-theme="dark"] {
-  --color-background: #0d0d0d;
-  --color-foreground: #ececec;
-  --color-card: #141414;
-  --color-card-foreground: #ececec;
-  --color-popover: #1a1a1a;
-  --color-popover-foreground: #ececec;
-  --color-primary: #ececec;
-  --color-primary-foreground: #0d0d0d;
-  --color-secondary: #1a1a1a;
-  --color-secondary-foreground: #ececec;
-  --color-muted: #1a1a1a;
-  --color-muted-foreground: #888888;
-  --color-accent: #1a1a1a;
-  --color-accent-foreground: #ececec;
+  --color-background: #09090b;
+  --color-foreground: #e4e4e7;
+  --color-card: #111113;
+  --color-card-foreground: #e4e4e7;
+  --color-popover: #141416;
+  --color-popover-foreground: #e4e4e7;
+  --color-primary: #e4e4e7;
+  --color-primary-foreground: #09090b;
+  --color-secondary: #1a1a1c;
+  --color-secondary-foreground: #e4e4e7;
+  --color-muted: #18181b;
+  --color-muted-foreground: #71717a;
+  --color-accent: #1f1f22;
+  --color-accent-foreground: #e4e4e7;
   --color-destructive: #f43f5e;
-  --color-destructive-foreground: #ececec;
-  --color-border: #262626;
-  --color-ring: #3b82f6;
+  --color-destructive-foreground: #e4e4e7;
+  --color-border: #27272a;
+  --color-ring: #71717a;
   --color-signal: #f43f5e;
-  --color-input: #262626;
+  --color-input: #27272a;
   --color-overlay: #050505;
 }
 
@@ -131,7 +131,7 @@ body {
   opacity: 0.95;
   transform: scale(1.03);
   box-shadow:
-    0px 0px 0px 2px var(--color-ring),
+    0px 0px 0px 2px var(--color-muted-foreground),
     0px 12px 32px rgba(0, 0, 0, 0.25);
   z-index: 50;
 }
@@ -145,7 +145,7 @@ body {
   position: absolute;
   inset: -4px;
   border-radius: inherit;
-  border: 2px dashed var(--color-ring);
+  border: 2px dashed var(--color-muted-foreground);
   opacity: 0.5;
   pointer-events: none;
 }
@@ -154,8 +154,8 @@ body {
 .drop-target-line {
   height: 3px;
   border-radius: 2px;
-  background: var(--color-ring);
-  box-shadow: 0 0 8px var(--color-ring);
+  background: var(--color-muted-foreground);
+  box-shadow: 0 0 8px var(--color-muted-foreground);
   margin: 4px 0;
   animation: pulse-line 1.2s ease-in-out infinite;
 }
@@ -181,14 +181,14 @@ body {
 
 /* ── Colorful badge variants ── */
 .badge-local {
-  background: #0f291e;
+  background: #0f1a15;
   color: #34d399;
 }
 .badge-external {
-  background: #162038;
-  color: #60a5fa;
+  background: #1a1a1c;
+  color: #a1a1aa;
 }
 .badge-custom {
-  background: #231a38;
-  color: #a78bfa;
+  background: #1a1a1c;
+  color: #a1a1aa;
 }
