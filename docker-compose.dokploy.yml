@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: dash
+      POSTGRES_USER: dash
+      POSTGRES_PASSWORD: dash
+    volumes:
+      - dash-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dash -d dash"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dokploy-network
+
+  app:
+    image: ghcr.io/dvorinka/dash:latest
+    environment:
+      DATABASE_URL: postgres://dash:dash@postgres:5432/dash?sslmode=disable
+      DATA_DIR: /data
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    volumes:
+      - dash-backend-data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dash.rule=Host(`your-domain.com`)"
+      - "traefik.http.routers.dash.entrypoints=websecure"
+      - "traefik.http.routers.dash.tls.certResolver=letsencrypt"
+      - "traefik.http.services.dash.loadbalancer.server.port=3000"
+
+networks:
+  dokploy-network:
+    external: true
+
+volumes:
+  dash-postgres-data:
+  dash-backend-data:

@@ -66,6 +66,126 @@ docker compose up --build
 
 Then open http://localhost:3000
 
+### CasaOS Deployment
+
+1. SSH into your CasaOS system
+2. Navigate to the AppData directory:
+   ```bash
+   cd /DATA/AppData/
+   mkdir dash
+   cd dash
+   ```
+3. Create the docker-compose file:
+   ```bash
+   nano docker-compose.yml
+   ```
+4. Paste the following content:
+   ```yaml
+   services:
+     postgres:
+       image: postgres:16-alpine
+       container_name: dash-postgres
+       environment:
+         POSTGRES_DB: dash
+         POSTGRES_USER: dash
+         POSTGRES_PASSWORD: dash
+       volumes:
+         - dash-postgres-data:/var/lib/postgresql/data
+       restart: unless-stopped
+       healthcheck:
+         test: ["CMD-SHELL", "pg_isready -U dash -d dash"]
+         interval: 5s
+         timeout: 5s
+         retries: 10
+
+     app:
+       image: ghcr.io/dvorinka/dash:latest
+       container_name: dash-app
+       environment:
+         DATABASE_URL: postgres://dash:dash@postgres:5432/dash?sslmode=disable
+         DATA_DIR: /data
+         NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+       ports:
+         - "8080:8080"
+         - "3000:3000"
+       volumes:
+         - dash-backend-data:/data
+       depends_on:
+         postgres:
+           condition: service_healthy
+       restart: unless-stopped
+
+   volumes:
+     dash-postgres-data:
+     dash-backend-data:
+   ```
+5. Save and exit (Ctrl+O, then Ctrl+X)
+6. Start the application:
+   ```bash
+   docker compose up -d
+   ```
+7. Access Dash at http://your-casaos-ip:3000
+
+### Dokploy Deployment
+
+1. In Dokploy, create a new Compose service
+2. Select "Docker Compose" as the compose type
+3. Paste the following content (replace `your-domain.com` with your actual domain):
+   ```yaml
+   services:
+     postgres:
+       image: postgres:16-alpine
+       environment:
+         POSTGRES_DB: dash
+         POSTGRES_USER: dash
+         POSTGRES_PASSWORD: dash
+       volumes:
+         - dash-postgres-data:/var/lib/postgresql/data
+       restart: unless-stopped
+       healthcheck:
+         test: ["CMD-SHELL", "pg_isready -U dash -d dash"]
+         interval: 5s
+         timeout: 5s
+         retries: 10
+       networks:
+         - dokploy-network
+
+     app:
+       image: ghcr.io/dvorinka/dash:latest
+       environment:
+         DATABASE_URL: postgres://dash:dash@postgres:5432/dash?sslmode=disable
+         DATA_DIR: /data
+         NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+       volumes:
+         - dash-backend-data:/data
+       depends_on:
+         postgres:
+           condition: service_healthy
+       restart: unless-stopped
+       networks:
+         - dokploy-network
+       labels:
+         - "traefik.enable=true"
+         - "traefik.http.routers.dash.rule=Host(`your-domain.com`)"
+         - "traefik.http.routers.dash.entrypoints=websecure"
+         - "traefik.http.routers.dash.tls.certResolver=letsencrypt"
+         - "traefik.http.services.dash.loadbalancer.server.port=3000"
+
+   networks:
+     dokploy-network:
+       external: true
+
+   volumes:
+     dash-postgres-data:
+     dash-backend-data:
+   ```
+4. Ensure the DNS A record points to your Dokploy server
+5. Deploy the application
+6. Wait ~10 seconds for Traefik to generate SSL certificates
+7. Access Dash at https://your-domain.com
+
+**Note:** The Dokploy configuration includes Traefik labels for automatic SSL certificate generation and domain routing.
+
 ### The Developer Way
 
 **Backend:**
