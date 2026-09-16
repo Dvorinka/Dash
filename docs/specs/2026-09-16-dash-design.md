@@ -86,53 +86,25 @@ Frontend never hand-writes API types — generated client from `openapi.yaml`.
 - `CommandPalette` (⌘K) — Phase 3
 - dnd-kit `DndContext` at board level; sections and items both sortable
 
-## 7. UI direction — pending
+## 7. UI direction — DECIDED 2026-09-16
 
-Static mockups in `mockups/` — open each, compare. Round 1 shortlist: A + B. C rejected (glass/wallpaper is not the target look).
+**Primary: `d-bento-mono.html`** — bento grid on the monochrome zinc palette. Geist + Geist Mono, hairline borders, no glow, status chips carry the only color (green/amber semantic).
 
-| File | Direction | Character |
+**Alternate view themes** (same data model, different renderers — post-MVP theme system):
+
+| Mockup | Theme | Character |
 |---|---|---|
-| `a-vercel-mono.html` | Flat monochrome | Geist, hairlines, no shadows, quietest |
-| `b-command-bento.html` | Bento grid | mixed tile sizes, widgets inline, densest; bg glow disliked |
-| ~~`c-casa-glass.html`~~ | ~~Glass + wallpaper~~ | rejected |
-| `d-bento-mono.html` | Bento + mono palette | B's grid on A's zinc palette, no glow — direct merge of the two favorites |
-| `e-editorial.html` | List paradigm | serif index headers, full-width rows, stat strip — no cards |
-| `f-console.html` | Terminal | JetBrains Mono, bordered panels, `[ up ]` tags, prompt glyphs |
+| `a-vercel-mono.html` | Mono Cards | uniform card grid, quietest |
+| `e-editorial.html` | Index | serif headers, full-width rows, stat strip |
+| `f-console.html` | Console | JetBrains Mono, bordered panels, `[ up ]` tags |
 
-Decision recorded here once picked.
+Rejected and deleted: bento-with-glow (B), casa glass (C).
+
+Implementation note: design tokens (CSS vars → Tailwind theme) shared across all themes; layout renderer is the only per-theme component. Token structure must be decided in Phase 0 so alternates stay cheap.
 
 ## 8. Roadmap
 
-### Phase 0 — Foundation
-- [ ] Monorepo scaffold, LICENSE (MIT), README, .gitignore, AGENTS.md
-- [ ] `openapi.yaml` stub → generated TS client pipeline
-- [ ] CI: `go build`, `go vet`, `tsc --noEmit`, oxlint + vendored anti-slop rules
-- [ ] `docker compose up` runs the app
-
-### Phase 1 — MVP
-- [ ] Schema + goose migrations; section/item/URL CRUD
-- [ ] Board UI: sections, cards, collapse, drag-drop ordering (persist position)
-- [ ] Multi-URL popover; icon URL + upload
-- [ ] Add/Edit dialogs; delete with confirm
-- [ ] Dark/light; responsive to phone width
-- [ ] Single-image Dockerfile; JSON export/import
-
-### Phase 2 — Widgets
-- [ ] Widget registry (Go) + `WidgetHost` (React)
-- [ ] Clock/timezone widget (frontend-only)
-- [ ] Pi-hole, AdGuard Home, Immich fetchers + per-widget config UI
-- [ ] Service up/down ping (server-side HEAD, cached)
-
-### Phase 3 — Open-source readiness
-- [ ] Docs (install, config, widget dev guide), screenshots, demo GIF
-- [ ] dashboard-icons auto-suggest in icon picker
-- [ ] Importers: Homepage `services.yml`, Homarr JSON, Dashy `conf.yml`
-- [ ] ⌘K search palette; i18n scaffolding
-- [ ] goreleaser (binaries) + GHCR image + semver tags + CHANGELOG
-- [ ] Issue/PR templates, CONTRIBUTING.md, code of conduct
-
-### Phase 4 — Post-1.0 (demand-driven only)
-- Optional auth (local + OIDC), health-history graphs, custom CSS/themes, iframe widgets, PWA, wallpaper support for direction A
+Canonical roadmap lives in [`ROADMAP.md`](../../ROADMAP.md) at repo root — single source of truth, kept versioned with the code.
 
 ### Explicit non-goals for v1
 Auth, Postgres, multi-user, mobile app, container management, YAML-as-source-of-truth.
