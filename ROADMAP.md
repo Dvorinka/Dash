@@ -9,20 +9,21 @@ Stack: **Go + Gin + SQLite** (single static binary, embeds frontend) · **React 
 
 ## Design system
 
-Primary renderer: **Bento Mono** (`mockups/d-bento-mono.html`) — bento grid on a
-monochrome zinc palette, Geist + Geist Mono, hairline borders, semantic status
-color only.
+Multiple board styles are a core feature: same system, same functionality,
+different UI structure per style. A **renderer** supplies the layout; board
+state, drag-drop, popovers, and dialogs are shared primitives underneath.
 
-Alternate view themes ship post-MVP on the same data model (Phase 3.5):
-
-| Theme | Source mockup | Character |
+| Renderer | Source mockup | Ships |
 |---|---|---|
-| Bento Mono (default) | `d-bento-mono.html` | mixed-size grid, widgets inline |
-| Mono Cards | `a-vercel-mono.html` | uniform card grid, quietest |
-| Index | `e-editorial.html` | serif headers, list rows, stat strip |
-| Console | `f-console.html` | terminal panels, `[ up ]` tags |
+| Bento (default) | `d-bento-mono.html` | v0.1.0 — mixed-size grid, widgets inline |
+| Cards | `a-vercel-mono.html` | v0.1.0 — uniform compact grid; validates the seam early |
+| Index | `e-editorial.html` | v0.3.0 — serif headers, list rows, stat strip |
+| Console | `f-console.html` | v0.3.0 — terminal panels, `[ up ]` tags |
 
-Rule: themes change the renderer, never the data or the interactions.
+Contract: `renderers/<name>/{BoardView, SectionView, ItemView, WidgetView}`.
+Tokens (`--bg`, `--surface`, `--border`, …) shared; dark/light is orthogonal.
+User picks renderer in settings; persisted. Renderers never reimplement dnd
+or popover logic.
 
 ---
 
@@ -59,13 +60,15 @@ The product's spine: sections, services, drag-drop, multi-URL.
 
 - [ ] Schema: `sections`, `items`, `urls`, `settings` (fractional `position REAL` ordering)
 - [ ] REST API: CRUD for sections/items/urls, `reorder` endpoints, icon upload, `settings`, `export`/`import` JSON
-- [ ] Board UI (Bento Mono): section headers (label, count, hairline, chevron), service tiles (icon, name, host, status chip)
+- [ ] Renderer contract: shared board store + `BoardView`/`SectionView`/`ItemView`/`WidgetView` seam, dnd + popover as shared primitives
+- [ ] **Bento** renderer (default): mixed-size grid, hairline section headers, tiles with status chips
+- [ ] **Cards** renderer: uniform compact grid — second renderer proves the seam while code is small
 - [ ] dnd-kit: reorder items in a section, move items between sections, reorder sections; persist on drop
 - [ ] Collapse/expand sections (persisted)
 - [ ] `UrlPopover`: 1 URL → direct open, 2+ → chooser (`local`/`external`/custom tags)
 - [ ] `AddServiceDialog` / `EditServiceDialog` (name, URLs+labels, icon URL or file upload)
 - [ ] Icon handling: upload to `data/icons/`, remote URL passthrough, letter-tile fallback
-- [ ] Dark/light toggle (persisted), responsive to ~360px
+- [ ] Dark/light toggle (persisted), renderer picker in settings, responsive to ~360px
 - [ ] Status ping: server-side HEAD request per service URL, cached ~60s → `up`/`down` chip
 
 **Exit:** create sections, add services with icons and dual URLs, drag everything, reload — state persists. `docker run` single image works. Export/import round-trips.
@@ -84,11 +87,12 @@ The product's spine: sections, services, drag-drop, multi-URL.
 
 **Exit:** Pi-hole widget shows real data; adding a new integration = one Go file + one React component.
 
-## Phase 3 — Themes & ergonomics → v0.3.0
+## Phase 3 — Renderers & ergonomics → v0.3.0
 
-- [ ] Theme token layer finalized; view-theme switcher in settings
-- [ ] Alternate renderers: Mono Cards, Index, Console
-- [ ] ⌘K command palette: jump to service, add service, toggle theme
+- [ ] **Index** renderer: serif section headers, full-width rows, masthead stat strip
+- [ ] **Console** renderer: bordered panels/tables, JetBrains Mono, `[ up ]` tags
+- [ ] Renderer switcher polished (instant swap, per-renderer preview in settings)
+- [ ] ⌘K command palette: jump to service, add service, toggle theme, switch renderer
 - [ ] dashboard-icons auto-suggest in icon picker (name → icon URL)
 - [ ] User services list → prioritized widget backlog (owner-supplied list pending)
 

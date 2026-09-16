@@ -86,21 +86,40 @@ Frontend never hand-writes API types — generated client from `openapi.yaml`.
 - `CommandPalette` (⌘K) — Phase 3
 - dnd-kit `DndContext` at board level; sections and items both sortable
 
-## 7. UI direction — DECIDED 2026-09-16
+## 7. UI system — DECIDED 2026-09-16
 
-**Primary: `d-bento-mono.html`** — bento grid on the monochrome zinc palette. Geist + Geist Mono, hairline borders, no glow, status chips carry the only color (green/amber semantic).
+**The app ships multiple layouts, not one.** Same board state, same interactions (drag-drop, collapse, URL popover, add/edit), different structure per style. This is a core feature, not a theme afterthought.
 
-**Alternate view themes** (same data model, different renderers — post-MVP theme system):
+**Primary renderer: `d-bento-mono.html`** — bento grid on the monochrome zinc palette. Geist + Geist Mono, hairline borders, no glow, status chips carry the only color (green/amber semantic).
 
-| Mockup | Theme | Character |
+**Full renderer set:**
+
+| Renderer | Source mockup | Structure |
 |---|---|---|
-| `a-vercel-mono.html` | Mono Cards | uniform card grid, quietest |
-| `e-editorial.html` | Index | serif headers, full-width rows, stat strip |
-| `f-console.html` | Console | JetBrains Mono, bordered panels, `[ up ]` tags |
+| Bento (default) | `d-bento-mono.html` | mixed-size grid, widgets inline as large tiles |
+| Cards | `a-vercel-mono.html` | uniform compact card grid, widgets as cards |
+| Index | `e-editorial.html` | serif section headers, full-width rows, masthead stat strip |
+| Console | `f-console.html` | bordered panels/tables, JetBrains Mono, `[ up ]` tags |
 
 Rejected and deleted: bento-with-glow (B), casa glass (C).
 
-Implementation note: design tokens (CSS vars → Tailwind theme) shared across all themes; layout renderer is the only per-theme component. Token structure must be decided in Phase 0 so alternates stay cheap.
+### Renderer contract (architectural requirement)
+
+```
+renderers/
+  <name>/
+    BoardView      (grid/list arrangement, section placement)
+    SectionView    (header chrome: label, count, collapse, drag handle)
+    ItemView       (tile/card/row anatomy: icon, name, host, status, popover anchor)
+    WidgetView     (widget tile/panel/strip-cell anatomy)
+```
+
+- Board state (sections, items, order, collapse) lives in one store, renderer-agnostic.
+- Interactions (dnd-kit, popover, dialogs) are provided by shared primitives the renderer composes — renderers never reimplement dnd or popover logic.
+- Design tokens (`--bg`, `--surface`, `--border`, `--text`, …) are shared CSS vars; each renderer maps them to its own chrome. Dark/light stays orthogonal to renderer choice.
+- Setting: `settings.renderer` — user picks layout in settings; persisted like theme.
+
+Building the second renderer (Cards) inside Phase 1 is deliberate: it validates the seam while the code is still small.
 
 ## 8. Roadmap
 
