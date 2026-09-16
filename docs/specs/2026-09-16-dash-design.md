@@ -88,15 +88,18 @@ Frontend never hand-writes API types — generated client from `openapi.yaml`.
 
 ## 7. UI direction — pending
 
-Three static mockups in `mockups/` — open each, compare:
+Static mockups in `mockups/` — open each, compare. Round 1 shortlist: A + B. C rejected (glass/wallpaper is not the target look).
 
 | File | Direction | Character |
 |---|---|---|
 | `a-vercel-mono.html` | Flat monochrome | Geist, hairlines, no shadows, quietest |
-| `b-command-bento.html` | Bento grid | mixed tile sizes, widgets inline, densest |
-| `c-casa-glass.html` | Glass + wallpaper | homescreen tiles, warmest, most motion |
+| `b-command-bento.html` | Bento grid | mixed tile sizes, widgets inline, densest; bg glow disliked |
+| ~~`c-casa-glass.html`~~ | ~~Glass + wallpaper~~ | rejected |
+| `d-bento-mono.html` | Bento + mono palette | B's grid on A's zinc palette, no glow — direct merge of the two favorites |
+| `e-editorial.html` | List paradigm | serif index headers, full-width rows, stat strip — no cards |
+| `f-console.html` | Terminal | JetBrains Mono, bordered panels, `[ up ]` tags, prompt glyphs |
 
-Decision recorded here once picked. A and C share card anatomy — hybrid (mono base + optional wallpaper) is cheap later.
+Decision recorded here once picked.
 
 ## 8. Roadmap
 
