@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dash — C · Casa Glass</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/plus-jakarta-sans@latest/index.css">
+<style>
+  :root { --spring: cubic-bezier(0.32, 0.72, 0, 1); }
+  [data-theme="dark"] {
+    --wall:
+      radial-gradient(1000px 700px at 15% -10%, rgba(99,102,241,0.55), transparent 60%),
+      radial-gradient(900px 600px at 85% 10%, rgba(16,185,129,0.35), transparent 55%),
+      radial-gradient(800px 900px at 50% 110%, rgba(168,85,247,0.4), transparent 60%),
+      linear-gradient(180deg, #0b0d1a, #101223);
+    --glass: rgba(255,255,255,0.07);
+    --glass-strong: rgba(255,255,255,0.11);
+    --glass-border: rgba(255,255,255,0.13);
+    --glass-border-hi: rgba(255,255,255,0.25);
+    --inner-hi: inset 0 1px 0 rgba(255,255,255,0.12);
+    --text: #f4f5fa;
+    --text-dim: rgba(235,238,250,0.72);
+    --text-faint: rgba(235,238,250,0.45);
+    --up: #4ade80;
+    --down: #fbbf24;
+    --icon-bg: rgba(255,255,255,0.12);
+    --popover: rgba(22,24,40,0.82);
+    --shadow: 0 12px 40px rgba(0,0,0,0.35);
+  }
+  [data-theme="light"] {
+    --wall:
+      radial-gradient(1000px 700px at 15% -10%, rgba(147,197,253,0.7), transparent 60%),
+      radial-gradient(900px 600px at 85% 10%, rgba(167,243,208,0.7), transparent 55%),
+      radial-gradient(800px 900px at 50% 110%, rgba(216,180,254,0.7), transparent 60%),
+      linear-gradient(180deg, #eef1fb, #f6f3fc);
+    --glass: rgba(255,255,255,0.45);
+    --glass-strong: rgba(255,255,255,0.62);
+    --glass-border: rgba(255,255,255,0.65);
+    --glass-border-hi: rgba(255,255,255,0.9);
+    --inner-hi: inset 0 1px 0 rgba(255,255,255,0.7);
+    --text: #1a1c2e;
+    --text-dim: rgba(26,28,46,0.7);
+    --text-faint: rgba(26,28,46,0.45);
+    --up: #16a34a;
+    --down: #d97706;
+    --icon-bg: rgba(255,255,255,0.55);
+    --popover: rgba(255,255,255,0.85);
+    --shadow: 0 12px 40px rgba(60,60,120,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    color: var(--text); min-height: 100dvh;
+    transition: color 200ms var(--spring);
+  }
+  .wall { position: fixed; inset: 0; z-index: -1; background: var(--wall); }
+  .wall::after { /* subtle grain */
+    content: ""; position: absolute; inset: 0; opacity: 0.04; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------- floating glass bar ---------- */
+  .topbar {
+    position: sticky; top: 14px; z-index: 10;
+    display: flex; align-items: center; gap: 12px;
+    margin: 14px auto 0; max-width: 1080px;
+    padding: 10px 16px;
+    background: var(--glass);
+    backdrop-filter: blur(24px) saturate(1.5);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    box-shadow: var(--inner-hi), var(--shadow);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .brand .mark { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--glass-strong); border: 1px solid var(--glass-border); box-shadow: var(--inner-hi); }
+  .search {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    width: 210px; padding: 8px 12px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 999px; color: var(--text-faint); font-size: 13px;
+    box-shadow: var(--inner-hi);
+  }
+  .pillbtn {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    height: 36px; border-radius: 999px; border: 1px solid var(--glass-border);
+    background: var(--glass); color: var(--text-dim);
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; padding: 0 12px; box-shadow: var(--inner-hi);
+    transition: background 200ms var(--spring), color 200ms var(--spring), transform 120ms var(--spring);
+  }
+  .pillbtn.icon { width: 36px; padding: 0; }
+  .pillbtn:hover { background: var(--glass-strong); color: var(--text); }
+  .pillbtn:active { transform: scale(0.96); }
+  .pillbtn.primary { background: var(--text); color: var(--popover); border: none; padding: 0 16px; }
+
+  /* ---------- hero ---------- */
+  main { max-width: 1080px; margin: 0 auto; padding: 40px 24px 100px; }
+  .hero {
+    padding: 34px 38px; margin-bottom: 34px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 28px; box-shadow: var(--inner-hi), var(--shadow);
+    display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap;
+  }
+  .hero .greet { font-size: 15px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; }
+  .hero .clock { font-size: 58px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .hero .date { font-size: 14px; color: var(--text-faint); margin-top: 8px; font-weight: 500; }
+  .hero .zones { margin-left: auto; display: flex; gap: 10px; }
+  .zone {
+    padding: 10px 16px; border-radius: 16px; text-align: center;
+    background: var(--glass); border: 1px solid var(--glass-border); box-shadow: var(--inner-hi);
+  }
+  .zone .zname { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-faint); }
+  .zone .ztime { font-size: 17px; font-weight: 700; margin-top: 3px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- section trays (double bezel) ---------- */
+  .tray {
+    padding: 10px; margin-bottom: 26px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: 26px; box-shadow: var(--inner-hi), var(--shadow);
+  }
+  .tray-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px 12px; cursor: pointer; user-select: none;
+  }
+  .tray-head h2 { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; }
+  .tray-head .count { font-size: 11px; font-weight: 600; color: var(--text-faint); background: var(--glass); border: 1px solid var(--glass-border); padding: 2px 8px; border-radius: 999px; }
+  .tray-head .chev { margin-left: auto; color: var(--text-faint); transition: transform 250ms var(--spring); }
+  .tray.closed .chev { transform: rotate(-90deg); }
+  .tray-body {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px;
+    background: rgba(0,0,0,0.12);
+    border-radius: 18px; padding: 12px;
+  }
+  [data-theme="light"] .tray-body { background: rgba(255,255,255,0.4); }
+  .tray.closed .tray-body { display: none; }
+
+  /* ---------- app tile (homescreen) ---------- */
+  .tile {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 18px 10px 14px;
+    border-radius: 16px;
+    border: 1px solid transparent;
+    cursor: grab; text-align: center;
+    transition: background 250ms var(--spring), border-color 250ms var(--spring), transform 250ms var(--spring);
+  }
+  .tile:hover { background: var(--glass); border-color: var(--glass-border); transform: translateY(-3px); }
+  .tile:active { transform: scale(0.96); }
+  .tile.dragging { opacity: 0.35; }
+
+  .icon {
+    position: relative;
+    width: 56px; height: 56px; border-radius: 16px;
+    background: var(--icon-bg); border: 1px solid var(--glass-border);
+    box-shadow: var(--inner-hi), 0 6px 18px rgba(0,0,0,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 800; color: var(--text-dim);
+    overflow: hidden;
+    transition: transform 250ms var(--spring);
+  }
+  .tile:hover .icon { transform: scale(1.06); }
+  .icon::before { content: attr(data-letter); }
+  .icon img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 8px; background: var(--icon-bg); }
+
+  .tile .name { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .tile .meta { display: flex; align-items: center; gap: 6px; margin-top: -4px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--up); box-shadow: 0 0 8px var(--up); }
+  .dot.down { background: var(--down); box-shadow: 0 0 8px var(--down); }
+  .multi { font-size: 9.5px; font-weight: 700; color: var(--text-faint); background: var(--glass); border: 1px solid var(--glass-border); border-radius: 999px; padding: 1px 6px; }
+
+  /* ---------- widget strip ---------- */
+  .wstrip { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .widget {
+    padding: 18px 20px; border-radius: 20px;
+    background: var(--glass); border: 1px solid var(--glass-border);
+    box-shadow: var(--inner-hi);
+  }
+  .wlabel { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-faint); display: flex; align-items: center; gap: 7px; }
+  .wlabel img { width: 14px; height: 14px; }
+  .stat { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .stat-sub { font-size: 11.5px; color: var(--text-faint); margin-top: 3px; font-weight: 500; }
+
+  /* ---------- url popover ---------- */
+  .urlpop {
+    position: absolute; top: calc(100% + 8px); left: 50%; z-index: 20;
+    transform: translateX(-50%) translateY(-4px) scale(0.97);
+    min-width: 220px; padding: 6px;
+    background: var(--popover);
+    backdrop-filter: blur(28px) saturate(1.5);
+    -webkit-backdrop-filter: blur(28px) saturate(1.5);
+    border: 1px solid var(--glass-border-hi);
+    border-radius: 16px;
+    box-shadow: var(--inner-hi), 0 16px 50px rgba(0,0,0,0.4);
+    opacity: 0; pointer-events: none;
+    transition: opacity 200ms var(--spring), transform 200ms var(--spring);
+  }
+  .tile.open .urlpop { opacity: 1; transform: translateX(-50%); pointer-events: auto; }
+  .urlpop a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 11px; border-radius: 10px;
+    color: var(--text); text-decoration: none; font-size: 13px; font-weight: 600;
+  }
+  .urlpop a:hover { background: var(--glass); }
+  .urlpop .tag {
+    flex: none; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em;
+    padding: 3px 7px; border-radius: 999px;
+    background: var(--glass); border: 1px solid var(--glass-border); color: var(--text-dim);
+  }
+  .urlpop .u { font-size: 11px; color: var(--text-faint); margin-left: auto; }
+
+  .edit-hint { color: var(--text-faint); font-size: 12px; text-align: center; margin-top: 30px; }
+
+  @media (max-width: 720px) {
+    .topbar { margin: 10px 12px 0; padding: 8px 12px; }
+    .search { display: none; }
+    main { padding: 26px 14px 80px; }
+    .hero { padding: 26px 22px; } .hero .clock { font-size: 42px; }
+    .hero .zones { margin-left: 0; }
+    .tray-body { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+    .icon { width: 48px; height: 48px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="wall"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark"><svg width="13" height="13" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="7" height="7" rx="2" fill="currentColor"/><rect x="10" y="1" width="7" height="7" rx="2" fill="currentColor" opacity=".5"/><rect x="1" y="10" width="7" height="7" rx="2" fill="currentColor" opacity=".5"/><rect x="10" y="10" width="7" height="7" rx="2" fill="currentColor"/></svg></span>
+    Dash
+  </div>
+  <div class="search">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    Search services
+  </div>
+  <button class="pillbtn icon" id="theme" aria-label="Toggle theme">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+  </button>
+  <button class="pillbtn primary">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+    Add service
+  </button>
+</header>
+
+<main>
+  <div class="hero">
+    <div>
+      <div class="greet" id="greet">Good evening</div>
+      <div class="clock" id="clock">--:--</div>
+      <div class="date" id="date"></div>
+    </div>
+    <div class="zones">
+      <div class="zone"><div class="zname">Prague</div><div class="ztime" id="tz1">--:--</div></div>
+      <div class="zone"><div class="zname">New York</div><div class="ztime" id="tz2">--:--</div></div>
+      <div class="zone"><div class="zname">Tokyo</div><div class="ztime" id="tz3">--:--</div></div>
+    </div>
+  </div>
+
+  <div class="tray" style="margin-bottom:26px">
+    <div class="tray-head"><h2>Widgets</h2><span class="count">4</span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="tray-body" style="display:block">
+      <div class="wstrip">
+        <div class="widget">
+          <div class="wlabel"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/pi-hole.png" alt="" onerror="this.remove()">Pi-hole</div>
+          <div class="stat">24.6%</div>
+          <div class="stat-sub">ads blocked today · 84,213 queries</div>
+        </div>
+        <div class="widget">
+          <div class="wlabel"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/adguard-home.png" alt="" onerror="this.remove()">AdGuard Home</div>
+          <div class="stat">11.2%</div>
+          <div class="stat-sub">blocked · 31 clients online</div>
+        </div>
+        <div class="widget">
+          <div class="wlabel"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/immich.png" alt="" onerror="this.remove()">Immich</div>
+          <div class="stat">12,483</div>
+          <div class="stat-sub">photos · 96.4 GB library</div>
+        </div>
+        <div class="widget">
+          <div class="wlabel"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/truenas.png" alt="" onerror="this.remove()">Storage</div>
+          <div class="stat">61%</div>
+          <div class="stat-sub">14.2 of 23.2 TB used</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tray">
+    <div class="tray-head"><h2>Network</h2><span class="count">4</span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="tray-body">
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.2/admin"},{"tag":"External","u":"https://pihole.tdvorak.dev"}]'>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/pi-hole.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Pi-hole</div>
+        <div class="meta"><span class="dot"></span><span class="multi">2 URLs</span></div>
+        <div class="urlpop"></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.3:3000"}]'>
+        <div class="icon" data-letter="A"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/adguard-home.png" alt="" onerror="this.remove()"></div>
+        <div class="name">AdGuard Home</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.2:81"},{"tag":"External","u":"https://npm.tdvorak.dev"}]'>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/nginx-proxy-manager.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Nginx Proxy Mgr</div>
+        <div class="meta"><span class="dot"></span><span class="multi">2 URLs</span></div>
+        <div class="urlpop"></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.5:3001"},{"tag":"External","u":"https://status.tdvorak.dev"}]'>
+        <div class="icon" data-letter="U"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/uptime-kuma.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Uptime Kuma</div>
+        <div class="meta"><span class="dot"></span><span class="multi">2 URLs</span></div>
+        <div class="urlpop"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tray">
+    <div class="tray-head"><h2>Media</h2><span class="count">6</span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="tray-body">
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8096"},{"tag":"External","u":"https://watch.tdvorak.dev"}]'>
+        <div class="icon" data-letter="J"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/jellyfin.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Jellyfin</div>
+        <div class="meta"><span class="dot"></span><span class="multi">2 URLs</span></div>
+        <div class="urlpop"></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:2283"},{"tag":"External","u":"https://photos.tdvorak.dev"}]'>
+        <div class="icon" data-letter="I"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/immich.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Immich</div>
+        <div class="meta"><span class="dot"></span><span class="multi">2 URLs</span></div>
+        <div class="urlpop"></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:4533"}]'>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/navidrome.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Navidrome</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8080"}]'>
+        <div class="icon" data-letter="q"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/qbittorrent.png" alt="" onerror="this.remove()"></div>
+        <div class="name">qBittorrent</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8989"}]'>
+        <div class="icon" data-letter="S"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/sonarr.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Sonarr</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:7878"}]'>
+        <div class="icon" data-letter="R"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/radarr.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Radarr</div>
+        <div class="meta"><span class="dot down"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tray">
+    <div class="tray-head"><h2>Infrastructure</h2><span class="count">7</span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="tray-body">
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"https://10.0.0.4:8006"}]'>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/proxmox.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Proxmox</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.4:9000"}]'>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/portainer.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Portainer</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.6"},{"tag":"External","u":"https://nas.tdvorak.dev"}]'>
+        <div class="icon" data-letter="T"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/truenas.png" alt="" onerror="this.remove()"></div>
+        <div class="name">TrueNAS</div>
+        <div class="meta"><span class="dot"></span><span class="multi">2 URLs</span></div>
+        <div class="urlpop"></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.4:3100"}]'>
+        <div class="icon" data-letter="G"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/grafana.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Grafana</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"External","u":"https://vault.tdvorak.dev"}]'>
+        <div class="icon" data-letter="V"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/vaultwarden.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Vaultwarden</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.7:8123"},{"tag":"External","u":"https://home.tdvorak.dev"}]'>
+        <div class="icon" data-letter="H"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/home-assistant.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Home Assistant</div>
+        <div class="meta"><span class="dot"></span><span class="multi">2 URLs</span></div>
+        <div class="urlpop"></div>
+      </div>
+      <div class="tile" draggable="true" data-urls='[{"tag":"External","u":"https://cloud.tdvorak.dev"}]'>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/nextcloud.png" alt="" onerror="this.remove()"></div>
+        <div class="name">Nextcloud</div>
+        <div class="meta"><span class="dot"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="edit-hint">Mockup C — Casa Glass. Wallpaper + glass trays + homescreen tiles. Click a “2 URLs” tile for the chooser. Trays collapse.</p>
+</main>
+
+<script>
+  document.getElementById('theme').onclick = () => {
+    const h = document.documentElement;
+    h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+  };
+
+  const fmt = (tz) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+  function tick() {
+    const n = new Date();
+    document.getElementById('clock').textContent = fmt().format(n);
+    document.getElementById('tz1').textContent = fmt('Europe/Prague').format(n);
+    document.getElementById('tz2').textContent = fmt('America/New_York').format(n);
+    document.getElementById('tz3').textContent = fmt('Asia/Tokyo').format(n);
+    document.getElementById('date').textContent = n.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const h = n.getHours();
+    document.getElementById('greet').textContent = h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  }
+  tick(); setInterval(tick, 10000);
+
+  document.querySelectorAll('.tray-head').forEach(h =>
+    h.addEventListener('click', () => h.parentElement.classList.toggle('closed')));
+
+  document.querySelectorAll('.tile[data-urls]').forEach(card => {
+    const urls = JSON.parse(card.dataset.urls);
+    if (urls.length < 2) return;
+    const pop = card.querySelector('.urlpop');
+    pop.innerHTML = urls.map(x => `<a href="#" onclick="return false"><span class="tag">${x.tag}</span>${new URL(x.u).hostname}<span class="u">↗</span></a>`).join('');
+    card.addEventListener('click', e => {
+      if (card.classList.contains('dragging')) return;
+      document.querySelectorAll('.tile.open').forEach(c => c !== card && c.classList.remove('open'));
+      card.classList.toggle('open');
+      e.stopPropagation();
+    });
+  });
+  document.addEventListener('click', () => document.querySelectorAll('.tile.open').forEach(c => c.classList.remove('open')));
+
+  let dragEl = null;
+  document.querySelectorAll('.tile').forEach(card => {
+    card.addEventListener('dragstart', () => { dragEl = card; setTimeout(() => card.classList.add('dragging')); });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (card === dragEl) return;
+      const r = card.getBoundingClientRect();
+      const before = e.clientX < r.left + r.width / 2;
+      card.parentElement.insertBefore(dragEl, before ? card : card.nextSibling);
+    });
+  });
+  document.querySelectorAll('.tray-body').forEach(b => b.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (dragEl && e.target === b) b.appendChild(dragEl);
+  }));
+</script>
+</body>
+</html>

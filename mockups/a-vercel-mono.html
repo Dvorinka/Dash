@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dash — A · Vercel Mono</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/geist@latest/index.css">
+<style>
+  :root {
+    --ease: cubic-bezier(0.2, 0, 0, 1);
+  }
+  [data-theme="dark"] {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface-hover: #161616;
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #fafafa;
+    --text-dim: #a1a1aa;
+    --text-faint: #52525b;
+    --accent: #3b82f6;
+    --up: #22c55e;
+    --down: #f59e0b;
+    --icon-bg: #1c1c1e;
+    --popover: #141414;
+  }
+  [data-theme="light"] {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --surface-hover: #f4f4f5;
+    --border: rgba(0,0,0,0.08);
+    --border-strong: rgba(0,0,0,0.16);
+    --text: #09090b;
+    --text-dim: #52525b;
+    --text-faint: #a1a1aa;
+    --accent: #2563eb;
+    --up: #16a34a;
+    --down: #d97706;
+    --icon-bg: #f4f4f5;
+    --popover: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    transition: background 200ms var(--ease), color 200ms var(--ease);
+  }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 32px;
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; }
+  .brand svg { display: block; }
+  .search {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    width: 240px; padding: 7px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-faint); font-size: 13px;
+  }
+  .search kbd {
+    margin-left: auto; font-family: inherit; font-size: 11px;
+    padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text-faint);
+  }
+  .iconbtn, .addbtn {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    height: 34px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text-dim);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; padding: 0 10px;
+    transition: color 150ms var(--ease), border-color 150ms var(--ease), transform 100ms var(--ease);
+  }
+  .iconbtn { width: 34px; padding: 0; }
+  .iconbtn:hover, .addbtn:hover { color: var(--text); border-color: var(--border-strong); }
+  .iconbtn:active, .addbtn:active { transform: scale(0.96); }
+  .addbtn.primary { background: var(--text); color: var(--bg); border-color: transparent; padding: 0 14px; }
+
+  /* ---------- layout ---------- */
+  main { max-width: 1120px; margin: 0 auto; padding: 40px 32px 96px; }
+
+  .pagehead { display: flex; align-items: baseline; gap: 16px; margin-bottom: 36px; }
+  .pagehead h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+  .pagehead .meta { font-size: 13px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .pagehead .meta .dot { color: var(--up); }
+
+  section { margin-bottom: 40px; }
+  .sechead {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 4px; margin-bottom: 14px;
+    cursor: pointer; user-select: none;
+    color: var(--text-dim);
+  }
+  .sechead h2 {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .sechead .count { font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .sechead .chev { margin-left: auto; transition: transform 200ms var(--ease); color: var(--text-faint); }
+  section.closed .chev { transform: rotate(-90deg); }
+  .secbody { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; overflow: hidden; }
+  section.closed .secbody { display: none; }
+  .sechead .grip { color: var(--text-faint); cursor: grab; opacity: 0; transition: opacity 150ms var(--ease); }
+  .sechead:hover .grip { opacity: 1; }
+
+  /* ---------- service card ---------- */
+  .card {
+    position: relative;
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: grab;
+    transition: background 150ms var(--ease), border-color 150ms var(--ease), transform 100ms var(--ease), box-shadow 200ms var(--ease);
+  }
+  .card:hover { background: var(--surface-hover); border-color: var(--border-strong); }
+  .card:active { transform: scale(0.98); }
+  .card.dragging { opacity: 0.4; }
+  .card.drop-above { box-shadow: 0 -2px 0 var(--accent); }
+
+  .icon {
+    position: relative; flex: none;
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--icon-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; color: var(--text-dim);
+    overflow: hidden;
+  }
+  .icon::before { content: attr(data-letter); }
+  .icon img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 5px; background: var(--icon-bg); }
+
+  .card .txt { min-width: 0; }
+  .card .name { font-size: 13.5px; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .host { font-size: 11.5px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status { margin-left: auto; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--up); }
+  .status.down { background: var(--down); }
+  .multi { flex: none; font-size: 10px; color: var(--text-faint); border: 1px solid var(--border); border-radius: 4px; padding: 1px 4px; font-variant-numeric: tabular-nums; }
+
+  /* ---------- widgets ---------- */
+  .widget {
+    padding: 16px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .widget .wlabel { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-faint); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .widget .wlabel img { width: 13px; height: 13px; }
+  .clock { font-size: 26px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .zones { display: flex; gap: 14px; margin-top: 6px; font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .zones b { color: var(--text-dim); font-weight: 500; }
+  .stat { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .stat-sub { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+  /* ---------- url popover ---------- */
+  .urlpop {
+    position: absolute; top: calc(100% + 6px); left: 12px; z-index: 20;
+    min-width: 230px; padding: 5px;
+    background: var(--popover);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2);
+    opacity: 0; transform: translateY(-4px) scale(0.98);
+    pointer-events: none;
+    transition: opacity 150ms var(--ease), transform 150ms var(--ease);
+  }
+  .card.open .urlpop { opacity: 1; transform: none; pointer-events: auto; }
+  .urlpop a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px;
+    color: var(--text); text-decoration: none; font-size: 13px;
+  }
+  .urlpop a:hover { background: var(--surface-hover); }
+  .urlpop .tag {
+    flex: none; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 6px; border-radius: 4px;
+    background: var(--icon-bg); color: var(--text-dim);
+  }
+  .urlpop .u { color: var(--text-faint); font-size: 11.5px; margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  .edit-hint { color: var(--text-faint); font-size: 12px; text-align: center; margin-top: 24px; }
+
+  @media (max-width: 720px) {
+    .topbar { padding: 12px 16px; }
+    .search { display: none; }
+    main { padding: 24px 16px 80px; }
+    .secbody { grid-template-columns: 1fr 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="10" y="1" width="7" height="7" rx="1.5" fill="currentColor" opacity=".45"/><rect x="1" y="10" width="7" height="7" rx="1.5" fill="currentColor" opacity=".45"/><rect x="10" y="10" width="7" height="7" rx="1.5" fill="currentColor"/></svg>
+    Dash
+  </div>
+  <div class="search">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    Search services
+    <kbd>⌘K</kbd>
+  </div>
+  <button class="iconbtn" id="theme" aria-label="Toggle theme">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+  </button>
+  <button class="addbtn primary">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+    Add service
+  </button>
+</header>
+
+<main>
+  <div class="pagehead">
+    <h1>Overview</h1>
+    <span class="meta"><span class="dot">●</span> 17 services · <span id="hdate"></span></span>
+  </div>
+
+  <section data-open>
+    <div class="sechead">
+      <svg class="grip" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"/><circle cx="16" cy="6" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>
+      <h2>Network</h2><span class="count">4</span>
+      <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="secbody">
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.2/admin"},{"tag":"External","u":"https://pihole.tdvorak.dev"}]'>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/pi-hole.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Pi-hole</div><div class="host">10.0.0.2</div></div>
+        <span class="multi">2</span><span class="status"></span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.3:3000"}]'>
+        <div class="icon" data-letter="A"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/adguard-home.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">AdGuard Home</div><div class="host">10.0.0.3:3000</div></div>
+        <span class="status"></span>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.2:81"},{"tag":"External","u":"https://npm.tdvorak.dev"}]'>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/nginx-proxy-manager.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Nginx Proxy Mgr</div><div class="host">10.0.0.2:81</div></div>
+        <span class="multi">2</span><span class="status"></span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.5:3001"},{"tag":"External","u":"https://status.tdvorak.dev"}]'>
+        <div class="icon" data-letter="U"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/uptime-kuma.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Uptime Kuma</div><div class="host">status.tdvorak.dev</div></div>
+        <span class="multi">2</span><span class="status"></span>
+        <div class="urlpop"></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-open>
+    <div class="sechead">
+      <svg class="grip" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"/><circle cx="16" cy="6" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>
+      <h2>Media</h2><span class="count">6</span>
+      <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="secbody">
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8096"},{"tag":"External","u":"https://watch.tdvorak.dev"}]'>
+        <div class="icon" data-letter="J"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/jellyfin.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Jellyfin</div><div class="host">watch.tdvorak.dev</div></div>
+        <span class="multi">2</span><span class="status"></span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:2283"},{"tag":"External","u":"https://photos.tdvorak.dev"}]'>
+        <div class="icon" data-letter="I"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/immich.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Immich</div><div class="host">photos.tdvorak.dev</div></div>
+        <span class="multi">2</span><span class="status"></span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:4533"}]'>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/navidrome.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Navidrome</div><div class="host">10.0.0.10:4533</div></div>
+        <span class="status"></span>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8080"}]'>
+        <div class="icon" data-letter="q"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/qbittorrent.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">qBittorrent</div><div class="host">10.0.0.10:8080</div></div>
+        <span class="status"></span>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8989"}]'>
+        <div class="icon" data-letter="S"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/sonarr.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Sonarr</div><div class="host">10.0.0.10:8989</div></div>
+        <span class="status"></span>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:7878"}]'>
+        <div class="icon" data-letter="R"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/radarr.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Radarr</div><div class="host">10.0.0.10:7878</div></div>
+        <span class="status down"></span>
+      </div>
+    </div>
+  </section>
+
+  <section data-open>
+    <div class="sechead">
+      <svg class="grip" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"/><circle cx="16" cy="6" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>
+      <h2>Infrastructure</h2><span class="count">7</span>
+      <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="secbody">
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"https://10.0.0.4:8006"}]'>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/proxmox.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Proxmox</div><div class="host">10.0.0.4:8006</div></div>
+        <span class="status"></span>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.4:9000"}]'>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/portainer.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Portainer</div><div class="host">10.0.0.4:9000</div></div>
+        <span class="status"></span>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.6"},{"tag":"External","u":"https://nas.tdvorak.dev"}]'>
+        <div class="icon" data-letter="T"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/truenas.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">TrueNAS</div><div class="host">nas.tdvorak.dev</div></div>
+        <span class="multi">2</span><span class="status"></span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.4:3100"}]'>
+        <div class="icon" data-letter="G"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/grafana.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Grafana</div><div class="host">10.0.0.4:3100</div></div>
+        <span class="status"></span>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"External","u":"https://vault.tdvorak.dev"}]'>
+        <div class="icon" data-letter="V"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/vaultwarden.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Vaultwarden</div><div class="host">vault.tdvorak.dev</div></div>
+        <span class="status"></span>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.7:8123"},{"tag":"External","u":"https://home.tdvorak.dev"}]'>
+        <div class="icon" data-letter="H"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/home-assistant.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Home Assistant</div><div class="host">home.tdvorak.dev</div></div>
+        <span class="multi">2</span><span class="status"></span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="card" draggable="true" data-urls='[{"tag":"External","u":"https://cloud.tdvorak.dev"}]'>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/nextcloud.png" alt="" onerror="this.remove()"></div>
+        <div class="txt"><div class="name">Nextcloud</div><div class="host">cloud.tdvorak.dev</div></div>
+        <span class="status"></span>
+      </div>
+    </div>
+  </section>
+
+  <section data-open>
+    <div class="sechead">
+      <svg class="grip" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"/><circle cx="16" cy="6" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>
+      <h2>Widgets</h2><span class="count">4</span>
+      <svg class="chev" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="secbody" style="grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));">
+      <div class="widget">
+        <div class="wlabel">Time</div>
+        <div class="clock" id="clock">--:--</div>
+        <div class="zones"><span><b>PRG</b> <span id="tz1"></span></span><span><b>NYC</b> <span id="tz2"></span></span><span><b>TYO</b> <span id="tz3"></span></span></div>
+      </div>
+      <div class="widget">
+        <div class="wlabel"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/pi-hole.png" alt="" onerror="this.remove()">Pi-hole</div>
+        <div class="stat">24.6%</div>
+        <div class="stat-sub">ads blocked · 84,213 queries</div>
+      </div>
+      <div class="widget">
+        <div class="wlabel"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/adguard-home.png" alt="" onerror="this.remove()">AdGuard</div>
+        <div class="stat">11.2%</div>
+        <div class="stat-sub">blocked · 31 clients</div>
+      </div>
+      <div class="widget">
+        <div class="wlabel"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/immich.png" alt="" onerror="this.remove()">Immich</div>
+        <div class="stat">12,483</div>
+        <div class="stat-sub">photos · 96.4 GB</div>
+      </div>
+    </div>
+  </section>
+
+  <p class="edit-hint">Mockup A — Vercel Mono. Drag cards to reorder. Click a card with a “2” badge to see the URL chooser.</p>
+</main>
+
+<script>
+  // theme
+  document.getElementById('theme').onclick = () => {
+    const h = document.documentElement;
+    h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+  };
+
+  // clock
+  const fmt = (tz) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+  function tick() {
+    document.getElementById('clock').textContent = fmt().format(new Date());
+    document.getElementById('tz1').textContent = fmt('Europe/Prague').format(new Date());
+    document.getElementById('tz2').textContent = fmt('America/New_York').format(new Date());
+    document.getElementById('tz3').textContent = fmt('Asia/Tokyo').format(new Date());
+    document.getElementById('hdate').textContent = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  tick(); setInterval(tick, 10000);
+
+  // collapse sections
+  document.querySelectorAll('.sechead').forEach(h =>
+    h.addEventListener('click', () => h.parentElement.classList.toggle('closed')));
+
+  // multi-URL popover
+  document.querySelectorAll('.card[data-urls]').forEach(card => {
+    const urls = JSON.parse(card.dataset.urls);
+    if (urls.length < 2) { card.addEventListener('click', () => {}); return; }
+    const pop = card.querySelector('.urlpop');
+    pop.innerHTML = urls.map(x => `<a href="#" onclick="return false"><span class="tag">${x.tag}</span>${new URL(x.u).hostname}<span class="u">↗</span></a>`).join('');
+    card.addEventListener('click', e => {
+      if (card.classList.contains('dragging')) return;
+      document.querySelectorAll('.card.open').forEach(c => c !== card && c.classList.remove('open'));
+      card.classList.toggle('open');
+      e.stopPropagation();
+    });
+  });
+  document.addEventListener('click', () => document.querySelectorAll('.card.open').forEach(c => c.classList.remove('open')));
+
+  // drag reorder (native, mockup-grade — real build uses dnd-kit)
+  let dragEl = null;
+  document.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('dragstart', () => { dragEl = card; setTimeout(() => card.classList.add('dragging')); });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); document.querySelectorAll('.drop-above').forEach(c => c.classList.remove('drop-above')); });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (card === dragEl) return;
+      const body = card.parentElement;
+      const r = card.getBoundingClientRect();
+      const before = e.clientX < r.left + r.width / 2;
+      body.insertBefore(dragEl, before ? card : card.nextSibling);
+    });
+  });
+  document.querySelectorAll('.secbody').forEach(b => b.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (dragEl && !b.contains(dragEl) && e.target === b) b.appendChild(dragEl);
+  }));
+</script>
+</body>
+</html>
