@@ -45,10 +45,11 @@ export function Board({ onEditItem }: { onEditItem: (item: Item) => void }) {
 			<BoardDnd>
 				<SectionSortList ids={board.sections.map((s) => s.id)}>
 					<views.BoardView>
-						{board.sections.map((sec) => (
+						{board.sections.map((sec, si) => (
 							<views.SectionView
 								key={sec.id}
 								section={sec}
+								index={si}
 								onToggle={() => void board.patchSection(sec.id, { collapsed: !sec.collapsed })}
 								onDelete={() => {
 									if (window.confirm(`Delete section "${sec.name}" and its ${sec.items.length} items?`)) {
@@ -57,13 +58,14 @@ export function Board({ onEditItem }: { onEditItem: (item: Item) => void }) {
 								}}
 							>
 								<ItemSortZone section={sec} className={views.itemsGridClass}>
-									{sec.items.map((it) =>
+									{sec.items.map((it, ii) =>
 										it.kind === "widget" ? (
-											<views.WidgetView key={it.id} item={it} sectionId={sec.id} onEdit={() => onEditItem(it)} />
+											<views.WidgetView key={it.id} item={it} index={ii} sectionId={sec.id} onEdit={() => onEditItem(it)} />
 										) : (
 											<views.ItemView
 												key={it.id}
 												item={it}
+												index={ii}
 												sectionId={sec.id}
 												status={board.statuses[it.id]}
 												onEdit={() => onEditItem(it)}

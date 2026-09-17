@@ -87,16 +87,16 @@ The product's spine: sections, services, drag-drop, multi-URL.
 
 **Exit:** Pi-hole widget shows real data; adding a new integration = one Go file + one React component. — verified: registry, cache, 502 path, generic config dialog, clock live in-browser, Pi-hole fetcher against stubbed v5 API.
 
-## Phase 3 — Renderers & ergonomics → v0.3.0
+## Phase 3 — Renderers & ergonomics → v0.3.0 ✅ done 2026-09-17
 
-- [ ] **Index** renderer: serif section headers, full-width rows, masthead stat strip
-- [ ] **Console** renderer: bordered panels/tables, JetBrains Mono, `[ up ]` tags
-- [ ] Renderer switcher polished (instant swap, per-renderer preview in settings)
-- [ ] ⌘K command palette: jump to service, add service, toggle theme, switch renderer
-- [ ] dashboard-icons auto-suggest in icon picker (name → icon URL)
+- [x] **Index** renderer: serif section headers, full-width rows, masthead stat strip
+- [x] **Console** renderer: bordered panels/tables, JetBrains Mono, `[ up ]` tags
+- [x] Renderer switcher polished (2×2 radio grid with per-renderer descriptions)
+- [x] ⌘K command palette: jump to service, add service, toggle theme, switch renderer (⌘K / Ctrl+K / `/`)
+- [x] dashboard-icons auto-suggest in icon picker (name → slug → CDN URL chip + live preview)
 - [ ] User services list → prioritized widget backlog (owner-supplied list pending)
 
-**Exit:** all four renderers work off the same board state; palette navigates everything.
+**Exit:** all four renderers work off the same board state; palette navigates everything. — verified: both new renderers render/persist/dnd/collapse, palette filters and executes, icon suggest resolves real CDN assets, 360px + light theme.
 
 ## Phase 4 — Open-source launch → v1.0.0
 

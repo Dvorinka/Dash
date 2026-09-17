@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { LayoutGrid, Moon, Plus, Settings, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LayoutGrid, Moon, Plus, Search, Settings, Sun } from "lucide-react";
 import { BoardProvider, useBoard } from "@/board/store";
 import { Board } from "@/board/Board";
 import { ServiceDialog } from "@/components/ServiceDialog";
 import { WidgetDialog } from "@/components/WidgetDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
+import { CommandPalette } from "@/components/CommandPalette";
 import { Button } from "@/components/ui/button";
 import type { Item } from "@/types";
 
@@ -19,9 +20,27 @@ export default function App() {
 function Shell() {
 	const board = useBoard();
 	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [svcOpen, setSvcOpen] = useState(false);
 	const [wdgOpen, setWdgOpen] = useState(false);
 	const [editing, setEditing] = useState<Item | undefined>();
+
+	// ⌘K / Ctrl+K opens the palette; / does too when not typing in a field.
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => {
+			const typing = e.target instanceof HTMLElement
+				&& (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable);
+			if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+				e.preventDefault();
+				setPaletteOpen((o) => !o);
+			} else if (e.key === "/" && !typing && !e.metaKey && !e.ctrlKey) {
+				e.preventDefault();
+				setPaletteOpen(true);
+			}
+		};
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, []);
 
 	function openEditor(it: Item) {
 		setEditing(it);
@@ -42,6 +61,14 @@ function Shell() {
 					Dash
 				</div>
 				<div className="ml-auto flex items-center gap-2">
+					<Button
+						variant="outline" aria-label="Search (⌘K)"
+						onClick={() => setPaletteOpen(true)}
+						className="gap-1.5 text-text-faint"
+					>
+						<Search size={14} strokeWidth={1.8} />
+						<kbd className="hidden font-mono text-[10px] min-[620px]:inline">⌘K</kbd>
+					</Button>
 					<Button
 						variant="outline" size="icon" aria-label="Settings"
 						onClick={() => setSettingsOpen(true)}
@@ -73,6 +100,13 @@ function Shell() {
 			<ServiceDialog open={svcOpen} onOpenChange={setSvcOpen} item={editing?.kind === "service" ? editing : undefined} />
 			<WidgetDialog open={wdgOpen} onOpenChange={setWdgOpen} item={editing?.kind === "widget" ? editing : undefined} />
 			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+			<CommandPalette
+				open={paletteOpen}
+				onOpenChange={setPaletteOpen}
+				onAddService={() => { setEditing(undefined); setSvcOpen(true); }}
+				onAddWidget={() => { setEditing(undefined); setWdgOpen(true); }}
+				onSettings={() => setSettingsOpen(true)}
+			/>
 		</div>
 	);
 }

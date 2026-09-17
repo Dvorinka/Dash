@@ -10,6 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// dashboard-icons CDN serves png/<slug>.png — slugify the service name for
+// the one-click suggestion under the icon field.
+const DI_BASE = "https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png";
+const diSlug = (name: string) =>
+	name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
 // One dialog for both add and edit: item present = edit, absent = add.
 export function ServiceDialog({
 	open,
@@ -164,7 +170,8 @@ export function ServiceDialog({
 
 					<div className="flex flex-col gap-1.5">
 						<Label htmlFor="svc-icon">Icon URL</Label>
-						<div className="flex gap-2">
+						<div className="flex items-center gap-2">
+							<IconPreview url={icon} />
 							<Input id="svc-icon" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="https://…/icon.png" className="font-mono text-[12px]" />
 							<Button type="button" variant="outline" size="icon" aria-label="Upload icon file" onClick={() => fileRef.current?.click()}>
 								<Upload size={13} />
@@ -174,6 +181,15 @@ export function ServiceDialog({
 								onChange={() => setErr("")}
 							/>
 						</div>
+						{!icon && diSlug(name) ? (
+							<button
+								type="button"
+								onClick={() => setIcon(`${DI_BASE}/${diSlug(name)}.png`)}
+								className="w-fit rounded border border-border px-1.5 py-0.5 font-mono text-[10.5px] text-text-faint transition-colors hover:border-border-strong hover:text-text"
+							>
+								suggest: {diSlug(name)}.png
+							</button>
+						) : null}
 						<p className="text-[11px] text-text-faint">URL or uploaded file; blank shows a letter tile.</p>
 					</div>
 
@@ -195,5 +211,23 @@ export function ServiceDialog({
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+// Small live preview for the icon URL — hides itself on load failure so a
+// dead URL reads as "no preview", not a broken image.
+function IconPreview({ url }: { url: string }) {
+	const [failed, setFailed] = useState(false);
+	useEffect(() => setFailed(false), [url]);
+	if (!url || failed) {
+		return <span className="size-[30px] shrink-0 rounded-[7px] border border-dashed border-border" />;
+	}
+	return (
+		<img
+			src={url}
+			alt=""
+			onError={() => setFailed(true)}
+			className="size-[30px] shrink-0 rounded-[7px] border border-border bg-icon-bg object-contain p-1"
+		/>
 	);
 }

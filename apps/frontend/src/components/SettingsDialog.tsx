@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { useBoard } from "@/board/store";
-import { rendererLabels, rendererList } from "@/renderers";
+import { rendererDescriptions, rendererLabels, rendererList } from "@/renderers";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -46,16 +47,26 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-1.5">
 						<Label>Renderer</Label>
-						<Select value={board.renderer} onValueChange={(v) => {
-							if (v === "bento" || v === "cards") void board.setSetting("renderer", v);
-						}}>
-							<SelectTrigger><SelectValue /></SelectTrigger>
-							<SelectContent>
-								{rendererList.map((r) => (
-									<SelectItem key={r} value={r}>{rendererLabels[r]}</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+						<div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Renderer">
+							{rendererList.map((r) => (
+								<button
+									key={r}
+									type="button"
+									role="radio"
+									aria-checked={board.renderer === r}
+									onClick={() => void board.setSetting("renderer", r)}
+									className={cn(
+										"rounded-[8px] border px-3 py-2.5 text-left transition-colors",
+										board.renderer === r
+											? "border-border-strong bg-surface-hover"
+											: "border-border hover:border-border-strong hover:bg-surface-hover",
+									)}
+								>
+									<span className="block text-[12.5px] font-medium">{rendererLabels[r]}</span>
+									<span className="block font-mono text-[10px] text-text-faint">{rendererDescriptions[r]}</span>
+								</button>
+							))}
+						</div>
 					</div>
 
 					<div className="flex flex-col gap-1.5">

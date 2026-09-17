@@ -7,6 +7,7 @@ import type { Item, Section, Status } from "@/types";
 
 export interface SectionViewProps {
 	section: Section;
+	index: number;
 	onToggle(): void;
 	onDelete(): void;
 	children: ReactNode; // rendered items grid (ItemSortZone output)
@@ -14,6 +15,7 @@ export interface SectionViewProps {
 
 export interface ItemViewProps {
 	item: Item;
+	index: number;
 	sectionId: string;
 	status?: Status | undefined;
 	onEdit(): void;

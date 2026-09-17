@@ -12,7 +12,7 @@ export type StatusMap = Record<string, Status>;
 export type ExportPayload = components["schemas"]["Export"];
 
 export type Theme = "dark" | "light";
-export type RendererName = "bento" | "cards";
+export type RendererName = "bento" | "cards" | "index" | "console";
 
 /** Wire shape of GET /api/settings — a free-form map we narrow at the boundary. */
 export type SettingsWire = NonNullable<
@@ -26,8 +26,9 @@ export interface Prefs {
 
 /** Narrow the settings map to typed prefs; unknown/absent keys fall back. */
 export function parsePrefs(raw: SettingsWire): Prefs {
+	const r = raw.renderer;
 	return {
 		theme: raw.theme === "light" ? "light" : "dark",
-		renderer: raw.renderer === "cards" ? "cards" : "bento",
+		renderer: r === "cards" || r === "index" || r === "console" ? r : "bento",
 	};
 }

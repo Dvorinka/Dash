@@ -110,28 +110,32 @@
 
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-terminal: "JetBrains Mono Variable", ui-monospace, monospace;
 }
 
-html {
-  -webkit-font-smoothing: antialiased;
-}
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100dvh;
-  transition:
-    background 200ms var(--ease),
-    color 200ms var(--ease);
-}
+  body {
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    transition:
+      background 200ms var(--ease),
+      color 200ms var(--ease);
+  }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+    }
   }
 }
