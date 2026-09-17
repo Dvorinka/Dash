@@ -42,7 +42,8 @@ func main() {
 	}
 	defer func() { _ = sqlDB.Close() }()
 
-	router := api.NewRouter(logger, sqlDB)
+	iconsDir := filepath.Join(dataDir, "icons")
+	router := api.NewRouter(logger, sqlDB, iconsDir)
 	if err := web.Register(router); err != nil {
 		logger.Fatal("register embedded UI", zap.Error(err))
 	}

@@ -1,20 +1,25 @@
-import { useEffect, useState } from "react";
-import { Moon, Plus, Sun } from "lucide-react";
-
-type Theme = "dark" | "light";
-
-function initialTheme(): Theme {
-	const saved = localStorage.getItem("dash.theme");
-	return saved === "light" ? "light" : "dark";
-}
+import { useState } from "react";
+import { Moon, Plus, Settings, Sun } from "lucide-react";
+import { BoardProvider, useBoard } from "@/board/store";
+import { Board } from "@/board/Board";
+import { ServiceDialog } from "@/components/ServiceDialog";
+import { SettingsDialog } from "@/components/SettingsDialog";
+import { Button } from "@/components/ui/button";
+import type { Item } from "@/types";
 
 export default function App() {
-	const [theme, setTheme] = useState<Theme>(initialTheme);
+	return (
+		<BoardProvider>
+			<Shell />
+		</BoardProvider>
+	);
+}
 
-	useEffect(() => {
-		document.documentElement.dataset.theme = theme;
-		localStorage.setItem("dash.theme", theme);
-	}, [theme]);
+function Shell() {
+	const board = useBoard();
+	const [settingsOpen, setSettingsOpen] = useState(false);
+	const [svcOpen, setSvcOpen] = useState(false);
+	const [editing, setEditing] = useState<Item | undefined>();
 
 	return (
 		<div className="font-sans">
@@ -28,27 +33,30 @@ export default function App() {
 					</svg>
 					Dash
 				</div>
-				<button
-					type="button"
-					onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-					aria-label="Toggle theme"
-					className="ml-auto flex size-[34px] items-center justify-center rounded-lg border border-border bg-surface text-text-dim transition-colors hover:border-border-strong hover:text-text active:scale-95"
-				>
-					{theme === "dark" ? <Moon size={15} strokeWidth={1.8} /> : <Sun size={15} strokeWidth={1.8} />}
-				</button>
-				<button
-					type="button"
-					className="flex h-[34px] items-center gap-1.5 rounded-lg bg-text px-3.5 text-[13px] font-medium text-bg transition-transform active:scale-95"
-				>
-					<Plus size={13} strokeWidth={2.2} />
-					Add service
-				</button>
+				<div className="ml-auto flex items-center gap-2">
+					<Button
+						variant="outline" size="icon" aria-label="Settings"
+						onClick={() => setSettingsOpen(true)}
+					>
+						<Settings size={15} strokeWidth={1.8} />
+					</Button>
+					<Button
+						variant="outline" size="icon" aria-label="Toggle theme"
+						onClick={() => void board.setSetting("theme", board.theme === "dark" ? "light" : "dark")}
+					>
+						{board.theme === "dark" ? <Moon size={15} strokeWidth={1.8} /> : <Sun size={15} strokeWidth={1.8} />}
+					</Button>
+					<Button onClick={() => { setEditing(undefined); setSvcOpen(true); }}>
+						<Plus size={13} strokeWidth={2.2} />
+						Add service
+					</Button>
+				</div>
 			</header>
-			<main className="mx-auto max-w-[1140px] px-7 pb-24 pt-9">
-				<p className="text-center text-[13px] text-text-faint">
-					No sections yet. Add a service to get started.
-				</p>
-			</main>
+
+			<Board onEditItem={(it) => { setEditing(it); setSvcOpen(true); }} />
+
+			<ServiceDialog open={svcOpen} onOpenChange={setSvcOpen} item={editing} />
+			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 		</div>
 	);
 }

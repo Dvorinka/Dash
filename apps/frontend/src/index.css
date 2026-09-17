@@ -1,9 +1,12 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* Design tokens — ported from mockups/d-bento-mono.html.
-   Semantic vars flip on [data-theme]; Tailwind utilities map via @theme. */
+   Semantic vars flip on [data-theme]; Tailwind utilities map via @theme.
+   shadcn/ui names (background, popover, ...) alias the same tokens. */
 :root {
   --ease: cubic-bezier(0.2, 0, 0, 1);
+  --radius: 0.5rem;
 }
 
 [data-theme="dark"] {
@@ -18,8 +21,24 @@
   --accent: #3b82f6;
   --up: #22c55e;
   --down: #f59e0b;
+  --destructive: #ef4444;
   --icon-bg: #1c1c1e;
   --popover: #141414;
+
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover-foreground: var(--text);
+  --primary: var(--text);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-hover);
+  --muted-foreground: var(--text-dim);
+  --accent-foreground: var(--text);
+  --input: var(--border-strong);
+  --ring: var(--accent);
 }
 
 [data-theme="light"] {
@@ -34,8 +53,24 @@
   --accent: #2563eb;
   --up: #16a34a;
   --down: #d97706;
+  --destructive: #dc2626;
   --icon-bg: #f4f4f5;
   --popover: #ffffff;
+
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover-foreground: var(--text);
+  --primary: var(--text);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-hover);
+  --muted-foreground: var(--text-dim);
+  --accent-foreground: var(--text);
+  --input: var(--border-strong);
+  --ring: var(--accent);
 }
 
 @theme inline {
@@ -50,8 +85,29 @@
   --color-accent: var(--accent);
   --color-up: var(--up);
   --color-down: var(--down);
+  --color-destructive: var(--destructive);
   --color-icon-bg: var(--icon-bg);
   --color-popover: var(--popover);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
 }

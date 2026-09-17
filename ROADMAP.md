@@ -54,24 +54,24 @@ Repo hygiene and pipelines before features.
 
 **Exit:** `docker compose up` serves a blank board — verified locally (33.6 MB image). CI green on `main` — pending first push.
 
-## Phase 1 — MVP → v0.1.0
+## Phase 1 — MVP → v0.1.0 ✅ done 2026-09-17
 
 The product's spine: sections, services, drag-drop, multi-URL.
 
-- [ ] Schema: `sections`, `items`, `urls`, `settings` (fractional `position REAL` ordering)
-- [ ] REST API: CRUD for sections/items/urls, `reorder` endpoints, icon upload, `settings`, `export`/`import` JSON
-- [ ] Renderer contract: shared board store + `BoardView`/`SectionView`/`ItemView`/`WidgetView` seam, dnd + popover as shared primitives
-- [ ] **Bento** renderer (default): mixed-size grid, hairline section headers, tiles with status chips
-- [ ] **Cards** renderer: uniform compact grid — second renderer proves the seam while code is small
-- [ ] dnd-kit: reorder items in a section, move items between sections, reorder sections; persist on drop
-- [ ] Collapse/expand sections (persisted)
-- [ ] `UrlPopover`: 1 URL → direct open, 2+ → chooser (`local`/`external`/custom tags)
-- [ ] `AddServiceDialog` / `EditServiceDialog` (name, URLs+labels, icon URL or file upload)
-- [ ] Icon handling: upload to `data/icons/`, remote URL passthrough, letter-tile fallback
-- [ ] Dark/light toggle (persisted), renderer picker in settings, responsive to ~360px
-- [ ] Status ping: server-side HEAD request per service URL, cached ~60s → `up`/`down` chip
+- [x] Schema: `sections`, `items`, `urls`, `settings` (fractional `position REAL` ordering)
+- [x] REST API: CRUD for sections/items/urls, `reorder` endpoints, icon upload, `settings`, `export`/`import` JSON
+- [x] Renderer contract: shared board store + `BoardView`/`SectionView`/`ItemView`/`WidgetView` seam, dnd + popover as shared primitives
+- [x] **Bento** renderer (default): mixed-size grid, hairline section headers, tiles with status chips
+- [x] **Cards** renderer: uniform compact grid — second renderer proves the seam while code is small
+- [x] dnd-kit: reorder items in a section, move items between sections, reorder sections; persist on drop
+- [x] Collapse/expand sections (persisted)
+- [x] `UrlPopover`: 1 URL → direct open, 2+ → chooser (`local`/`external`/custom tags)
+- [x] `AddServiceDialog` / `EditServiceDialog` (name, URLs+labels, icon URL or file upload)
+- [x] Icon handling: upload to `data/icons/`, remote URL passthrough, letter-tile fallback
+- [x] Dark/light toggle (persisted), renderer picker in settings, responsive to ~360px
+- [x] Status ping: server-side HEAD request per service URL, cached ~60s → `up`/`down` chip
 
-**Exit:** create sections, add services with icons and dual URLs, drag everything, reload — state persists. `docker run` single image works. Export/import round-trips.
+**Exit:** create sections, add services with icons and dual URLs, drag everything, reload — state persists. `docker run` single image works. Export/import round-trips. — verified: full API + browser smoke (dnd, popover, upload, collapse, themes, both renderers, 360px), `api_test.go` covers reorder/URL-validation/settings.
 
 ## Phase 2 — Widgets → v0.2.0
 

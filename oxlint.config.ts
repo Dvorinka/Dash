@@ -5,6 +5,7 @@ export default defineConfig({
 		".agents/**",
 		".claude/**",
 		"tools/oxlint/anti-slop/**",
+		"packages/api-client/src/schema.d.ts",
 		"**/dist/**",
 		"**/node_modules/**",
 	],

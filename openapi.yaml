@@ -5,8 +5,7 @@ info:
   description: >
     Single source of truth for the Dash API. The TypeScript client in
     packages/api-client is generated from this file — do not hand-write
-    API types in the frontend. Phase 1 extends this contract with
-    sections/items/urls CRUD (see docs/specs).
+    API types in the frontend.
 servers:
   - url: /
 paths:
@@ -27,7 +26,295 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Health"
+
+  /api/sections:
+    get:
+      operationId: listSections
+      summary: Full board — sections with nested items and urls, ordered
+      responses:
+        "200":
+          description: Ordered board tree
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Section"
+    post:
+      operationId: createSection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SectionInput"
+      responses:
+        "201":
+          description: Created section
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Section"
+
+  /api/sections/{id}:
+    patch:
+      operationId: updateSection
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SectionPatch"
+      responses:
+        "200":
+          description: Updated section
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Section"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteSection
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Section and its items deleted
+
+  /api/sections/reorder:
+    post:
+      operationId: reorderSection
+      summary: Move a section between two neighbors (fractional position)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Reorder"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Section"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/items:
+    post:
+      operationId: createItem
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemInput"
+      responses:
+        "201":
+          description: Created item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/items/{id}:
+    patch:
+      operationId: updateItem
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemPatch"
+      responses:
+        "200":
+          description: Updated item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteItem
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Item deleted
+
+  /api/items/{id}/icon:
+    post:
+      operationId: uploadIcon
+      summary: Upload an icon file; returns the stored icon reference
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Icon stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/items/reorder:
+    post:
+      operationId: reorderItem
+      summary: Move an item between two neighbors, optionally across sections
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemReorder"
+      responses:
+        "200":
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/icons/{file}:
+    get:
+      operationId: getIcon
+      summary: Serve an uploaded icon file
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Icon bytes
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/status:
+    get:
+      operationId: getStatus
+      summary: Reachability of each service item's primary URL (~60s server cache)
+      responses:
+        "200":
+          description: Status map keyed by item id
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: "#/components/schemas/Status"
+
+  /api/settings:
+    get:
+      operationId: getSettings
+      responses:
+        "200":
+          description: All settings as key/value map
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+    put:
+      operationId: putSettings
+      summary: Merge settings (keys not sent are preserved)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Full settings map after merge
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /api/export:
+    get:
+      operationId: exportBoard
+      summary: Full JSON backup (sections, items, urls, settings)
+      responses:
+        "200":
+          description: Board export
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Export"
+
+  /api/import:
+    post:
+      operationId: importBoard
+      summary: Replace board state from an export payload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Export"
+      responses:
+        "200":
+          description: Imported board tree
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Section"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
 components:
+  parameters:
+    id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
   schemas:
     Health:
       type: object
@@ -36,3 +323,160 @@ components:
         status:
           type: string
           example: ok
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    Url:
+      type: object
+      required: [id, url, label]
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+          format: uri
+        label:
+          type: string
+          description: Tag such as "local" / "external" or a custom label
+        position:
+          type: number
+    UrlInput:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+        label:
+          type: string
+          default: ""
+    Item:
+      type: object
+      required: [id, sectionId, kind, name, position, urls]
+      properties:
+        id:
+          type: string
+        sectionId:
+          type: string
+        kind:
+          type: string
+          enum: [service, widget]
+        name:
+          type: string
+        icon:
+          type: string
+          description: "/api/icons/<file> path or remote URL; empty = letter tile"
+        position:
+          type: number
+        config:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Widget config (Phase 2); null for services
+        urls:
+          type: array
+          items:
+            $ref: "#/components/schemas/Url"
+    ItemInput:
+      type: object
+      required: [sectionId, name]
+      properties:
+        sectionId:
+          type: string
+        name:
+          type: string
+        icon:
+          type: string
+        urls:
+          type: array
+          items:
+            $ref: "#/components/schemas/UrlInput"
+    ItemPatch:
+      type: object
+      properties:
+        name:
+          type: string
+        icon:
+          type: string
+        urls:
+          type: array
+          description: Full replacement of the item's URL list
+          items:
+            $ref: "#/components/schemas/UrlInput"
+    Section:
+      type: object
+      required: [id, name, position, collapsed, items]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        position:
+          type: number
+        collapsed:
+          type: boolean
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Item"
+    SectionInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    SectionPatch:
+      type: object
+      properties:
+        name:
+          type: string
+        collapsed:
+          type: boolean
+    Reorder:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        beforeId:
+          type: string
+          description: Neighbor now before the moved entity; null if first
+        afterId:
+          type: string
+          description: Neighbor now after the moved entity; null if last
+    ItemReorder:
+      allOf:
+        - $ref: "#/components/schemas/Reorder"
+        - type: object
+          properties:
+            sectionId:
+              type: string
+              description: Target section (defaults to current)
+    Status:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [up, down]
+        latencyMs:
+          type: integer
+        checkedAt:
+          type: string
+          format: date-time
+    Export:
+      type: object
+      required: [version, sections]
+      properties:
+        version:
+          type: integer
+        settings:
+          type: object
+          additionalProperties: true
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/Section"
