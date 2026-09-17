@@ -39,20 +39,20 @@ or popover logic.
 
 ---
 
-## Phase 0 — Foundation → part of v0.1.0
+## Phase 0 — Foundation → part of v0.1.0 ✅ done 2026-09-17
 
 Repo hygiene and pipelines before features.
 
-- [ ] Monorepo scaffold (`apps/frontend`, `apps/backend`, `packages/api-client`, `infra/`, `data/`)
-- [ ] MIT `LICENSE`, `README.md`, `.gitignore`, `AGENTS.md`
-- [ ] `openapi.yaml` stub → generated TS client (`packages/api-client`)
-- [ ] Backend skeleton: Gin router, `zap` logging, `/api/healthz`, SQLite open + goose migrations runner
-- [ ] Frontend skeleton: Vite + TS strict + Tailwind + shadcn/ui, theme tokens matching `d-bento-mono.html` CSS vars
-- [ ] CI (GitHub Actions): `go build ./...`, `go vet ./...`, `go test ./...`, `tsc --noEmit`, `oxlint` + vendored anti-slop rules, `npm run build`
-- [ ] Multi-stage `Dockerfile` (frontend build → Go build → `FROM scratch`/distroless, `embed.FS` serves UI)
-- [ ] `docker-compose.yml` — one service, `./data:/data` volume
+- [x] Monorepo scaffold (`apps/frontend`, `apps/backend`, `packages/api-client`, `infra/`, `data/`)
+- [x] MIT `LICENSE`, `README.md`, `.gitignore`, `AGENTS.md`
+- [x] `openapi.yaml` stub → generated TS client (`packages/api-client`)
+- [x] Backend skeleton: Gin router, `zap` logging, `/api/healthz`, SQLite open + goose migrations runner
+- [x] Frontend skeleton: Vite + TS strict + Tailwind + shadcn/ui, theme tokens matching `d-bento-mono.html` CSS vars
+- [x] CI (GitHub Actions): `go build ./...`, `go vet ./...`, `go test ./...`, `tsc --noEmit`, `oxlint` + vendored anti-slop rules, `npm run build`
+- [x] Multi-stage `Dockerfile` (frontend build → Go build → distroless, `embed.FS` serves UI)
+- [x] `docker-compose.yml` — one service, `./data:/data` volume
 
-**Exit:** `docker compose up` serves a blank board. CI green on `main`.
+**Exit:** `docker compose up` serves a blank board — verified locally (33.6 MB image). CI green on `main` — pending first push.
 
 ## Phase 1 — MVP → v0.1.0
 

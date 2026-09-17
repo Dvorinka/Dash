@@ -1,0 +1,38 @@
+openapi: 3.1.0
+info:
+  title: Dash API
+  version: 0.1.0
+  description: >
+    Single source of truth for the Dash API. The TypeScript client in
+    packages/api-client is generated from this file — do not hand-write
+    API types in the frontend. Phase 1 extends this contract with
+    sections/items/urls CRUD (see docs/specs).
+servers:
+  - url: /
+paths:
+  /api/healthz:
+    get:
+      operationId: healthz
+      summary: Liveness + database reachability probe
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          description: Database unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
