@@ -1,0 +1,34 @@
+import type { components, paths } from "@dash/api-client";
+
+// Board entities — generated from openapi.yaml. Never hand-edit shapes here.
+export type Section = components["schemas"]["Section"];
+export type Item = components["schemas"]["Item"];
+export type BoardUrl = components["schemas"]["Url"];
+export type UrlInput = components["schemas"]["UrlInput"];
+export type ItemInput = components["schemas"]["ItemInput"];
+export type ItemPatch = components["schemas"]["ItemPatch"];
+export type Status = components["schemas"]["Status"];
+export type StatusMap = Record<string, Status>;
+export type ExportPayload = components["schemas"]["Export"];
+
+export type Theme = "dark" | "light";
+export type RendererName = "bento" | "cards" | "index" | "console";
+
+/** Wire shape of GET /api/settings — a free-form map we narrow at the boundary. */
+export type SettingsWire = NonNullable<
+	paths["/api/settings"]["get"]["responses"]["200"]["content"]["application/json"]
+>;
+
+export interface Prefs {
+	theme: Theme;
+	renderer: RendererName;
+}
+
+/** Narrow the settings map to typed prefs; unknown/absent keys fall back. */
+export function parsePrefs(raw: SettingsWire): Prefs {
+	const r = raw.renderer;
+	return {
+		theme: raw.theme === "light" ? "light" : "dark",
+		renderer: r === "cards" || r === "index" || r === "console" ? r : "bento",
+	};
+}

@@ -1,0 +1,10 @@
+services:
+  dash:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

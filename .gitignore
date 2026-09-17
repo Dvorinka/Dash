@@ -1,0 +1,25 @@
+# deps / builds
+node_modules/
+apps/frontend/dist/
+packages/api-client/dist/
+packages/api-client/src/schema.d.ts
+apps/backend/internal/web/dist/*
+!apps/backend/internal/web/dist/.keep
+!apps/backend/internal/web/dist/index.html
+
+# data / runtime
+data/*
+!data/.keep
+*.db
+*.db-*
+
+# env / secrets
+.env
+.env.*
+
+# misc
+.DS_Store
+coverage/
+
+# local tooling artifacts
+.playwright-mcp/

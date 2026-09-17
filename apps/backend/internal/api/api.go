@@ -1,0 +1,158 @@
+// Package api wires the Gin router and /api handlers.
+package api
+
+import (
+	"crypto/rand"
+	"database/sql"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/url"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
+)
+
+// Server holds handler dependencies: DB, icon dir, status + widget caches.
+type Server struct {
+	db       *sql.DB
+	iconsDir string
+	status   *statusCache
+	widgets  *widgetCache
+}
+
+// NewRouter builds the HTTP handler: zap access log, recovery, /api routes.
+func NewRouter(logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
+	s := &Server{
+		db:       db,
+		iconsDir: iconsDir,
+		status:   newStatusCache(60 * time.Second),
+		widgets:  newWidgetCache(30 * time.Second),
+	}
+
+	r := gin.New()
+	r.Use(accessLog(logger), gin.Recovery())
+
+	v1 := r.Group("/api")
+	v1.GET("/healthz", s.healthz)
+
+	v1.GET("/sections", s.listSections)
+	v1.POST("/sections", s.createSection)
+	v1.PATCH("/sections/:id", s.updateSection)
+	v1.DELETE("/sections/:id", s.deleteSection)
+	v1.POST("/sections/reorder", s.reorderSection)
+
+	v1.POST("/items", s.createItem)
+	v1.PATCH("/items/:id", s.updateItem)
+	v1.DELETE("/items/:id", s.deleteItem)
+	v1.POST("/items/reorder", s.reorderItem)
+	v1.POST("/items/:id/icon", s.uploadIcon)
+	v1.GET("/icons/:file", s.getIcon)
+
+	v1.GET("/status", s.getStatus)
+	v1.GET("/widgets/types", s.widgetTypes)
+	v1.GET("/widgets/:id/data", s.widgetData)
+	v1.GET("/settings", s.getSettings)
+	v1.PUT("/settings", s.putSettings)
+	v1.GET("/export", s.exportBoard)
+	v1.POST("/import", s.importBoard)
+
+	return r
+}
+
+// ---------- shared types (mirror openapi.yaml) ----------
+
+// URL is one launch target of an item (local, external, custom label).
+type URL struct {
+	ID       string  `json:"id"`
+	URL      string  `json:"url"`
+	Label    string  `json:"label"`
+	Position float64 `json:"position"`
+}
+
+// URLInput is a URL as accepted on create/update (id/position assigned).
+type URLInput struct {
+	URL   string `json:"url"`
+	Label string `json:"label"`
+}
+
+// Item is a board cell: a service tile today, a widget in Phase 2.
+type Item struct {
+	ID        string           `json:"id"`
+	SectionID string           `json:"sectionId"`
+	Kind      string           `json:"kind"`
+	Name      string           `json:"name"`
+	Icon      string           `json:"icon"`
+	Position  float64          `json:"position"`
+	Config    *json.RawMessage `json:"config"`
+	URLs      []URL            `json:"urls"`
+}
+
+// Section is a named, collapsible group of items.
+type Section struct {
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	Position  float64 `json:"position"`
+	Collapsed bool    `json:"collapsed"`
+	Items     []Item  `json:"items"`
+}
+
+// ---------- helpers ----------
+
+func newID(prefix string) string {
+	b := make([]byte, 8)
+	_, _ = rand.Read(b)
+	return prefix + "_" + hex.EncodeToString(b)
+}
+
+// midpoint returns a fractional position between two optional neighbors.
+func midpoint(before, after *float64) float64 {
+	switch {
+	case before == nil && after == nil:
+		return 1024
+	case before == nil:
+		return *after - 1024
+	case after == nil:
+		return *before + 1024
+	default:
+		return (*before + *after) / 2
+	}
+}
+
+func fail(c *gin.Context, code int, msg string) {
+	c.AbortWithStatusJSON(code, gin.H{"error": msg})
+}
+
+// validURL enforces http(s) launch targets — also keeps /api/status safe
+// from file:// or internal-scheme abuse.
+func validURL(raw string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
+func notFound(err error) bool { return errors.Is(err, sql.ErrNoRows) }
+
+// healthz reports liveness and DB reachability.
+func (s *Server) healthz(c *gin.Context) {
+	if err := s.db.PingContext(c.Request.Context()); err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "db unreachable"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+// accessLog is gin.Logger backed by zap: one structured line per request.
+func accessLog(logger *zap.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		logger.Info("request",
+			zap.String("method", c.Request.Method),
+			zap.String("path", c.Request.URL.Path),
+			zap.Int("status", c.Writer.Status()),
+			zap.Duration("latency", time.Since(start)),
+		)
+	}
+}

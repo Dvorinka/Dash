@@ -1,0 +1,432 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dash — E · Editorial</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/geist@latest/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/geist-mono@latest/index.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/css/instrument-serif@latest/index.css">
+<style>
+  :root { --ease: cubic-bezier(0.2, 0, 0, 1); }
+  [data-theme="dark"] {
+    --bg: #0b0b0c;
+    --surface: #131315;
+    --surface-hover: #17171a;
+    --border: rgba(255,255,255,0.09);
+    --border-strong: rgba(255,255,255,0.18);
+    --text: #f4f4f5;
+    --text-dim: #a1a1aa;
+    --text-faint: #565660;
+    --accent: #3b82f6;
+    --up: #22c55e;
+    --down: #f59e0b;
+    --icon-bg: #1b1b1e;
+    --popover: #151517;
+  }
+  [data-theme="light"] {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --surface-hover: #f5f4f1;
+    --border: rgba(0,0,0,0.10);
+    --border-strong: rgba(0,0,0,0.2);
+    --text: #17171a;
+    --text-dim: #565660;
+    --text-faint: #9c9c94;
+    --accent: #2563eb;
+    --up: #16a34a;
+    --down: #b45309;
+    --icon-bg: #f0efec;
+    --popover: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+    background: var(--bg); color: var(--text); min-height: 100dvh;
+    transition: background 200ms var(--ease), color 200ms var(--ease);
+  }
+  .serif { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; }
+  .mono { font-family: "Geist Mono", ui-monospace, monospace; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; align-items: center; gap: 16px;
+    padding: 16px 36px;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { font-size: 20px; letter-spacing: -0.01em; }
+  .brand em { font-style: normal; color: var(--text-faint); }
+  .search {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    width: 230px; padding: 7px 12px;
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-faint); font-size: 13px;
+  }
+  .search kbd { margin-left: auto; font-size: 11px; padding: 1px 5px; border: 1px solid var(--border); border-radius: 4px; }
+  .iconbtn, .addbtn {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    height: 34px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-dim);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; padding: 0 10px;
+    transition: color 150ms var(--ease), border-color 150ms var(--ease), transform 100ms var(--ease);
+  }
+  .iconbtn { width: 34px; padding: 0; }
+  .iconbtn:hover, .addbtn:hover { color: var(--text); border-color: var(--border-strong); }
+  .iconbtn:active, .addbtn:active { transform: scale(0.96); }
+  .addbtn.primary { background: var(--text); color: var(--bg); border: none; padding: 0 14px; }
+
+  /* ---------- page ---------- */
+  main { max-width: 980px; margin: 0 auto; padding: 48px 36px 100px; }
+
+  .masthead { display: flex; align-items: baseline; gap: 18px; padding-bottom: 28px; border-bottom: 1px solid var(--border-strong); }
+  .masthead h1 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 52px; letter-spacing: -0.02em; line-height: 1; }
+  .masthead .date { margin-left: auto; font-family: "Geist Mono", monospace; font-size: 11.5px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+  /* stat strip — newspaper info bar */
+  .strip {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    border-bottom: 1px solid var(--border-strong);
+    margin-bottom: 40px;
+  }
+  .cell { padding: 18px 20px 16px; border-right: 1px solid var(--border); }
+  .cell:last-child { border-right: none; }
+  .cell .k { font-family: "Geist Mono", monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-faint); display: flex; align-items: center; gap: 6px; }
+  .cell .k img { width: 12px; height: 12px; }
+  .cell .v { font-family: "Geist Mono", monospace; font-size: 20px; font-weight: 500; margin-top: 8px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .cell .s { font-size: 11px; color: var(--text-faint); margin-top: 3px; }
+
+  /* ---------- sections ---------- */
+  section { margin-bottom: 34px; }
+  .sechead {
+    display: flex; align-items: baseline; gap: 14px;
+    padding-bottom: 10px; margin-bottom: 2px;
+    border-bottom: 1px solid var(--border-strong);
+    cursor: pointer; user-select: none;
+  }
+  .sechead .idx { font-family: "Instrument Serif", Georgia, serif; font-size: 30px; color: var(--text-faint); line-height: 1; font-variant-numeric: tabular-nums; }
+  .sechead h2 { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 30px; letter-spacing: -0.01em; }
+  .sechead .count { font-family: "Geist Mono", monospace; font-size: 11px; color: var(--text-faint); }
+  .sechead .chev { margin-left: auto; color: var(--text-faint); transition: transform 200ms var(--ease); }
+  section.closed .chev { transform: rotate(-90deg); }
+
+  /* ---------- service rows ---------- */
+  .rows { }
+  section.closed .rows { display: none; }
+  .row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 30px 34px minmax(0,1.4fr) minmax(0,1fr) auto 70px 22px;
+    align-items: center; gap: 14px;
+    padding: 11px 6px;
+    border-bottom: 1px solid var(--border);
+    cursor: grab;
+    transition: background 150ms var(--ease);
+  }
+  .row:hover { background: var(--surface-hover); }
+  .row.dragging { opacity: 0.35; }
+  .row .n { font-family: "Geist Mono", monospace; font-size: 11px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .icon {
+    position: relative; width: 30px; height: 30px; border-radius: 7px;
+    background: var(--icon-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: var(--text-dim);
+    overflow: hidden;
+  }
+  .icon::before { content: attr(data-letter); }
+  .icon img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 4px; background: var(--icon-bg); }
+  .row .name { font-size: 14px; font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .host { font-family: "Geist Mono", monospace; font-size: 11px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .tags { display: flex; gap: 5px; justify-content: flex-end; }
+  .row .tag {
+    font-family: "Geist Mono", monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-faint); border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px;
+  }
+  .row .stat { font-family: "Geist Mono", monospace; font-size: 10.5px; letter-spacing: 0.05em; display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+  .row .stat::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--up); }
+  .row .stat.down::before { background: var(--down); }
+  .row .go { color: var(--text-faint); opacity: 0; transform: translateX(-4px); transition: opacity 150ms var(--ease), transform 150ms var(--ease); }
+  .row:hover .go { opacity: 1; transform: none; }
+
+  /* ---------- url popover ---------- */
+  .urlpop {
+    position: absolute; top: calc(100% + 2px); left: 44px; z-index: 20;
+    min-width: 250px; padding: 5px;
+    background: var(--popover); border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    opacity: 0; transform: translateY(-3px); pointer-events: none;
+    transition: opacity 150ms var(--ease), transform 150ms var(--ease);
+  }
+  .row.open .urlpop { opacity: 1; transform: none; pointer-events: auto; }
+  .urlpop a {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 5px;
+    color: var(--text); text-decoration: none; font-size: 13px;
+  }
+  .urlpop a:hover { background: var(--surface-hover); }
+  .urlpop .tag {
+    flex: none; font-family: "Geist Mono", monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); color: var(--text-dim);
+  }
+  .urlpop .u { color: var(--text-faint); font-size: 11px; margin-left: auto; font-family: "Geist Mono", monospace; }
+
+  .foot { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-family: "Geist Mono", monospace; font-size: 10.5px; color: var(--text-faint); }
+
+  @media (max-width: 760px) {
+    .topbar { padding: 12px 16px; } .search { display: none; }
+    main { padding: 28px 16px 70px; }
+    .masthead h1 { font-size: 38px; }
+    .strip { grid-template-columns: 1fr 1fr; } .cell { border-bottom: 1px solid var(--border); }
+    .row { grid-template-columns: 26px 32px minmax(0,1fr) 60px; }
+    .row .host, .row .tags, .row .n { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand serif">Dash<em>.</em></div>
+  <div class="search">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    Search the index
+    <kbd>⌘K</kbd>
+  </div>
+  <button class="iconbtn" id="theme" aria-label="Toggle theme">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>
+  </button>
+  <button class="addbtn primary">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+    Add service
+  </button>
+</header>
+
+<main>
+  <div class="masthead">
+    <h1>Service Index</h1>
+    <span class="date" id="hdate"></span>
+  </div>
+
+  <div class="strip">
+    <div class="cell"><div class="k">Local time</div><div class="v" id="clock">--:--</div><div class="s"><span id="tz1"></span> PRG · <span id="tz2"></span> NYC · <span id="tz3"></span> TYO</div></div>
+    <div class="cell"><div class="k"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/pi-hole.png" alt="" onerror="this.remove()">Pi-hole</div><div class="v">24.6%</div><div class="s">ads blocked today</div></div>
+    <div class="cell"><div class="k"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/adguard-home.png" alt="" onerror="this.remove()">AdGuard</div><div class="v">11.2%</div><div class="s">31 clients</div></div>
+    <div class="cell"><div class="k"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/immich.png" alt="" onerror="this.remove()">Immich</div><div class="v">12,483</div><div class="s">photos · 96.4 GB</div></div>
+    <div class="cell"><div class="k">Uptime · 30d</div><div class="v">99.7%</div><div class="s">1 incident</div></div>
+  </div>
+
+  <section>
+    <div class="sechead"><span class="idx">01</span><h2>Network</h2><span class="count">4 entries</span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="rows">
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.2/admin"},{"tag":"External","u":"https://pihole.tdvorak.dev"}]'>
+        <span class="n">01</span>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/pi-hole.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Pi-hole</span><span class="host">10.0.0.2</span>
+        <span class="tags"><span class="tag">local</span><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.3:3000"}]'>
+        <span class="n">02</span>
+        <div class="icon" data-letter="A"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/adguard-home.png" alt="" onerror="this.remove()"></div>
+        <span class="name">AdGuard Home</span><span class="host">10.0.0.3:3000</span>
+        <span class="tags"><span class="tag">local</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.2:81"},{"tag":"External","u":"https://npm.tdvorak.dev"}]'>
+        <span class="n">03</span>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/nginx-proxy-manager.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Nginx Proxy Mgr</span><span class="host">10.0.0.2:81</span>
+        <span class="tags"><span class="tag">local</span><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.5:3001"},{"tag":"External","u":"https://status.tdvorak.dev"}]'>
+        <span class="n">04</span>
+        <div class="icon" data-letter="U"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/uptime-kuma.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Uptime Kuma</span><span class="host">status.tdvorak.dev</span>
+        <span class="tags"><span class="tag">local</span><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+        <div class="urlpop"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead"><span class="idx">02</span><h2>Media</h2><span class="count">6 entries</span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="rows">
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8096"},{"tag":"External","u":"https://watch.tdvorak.dev"}]'>
+        <span class="n">01</span>
+        <div class="icon" data-letter="J"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/jellyfin.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Jellyfin</span><span class="host">watch.tdvorak.dev</span>
+        <span class="tags"><span class="tag">local</span><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:2283"},{"tag":"External","u":"https://photos.tdvorak.dev"}]'>
+        <span class="n">02</span>
+        <div class="icon" data-letter="I"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/immich.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Immich</span><span class="host">photos.tdvorak.dev</span>
+        <span class="tags"><span class="tag">local</span><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:4533"}]'>
+        <span class="n">03</span>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/navidrome.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Navidrome</span><span class="host">10.0.0.10:4533</span>
+        <span class="tags"><span class="tag">local</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8080"}]'>
+        <span class="n">04</span>
+        <div class="icon" data-letter="q"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/qbittorrent.png" alt="" onerror="this.remove()"></div>
+        <span class="name">qBittorrent</span><span class="host">10.0.0.10:8080</span>
+        <span class="tags"><span class="tag">local</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:8989"}]'>
+        <span class="n">05</span>
+        <div class="icon" data-letter="S"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/sonarr.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Sonarr</span><span class="host">10.0.0.10:8989</span>
+        <span class="tags"><span class="tag">local</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.10:7878"}]'>
+        <span class="n">06</span>
+        <div class="icon" data-letter="R"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/radarr.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Radarr</span><span class="host">10.0.0.10:7878</span>
+        <span class="tags"><span class="tag">local</span></span>
+        <span class="stat down">down</span><span class="go">→</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sechead"><span class="idx">03</span><h2>Infrastructure</h2><span class="count">7 entries</span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="rows">
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"https://10.0.0.4:8006"}]'>
+        <span class="n">01</span>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/proxmox.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Proxmox</span><span class="host">10.0.0.4:8006</span>
+        <span class="tags"><span class="tag">local</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.4:9000"}]'>
+        <span class="n">02</span>
+        <div class="icon" data-letter="P"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/portainer.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Portainer</span><span class="host">10.0.0.4:9000</span>
+        <span class="tags"><span class="tag">local</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.6"},{"tag":"External","u":"https://nas.tdvorak.dev"}]'>
+        <span class="n">03</span>
+        <div class="icon" data-letter="T"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/truenas.png" alt="" onerror="this.remove()"></div>
+        <span class="name">TrueNAS</span><span class="host">nas.tdvorak.dev</span>
+        <span class="tags"><span class="tag">local</span><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.4:3100"}]'>
+        <span class="n">04</span>
+        <div class="icon" data-letter="G"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/grafana.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Grafana</span><span class="host">10.0.0.4:3100</span>
+        <span class="tags"><span class="tag">local</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"External","u":"https://vault.tdvorak.dev"}]'>
+        <span class="n">05</span>
+        <div class="icon" data-letter="V"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/vaultwarden.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Vaultwarden</span><span class="host">vault.tdvorak.dev</span>
+        <span class="tags"><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"Local","u":"http://10.0.0.7:8123"},{"tag":"External","u":"https://home.tdvorak.dev"}]'>
+        <span class="n">06</span>
+        <div class="icon" data-letter="H"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/home-assistant.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Home Assistant</span><span class="host">home.tdvorak.dev</span>
+        <span class="tags"><span class="tag">local</span><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+        <div class="urlpop"></div>
+      </div>
+      <div class="row" draggable="true" data-urls='[{"tag":"External","u":"https://cloud.tdvorak.dev"}]'>
+        <span class="n">07</span>
+        <div class="icon" data-letter="N"><img src="https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/nextcloud.png" alt="" onerror="this.remove()"></div>
+        <span class="name">Nextcloud</span><span class="host">cloud.tdvorak.dev</span>
+        <span class="tags"><span class="tag">ext</span></span>
+        <span class="stat">up</span><span class="go">→</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot"><span>dash v0.1 · 17 services · 4 widgets</span><span>mockup E — editorial</span></div>
+</main>
+
+<script>
+  document.getElementById('theme').onclick = () => {
+    const h = document.documentElement;
+    h.dataset.theme = h.dataset.theme === 'dark' ? 'light' : 'dark';
+  };
+
+  const fmt = (tz) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+  function tick() {
+    const n = new Date();
+    document.getElementById('clock').textContent = fmt().format(n);
+    document.getElementById('tz1').textContent = fmt('Europe/Prague').format(n);
+    document.getElementById('tz2').textContent = fmt('America/New_York').format(n);
+    document.getElementById('tz3').textContent = fmt('Asia/Tokyo').format(n);
+    document.getElementById('hdate').textContent = n.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  tick(); setInterval(tick, 10000);
+
+  document.querySelectorAll('.sechead').forEach(h =>
+    h.addEventListener('click', () => h.parentElement.classList.toggle('closed')));
+
+  // renumber rows after drags
+  function renumber(rows) { rows.querySelectorAll('.row .n').forEach((n, i) => n.textContent = String(i + 1).padStart(2, '0')); }
+
+  document.querySelectorAll('.row[data-urls]').forEach(card => {
+    const urls = JSON.parse(card.dataset.urls);
+    if (urls.length < 2) return;
+    const pop = card.querySelector('.urlpop');
+    pop.innerHTML = urls.map(x => `<a href="#" onclick="return false"><span class="tag">${x.tag}</span>${new URL(x.u).hostname}<span class="u">↗</span></a>`).join('');
+    card.addEventListener('click', e => {
+      if (card.classList.contains('dragging')) return;
+      document.querySelectorAll('.row.open').forEach(c => c !== card && c.classList.remove('open'));
+      card.classList.toggle('open');
+      e.stopPropagation();
+    });
+  });
+  document.addEventListener('click', () => document.querySelectorAll('.row.open').forEach(c => c.classList.remove('open')));
+
+  let dragEl = null;
+  document.querySelectorAll('.row').forEach(card => {
+    card.addEventListener('dragstart', () => { dragEl = card; setTimeout(() => card.classList.add('dragging')); });
+    card.addEventListener('dragend', () => { card.classList.remove('dragging'); renumber(card.parentElement); });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (card === dragEl) return;
+      const r = card.getBoundingClientRect();
+      const before = e.clientY < r.top + r.height / 2;
+      card.parentElement.insertBefore(dragEl, before ? card : card.nextSibling);
+    });
+  });
+  document.querySelectorAll('.rows').forEach(b => b.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (dragEl && e.target === b) { b.appendChild(dragEl); renumber(b); }
+  }));
+</script>
+</body>
+</html>

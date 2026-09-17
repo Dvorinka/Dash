@@ -1,0 +1,21 @@
+{
+  "name": "dash",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/frontend",
+    "packages/api-client"
+  ],
+  "scripts": {
+    "generate": "npm run generate -w @dash/api-client",
+    "dev": "npm run dev -w @dash/frontend",
+    "build": "npm run build -w @dash/api-client --if-present && npm run build -w @dash/frontend",
+    "typecheck": "npm run typecheck -w @dash/frontend",
+    "lint": "oxlint",
+    "postinstall": "npm run generate"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.78.0",
+    "oxlint": "^1.78.0"
+  }
+}
