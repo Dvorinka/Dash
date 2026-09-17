@@ -31,9 +31,9 @@ or popover logic.
 
 | Version | Contents | Gate |
 |---|---|---|
-| `v0.1.0` | Phase 0 + 1 — working MVP, single image | manual smoke test |
-| `v0.2.0` | Phase 2 — widget layer + first integrations | Pi-hole widget live |
-| `v0.3.0` | Phase 3 — alternate themes, search, icon packs | theme switcher works |
+| `v0.1.0` | Phase 0 + 1 — working MVP, single image | manual smoke test ✅ |
+| `v0.2.0` | Phase 2 — widget layer + first integrations | Pi-hole widget live ✅ |
+| `v0.3.0` | Phase 3 — four renderers, ⌘K palette, icon suggest | palette + switcher live ✅ |
 | `v1.0.0` | Phase 4 — OSS polish, docs, importers, CI releases | public repo launch |
 | `v1.x` | Phase 5 — demand-driven extras only | per-feature |
 
@@ -50,6 +50,7 @@ Repo hygiene and pipelines before features.
 - [x] Frontend skeleton: Vite + TS strict + Tailwind + shadcn/ui, theme tokens matching `d-bento-mono.html` CSS vars
 - [x] CI (GitHub Actions): `go build ./...`, `go vet ./...`, `go test ./...`, `tsc --noEmit`, `oxlint` + vendored anti-slop rules, `npm run build`
 - [x] Multi-stage `Dockerfile` (frontend build → Go build → distroless, `embed.FS` serves UI)
+- [x] SPA fallback routing in embedded server (`/` + client-side paths → `index.html`, `/api` isolated)
 - [x] `docker-compose.yml` — one service, `./data:/data` volume
 
 **Exit:** `docker compose up` serves a blank board — verified locally (33.6 MB image). CI green on `main` — pending first push.
@@ -66,10 +67,16 @@ The product's spine: sections, services, drag-drop, multi-URL.
 - [x] dnd-kit: reorder items in a section, move items between sections, reorder sections; persist on drop
 - [x] Collapse/expand sections (persisted)
 - [x] `UrlPopover`: 1 URL → direct open, 2+ → chooser (`local`/`external`/custom tags)
-- [x] `AddServiceDialog` / `EditServiceDialog` (name, URLs+labels, icon URL or file upload)
+- [x] `ServiceDialog` — one dialog for add + edit (name, URLs+labels, icon URL or file upload)
 - [x] Icon handling: upload to `data/icons/`, remote URL passthrough, letter-tile fallback
 - [x] Dark/light toggle (persisted), renderer picker in settings, responsive to ~360px
+- [x] Pre-paint theme bootstrap in `index.html` (no wrong-theme flash on load)
 - [x] Status ping: server-side HEAD request per service URL, cached ~60s → `up`/`down` chip
+- [x] Parallel probing: per-item `sync.WaitGroup` fan-out, 4s client timeout
+- [x] URL scheme allowlist (`http`/`https` only — `file://` etc. rejected on create + probe)
+- [x] Post-drag click suppression (`lastDropAt` window — drops no longer fire tile activation)
+- [x] Mobile polish: status chip collapses to dot-only below 620px
+- [x] `api_test.go`: reorder positions, URL scheme rejection, settings round-trip
 
 **Exit:** create sections, add services with icons and dual URLs, drag everything, reload — state persists. `docker run` single image works. Export/import round-trips. — verified: full API + browser smoke (dnd, popover, upload, collapse, themes, both renderers, 360px), `api_test.go` covers reorder/URL-validation/settings.
 
@@ -84,6 +91,9 @@ The product's spine: sections, services, drag-drop, multi-URL.
 - [x] AdGuard Home fetcher (blocked %, queries, avg processing ms)
 - [x] Immich fetcher (photo/video count, library size)
 - [x] Per-widget config UI (endpoint URL, API key — stored in `config`, never logged)
+- [x] `local` type flag: frontend-only widgets (clock) register in `/api/widgets/types` without a fetcher
+- [x] Widget tile error/loading states (graceful upstream 502 rendering)
+- [x] Widget endpoint tests: type registry, 404 on missing item, 502 on dead upstream, TTL cache hit
 
 **Exit:** Pi-hole widget shows real data; adding a new integration = one Go file + one React component. — verified: registry, cache, 502 path, generic config dialog, clock live in-browser, Pi-hole fetcher against stubbed v5 API.
 
@@ -94,9 +104,14 @@ The product's spine: sections, services, drag-drop, multi-URL.
 - [x] Renderer switcher polished (2×2 radio grid with per-renderer descriptions)
 - [x] ⌘K command palette: jump to service, add service, toggle theme, switch renderer (⌘K / Ctrl+K / `/`)
 - [x] dashboard-icons auto-suggest in icon picker (name → slug → CDN URL chip + live preview)
+- [x] Renderer contract `index` prop → row/section numbering without re-deriving position
+- [x] Icon URL live preview in service dialog (dead URLs degrade to dashed tile)
+- [x] Palette `/` shortcut + header search button for discoverability
+- [x] Fonts: Instrument Serif + JetBrains Mono via fontsource (bundled, no CDN dep)
+- [x] Fix: global `:focus-visible` moved into `@layer base` (was silently overriding all utility overrides)
 - [ ] User services list → prioritized widget backlog (owner-supplied list pending)
 
-**Exit:** all four renderers work off the same board state; palette navigates everything. — verified: both new renderers render/persist/dnd/collapse, palette filters and executes, icon suggest resolves real CDN assets, 360px + light theme.
+**Exit:** all four renderers work off the same board state; palette navigates everything. — verified: both new renderers render/persist/dnd/collapse, palette filters and executes, icon suggest resolves real CDN assets, 360px + light theme, docker image 43.9 MB.
 
 ## Phase 4 — Open-source launch → v1.0.0
 
