@@ -214,6 +214,44 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/widgets/types:
+    get:
+      operationId: widgetTypes
+      summary: Widget registry metadata — drives the add-widget dialog
+      responses:
+        "200":
+          description: Registered widget types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WidgetType"
+
+  /api/widgets/{id}/data:
+    get:
+      operationId: widgetData
+      summary: Live data for one widget item (~30s server-side cache)
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Widget payload; shape depends on config.type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WidgetData"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "502":
+          description: Upstream service unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/status:
     get:
       operationId: getStatus
@@ -386,10 +424,19 @@ components:
       properties:
         sectionId:
           type: string
+        kind:
+          type: string
+          enum: [service, widget]
+          default: service
         name:
           type: string
         icon:
           type: string
+        config:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: Widget config — keys defined by the widget type's fields
         urls:
           type: array
           items:
@@ -401,6 +448,10 @@ components:
           type: string
         icon:
           type: string
+        config:
+          type: object
+          nullable: true
+          additionalProperties: true
         urls:
           type: array
           description: Full replacement of the item's URL list
@@ -465,6 +516,48 @@ components:
         latencyMs:
           type: integer
         checkedAt:
+          type: string
+          format: date-time
+    WidgetField:
+      type: object
+      required: [key, label]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        secret:
+          type: boolean
+          description: Render as password input; never logged
+        placeholder:
+          type: string
+        required:
+          type: boolean
+    WidgetType:
+      type: object
+      required: [type, name, fields]
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        local:
+          type: boolean
+          description: Client-rendered (e.g. clock); no /data fetch needed
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/WidgetField"
+    WidgetData:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+        fetchedAt:
           type: string
           format: date-time
     Export:

@@ -69,6 +69,7 @@ export function ServiceDialog({
 				}
 				const created = await board.addItem({
 					sectionId: sid,
+					kind: "service",
 					name: name.trim(),
 					icon,
 					urls: cleanUrls,

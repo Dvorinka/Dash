@@ -2,6 +2,7 @@ import { ChevronDown, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useItemDnd, useSectionDnd } from "@/board/dnd";
 import { IconImg, ItemAnchor, StatusChip, hostOf } from "@/board/primitives";
+import { WidgetContent } from "@/widgets";
 import type {
 	BoardViewProps,
 	ItemViewProps,
@@ -103,7 +104,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 	);
 }
 
-function WidgetView({ item, sectionId }: ItemViewProps) {
+function WidgetView({ item, sectionId, onEdit }: ItemViewProps) {
 	const dnd = useItemDnd(sectionId, item.id);
 	return (
 		<div
@@ -112,13 +113,24 @@ function WidgetView({ item, sectionId }: ItemViewProps) {
 			{...dnd.attributes}
 			{...dnd.listeners}
 			className={cn(
-				"flex items-center rounded-[10px] border border-dashed border-border-strong bg-surface px-4 py-3",
+				"group/card relative col-span-2 flex cursor-grab items-center gap-3",
+				"rounded-[10px] border border-border bg-surface px-3.5 py-3",
+				"transition-colors hover:border-border-strong hover:bg-surface-hover active:scale-[0.98]",
 				dnd.isDragging && "opacity-40",
 			)}
 		>
-			<span className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-text-faint">
-				{item.name}
-			</span>
+			<WidgetContent item={item} />
+			<button
+				type="button"
+				aria-label={`Edit ${item.name}`}
+				onClick={(e) => {
+					e.stopPropagation();
+					onEdit();
+				}}
+				className="absolute -right-1 -top-1 rounded-full border border-border bg-popover p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/card:opacity-100"
+			>
+				<Pencil size={10} />
+			</button>
 		</div>
 	);
 }

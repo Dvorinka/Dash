@@ -9,16 +9,26 @@ import (
 )
 
 type itemInput struct {
-	SectionID string     `json:"sectionId"`
-	Name      string     `json:"name"`
-	Icon      string     `json:"icon"`
-	URLs      []URLInput `json:"urls"`
+	SectionID string           `json:"sectionId"`
+	Kind      string           `json:"kind"`
+	Name      string           `json:"name"`
+	Icon      string           `json:"icon"`
+	Config    *json.RawMessage `json:"config"`
+	URLs      []URLInput       `json:"urls"`
 }
 
 func (s *Server) createItem(c *gin.Context) {
 	var in itemInput
 	if err := c.ShouldBindJSON(&in); err != nil || in.SectionID == "" || in.Name == "" {
 		fail(c, http.StatusBadRequest, "sectionId and name required")
+		return
+	}
+	kind := in.Kind
+	if kind == "" {
+		kind = "service"
+	}
+	if kind != "service" && kind != "widget" {
+		fail(c, http.StatusBadRequest, "kind must be service or widget")
 		return
 	}
 	for _, u := range in.URLs {
@@ -35,8 +45,8 @@ func (s *Server) createItem(c *gin.Context) {
 		return
 	}
 
-	it := Item{ID: newID("i"), SectionID: in.SectionID, Kind: "service", Name: in.Name, Icon: in.Icon,
-		Position: midpoint(ptrOr(maxPos), nil), URLs: []URL{}}
+	it := Item{ID: newID("i"), SectionID: in.SectionID, Kind: kind, Name: in.Name, Icon: in.Icon,
+		Config: in.Config, Position: midpoint(ptrOr(maxPos), nil), URLs: []URL{}}
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -45,8 +55,12 @@ func (s *Server) createItem(c *gin.Context) {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err := tx.Exec(`INSERT INTO items (id, section_id, name, icon, position) VALUES (?, ?, ?, ?, ?)`,
-		it.ID, it.SectionID, it.Name, it.Icon, it.Position); err != nil {
+	var cfg any
+	if in.Config != nil {
+		cfg = string(*in.Config)
+	}
+	if _, err := tx.Exec(`INSERT INTO items (id, section_id, kind, name, icon, position, config) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		it.ID, it.SectionID, it.Kind, it.Name, it.Icon, it.Position, cfg); err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -76,9 +90,10 @@ func insertURLs(tx *sql.Tx, itemID string, in []URLInput, out *[]URL) error {
 
 func (s *Server) updateItem(c *gin.Context) {
 	var in struct {
-		Name *string     `json:"name"`
-		Icon *string     `json:"icon"`
-		URLs *[]URLInput `json:"urls"`
+		Name   *string          `json:"name"`
+		Icon   *string          `json:"icon"`
+		Config *json.RawMessage `json:"config"`
+		URLs   *[]URLInput      `json:"urls"`
 	}
 	if err := c.ShouldBindJSON(&in); err != nil {
 		fail(c, http.StatusBadRequest, "invalid body")
@@ -109,6 +124,12 @@ func (s *Server) updateItem(c *gin.Context) {
 	}
 	if in.Icon != nil {
 		if _, err := tx.Exec(`UPDATE items SET icon = ? WHERE id = ?`, *in.Icon, id); err != nil {
+			fail(c, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	if in.Config != nil {
+		if _, err := tx.Exec(`UPDATE items SET config = ? WHERE id = ?`, string(*in.Config), id); err != nil {
 			fail(c, http.StatusInternalServerError, err.Error())
 			return
 		}

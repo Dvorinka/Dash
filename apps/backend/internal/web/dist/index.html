@@ -1,1 +1,21 @@
-<!doctype html><meta charset="utf-8"><title>Dash</title><p>Dash API is running. Frontend build is not embedded in this binary.</p>
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dash</title>
+    <script>
+      // Pre-paint theme: localStorage mirrors the server setting, applied
+      // before first paint so there is no flash of the wrong theme.
+      try {
+        var t = localStorage.getItem("dash.theme");
+        document.documentElement.dataset.theme = t === "light" ? "light" : "dark";
+      } catch (e) {}
+    </script>
+    <script type="module" crossorigin src="/assets/index-LtBmkZex.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CoYED22n.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

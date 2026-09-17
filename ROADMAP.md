@@ -73,19 +73,19 @@ The product's spine: sections, services, drag-drop, multi-URL.
 
 **Exit:** create sections, add services with icons and dual URLs, drag everything, reload — state persists. `docker run` single image works. Export/import round-trips. — verified: full API + browser smoke (dnd, popover, upload, collapse, themes, both renderers, 360px), `api_test.go` covers reorder/URL-validation/settings.
 
-## Phase 2 — Widgets → v0.2.0
+## Phase 2 — Widgets → v0.2.0 ✅ done 2026-09-17
 
-- [ ] Go widget registry: `Widget` interface (`Type()`, `Fetch(cfg)`), `GET /api/widgets/:id/data` with ~30s in-process TTL cache
-- [ ] `GET /api/widgets/types` → registry metadata drives the add-widget dialog
-- [ ] `WidgetHost` component: maps `config.type` → React component, polls with backoff
-- [ ] Widgets as grid items (same `items` table, `kind = 'widget'`, `config JSON`)
-- [ ] Clock/timezone widget (frontend-only)
-- [ ] Pi-hole fetcher (blocked %, queries today, per-day bar series)
-- [ ] AdGuard Home fetcher (blocked %, clients)
-- [ ] Immich fetcher (photo count, library size)
-- [ ] Per-widget config UI (endpoint URL, API key — stored in `config`, never logged)
+- [x] Go widget registry: `Widget` interface (`Type()`, `Fetch(cfg)`), `GET /api/widgets/:id/data` with ~30s in-process TTL cache
+- [x] `GET /api/widgets/types` → registry metadata drives the add-widget dialog
+- [x] `WidgetHost` component: maps `config.type` → React component, polls with backoff
+- [x] Widgets as grid items (same `items` table, `kind = 'widget'`, `config JSON`)
+- [x] Clock/timezone widget (frontend-only)
+- [x] Pi-hole fetcher (blocked %, queries today) — per-day bar series deferred: v5 `api.php` lacks it, needs Pi-hole v6 `/api/history`
+- [x] AdGuard Home fetcher (blocked %, queries, avg processing ms)
+- [x] Immich fetcher (photo/video count, library size)
+- [x] Per-widget config UI (endpoint URL, API key — stored in `config`, never logged)
 
-**Exit:** Pi-hole widget shows real data; adding a new integration = one Go file + one React component.
+**Exit:** Pi-hole widget shows real data; adding a new integration = one Go file + one React component. — verified: registry, cache, 502 path, generic config dialog, clock live in-browser, Pi-hole fetcher against stubbed v5 API.
 
 ## Phase 3 — Renderers & ergonomics → v0.3.0
 

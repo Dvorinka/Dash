@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/tdvorak/dash/internal/db"
@@ -119,6 +120,61 @@ func TestSettingsRoundTrip(t *testing.T) {
 	}
 	if got["theme"] != "light" || got["renderer"] != "cards" {
 		t.Fatalf("settings mismatch: %v", got)
+	}
+}
+
+func TestWidgetEndpoints(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	// Types registry serves all integrations incl. the local clock.
+	resp, err := http.Get(srv.URL + "/api/widgets/types")
+	if err != nil {
+		t.Fatalf("get types: %v", err)
+	}
+	var types []struct {
+		Type  string `json:"type"`
+		Local bool   `json:"local"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&types); err != nil {
+		t.Fatalf("decode types: %v", err)
+	}
+	resp.Body.Close()
+	got := map[string]bool{}
+	for _, w := range types {
+		got[w.Type] = w.Local
+	}
+	for _, want := range []string{"clock", "pihole", "adguard", "immich"} {
+		if _, ok := got[want]; !ok {
+			t.Fatalf("missing widget type %s in %v", want, got)
+		}
+	}
+	if !got["clock"] {
+		t.Fatalf("clock must be local, got %v", got)
+	}
+
+	// Widget data on a service item -> 400; missing -> 404.
+	_, a := do(t, "POST", srv.URL+"/api/sections", `{"name":"A"}`)
+	_, it := do(t, "POST", srv.URL+"/api/items", `{"sectionId":"`+a["id"].(string)+`","name":"Svc"}`)
+	res, _ := do(t, "GET", srv.URL+"/api/widgets/"+it["id"].(string)+"/data", "")
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("service item data: %d", res.StatusCode)
+	}
+	res, _ = do(t, "GET", srv.URL+"/api/widgets/i_missing/data", "")
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("missing item: %d", res.StatusCode)
+	}
+
+	// Widget item with dead upstream -> 502, then cached (second call fast).
+	_, w := do(t, "POST", srv.URL+"/api/items", `{"sectionId":"`+a["id"].(string)+`","kind":"widget","name":"PH","config":{"type":"pihole","endpoint":"http://127.0.0.1:1","token":"x"}}`)
+	res, _ = do(t, "GET", srv.URL+"/api/widgets/"+w["id"].(string)+"/data", "")
+	if res.StatusCode != http.StatusBadGateway {
+		t.Fatalf("dead upstream: %d", res.StatusCode)
+	}
+	start := time.Now()
+	res, _ = do(t, "GET", srv.URL+"/api/widgets/"+w["id"].(string)+"/data", "")
+	if res.StatusCode != http.StatusBadGateway || time.Since(start) > time.Second {
+		t.Fatalf("expected cached 502, got %d in %v", res.StatusCode, time.Since(start))
 	}
 }
 

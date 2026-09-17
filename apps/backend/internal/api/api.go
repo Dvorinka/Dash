@@ -15,16 +15,22 @@ import (
 	"go.uber.org/zap"
 )
 
-// Server holds handler dependencies: DB, icon dir, status cache.
+// Server holds handler dependencies: DB, icon dir, status + widget caches.
 type Server struct {
 	db       *sql.DB
 	iconsDir string
 	status   *statusCache
+	widgets  *widgetCache
 }
 
 // NewRouter builds the HTTP handler: zap access log, recovery, /api routes.
 func NewRouter(logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
-	s := &Server{db: db, iconsDir: iconsDir, status: newStatusCache(60 * time.Second)}
+	s := &Server{
+		db:       db,
+		iconsDir: iconsDir,
+		status:   newStatusCache(60 * time.Second),
+		widgets:  newWidgetCache(30 * time.Second),
+	}
 
 	r := gin.New()
 	r.Use(accessLog(logger), gin.Recovery())
@@ -46,6 +52,8 @@ func NewRouter(logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
 	v1.GET("/icons/:file", s.getIcon)
 
 	v1.GET("/status", s.getStatus)
+	v1.GET("/widgets/types", s.widgetTypes)
+	v1.GET("/widgets/:id/data", s.widgetData)
 	v1.GET("/settings", s.getSettings)
 	v1.PUT("/settings", s.putSettings)
 	v1.GET("/export", s.exportBoard)

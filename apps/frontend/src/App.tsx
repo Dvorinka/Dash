@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Moon, Plus, Settings, Sun } from "lucide-react";
+import { LayoutGrid, Moon, Plus, Settings, Sun } from "lucide-react";
 import { BoardProvider, useBoard } from "@/board/store";
 import { Board } from "@/board/Board";
 import { ServiceDialog } from "@/components/ServiceDialog";
+import { WidgetDialog } from "@/components/WidgetDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { Button } from "@/components/ui/button";
 import type { Item } from "@/types";
@@ -19,7 +20,14 @@ function Shell() {
 	const board = useBoard();
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [svcOpen, setSvcOpen] = useState(false);
+	const [wdgOpen, setWdgOpen] = useState(false);
 	const [editing, setEditing] = useState<Item | undefined>();
+
+	function openEditor(it: Item) {
+		setEditing(it);
+		if (it.kind === "widget") setWdgOpen(true);
+		else setSvcOpen(true);
+	}
 
 	return (
 		<div className="font-sans">
@@ -46,6 +54,13 @@ function Shell() {
 					>
 						{board.theme === "dark" ? <Moon size={15} strokeWidth={1.8} /> : <Sun size={15} strokeWidth={1.8} />}
 					</Button>
+					<Button
+						variant="outline" aria-label="Add widget"
+						onClick={() => { setEditing(undefined); setWdgOpen(true); }}
+					>
+						<LayoutGrid size={13} strokeWidth={2} />
+						Widget
+					</Button>
 					<Button onClick={() => { setEditing(undefined); setSvcOpen(true); }}>
 						<Plus size={13} strokeWidth={2.2} />
 						Add service
@@ -53,9 +68,10 @@ function Shell() {
 				</div>
 			</header>
 
-			<Board onEditItem={(it) => { setEditing(it); setSvcOpen(true); }} />
+			<Board onEditItem={openEditor} />
 
-			<ServiceDialog open={svcOpen} onOpenChange={setSvcOpen} item={editing} />
+			<ServiceDialog open={svcOpen} onOpenChange={setSvcOpen} item={editing?.kind === "service" ? editing : undefined} />
+			<WidgetDialog open={wdgOpen} onOpenChange={setWdgOpen} item={editing?.kind === "widget" ? editing : undefined} />
 			<SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
 		</div>
 	);
