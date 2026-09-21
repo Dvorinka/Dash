@@ -4,6 +4,7 @@ import { ClockWidget } from "@/widgets/clock";
 import { PiholeWidget, AdguardWidget } from "@/widgets/blocker";
 import { ImmichWidget } from "@/widgets/immich";
 import { MonitorWidget } from "@/widgets/monitor";
+import { DomainWidget } from "@/widgets/domain";
 
 // WidgetHost seam: renderers own the tile chrome; this maps config.type to
 // the component that fills it. Adding a widget = one fetcher in Go + one
@@ -30,6 +31,7 @@ const registry: WidgetRegistry = {
 	adguard: { view: AdguardWidget },
 	immich: { view: ImmichWidget },
 	monitor: { view: MonitorWidget },
+	domain: { view: DomainWidget },
 };
 
 export function cfgStr(item: Item, key: string): string {

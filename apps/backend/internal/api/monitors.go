@@ -450,6 +450,8 @@ func (s *Server) sweep() {
 		AND status != 'down'`); err != nil {
 		s.log.Error("push stale sweep", zap.Error(err))
 	}
+
+	s.sweepDomains()
 }
 
 // runCheck executes one monitor check (with retries) and persists the result.

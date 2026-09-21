@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useBoard } from "@/board/store";
+import { api } from "@/api";
 import type { Item } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ export function WidgetDialog({
 	const [sectionId, setSectionId] = useState("");
 	const [values, setValues] = useState<Record<string, string>>({});
 	const [monitors, setMonitors] = useState<{ id?: string; name?: string }[]>([]);
+	const [domains, setDomains] = useState<{ id?: string; name?: string }[]>([]);
 	const [busy, setBusy] = useState(false);
 	const [err, setErr] = useState("");
 
@@ -43,10 +45,8 @@ export function WidgetDialog({
 			.then((r) => r.json() as Promise<WidgetType[]>)
 			.then(setTypes)
 			.catch(() => setTypes([]));
-		fetch("/api/monitors")
-			.then((r) => r.json() as Promise<{ id?: string; name?: string }[]>)
-			.then(setMonitors)
-			.catch(() => setMonitors([]));
+		void api.GET("/api/monitors").then(({ data }) => setMonitors(data ?? []));
+		void api.GET("/api/domains").then(({ data }) => setDomains(data ?? []));
 
 		const cfg = item?.config ?? null;
 		setType(cfg && typeof cfg.type === "string" ? cfg.type : "");
@@ -146,14 +146,14 @@ export function WidgetDialog({
 							<Label htmlFor={`wdg-${f.key}`}>
 								{f.label}{f.required ? "" : " (optional)"}
 							</Label>
-							{f.key === "monitorId" ? (
+							{f.key === "monitorId" || f.key === "domainId" ? (
 								<Select
 									value={values[f.key] ?? ""}
 									onValueChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
 								>
-									<SelectTrigger><SelectValue placeholder="Pick a monitor…" /></SelectTrigger>
+									<SelectTrigger><SelectValue placeholder="Pick one…" /></SelectTrigger>
 									<SelectContent>
-										{monitors.map((m) => (
+										{(f.key === "monitorId" ? monitors : domains).map((m) => (
 											<SelectItem key={m.id} value={m.id ?? ""}>{m.name}</SelectItem>
 										))}
 									</SelectContent>

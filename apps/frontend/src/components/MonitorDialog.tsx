@@ -54,6 +54,8 @@ export function MonitorDialog({
 
 	const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
 		setF((s) => ({ ...s, [k]: e.target.value }));
+	// SAFETY: f.type only ever receives values from the TYPES select or a
+	// persisted monitor row, both constrained to MonType.
 	const type = (f.type || "http") as MonType;
 
 	async function submit() {

@@ -16,6 +16,10 @@ export type Monitor = components["schemas"]["Monitor"];
 export type MonitorInput = components["schemas"]["MonitorInput"];
 export type MonitorView = components["schemas"]["MonitorView"];
 export type Heartbeat = components["schemas"]["Heartbeat"];
+export type Domain = components["schemas"]["Domain"];
+export type DomainInput = components["schemas"]["DomainInput"];
+export type DomainView = components["schemas"]["DomainView"];
+export type DomainCheck = components["schemas"]["DomainCheck"];
 
 export type Theme = "dark" | "light";
 export type RendererName = "bento" | "cards" | "index" | "console";

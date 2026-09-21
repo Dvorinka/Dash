@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tdvorak/dash/internal/db"
+	"github.com/tdvorak/dash/internal/domain"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +24,22 @@ func testServer(t *testing.T) *httptest.Server {
 	}
 	t.Cleanup(func() { d.Close() })
 	gin.SetMode(gin.TestMode)
-	return httptest.NewServer(NewRouter(nil, zap.NewNop(), d, t.TempDir()))
+	s := newServer(zap.NewNop(), d, t.TempDir())
+	// Stub the domain lookup — real RDAP/WHOIS/DNS would make tests slow and
+	// network-dependent.
+	s.lookup = func(_ context.Context, name string) *domain.Result {
+		exp := time.Now().Add(90 * 24 * time.Hour).UTC()
+		return &domain.Result{
+			Name:          name,
+			RegistrarName: "Test Registrar",
+			ExpiryDate:    &exp,
+			IPv4:          []string{"93.184.216.34"},
+			NameServers:   []string{"ns1.example.com"},
+			Headers:       map[string]string{},
+			FaviconURL:    "https://www.google.com/s2/favicons?domain=" + name,
+		}
+	}
+	return httptest.NewServer(s.routes())
 }
 
 func do(t *testing.T, method, url, body string) (*http.Response, map[string]any) {
@@ -378,6 +395,84 @@ func TestPushMonitor(t *testing.T) {
 	res, _ = do(t, "GET", srv.URL+"/api/push/bogus", "")
 	if res.StatusCode != http.StatusNotFound {
 		t.Fatalf("bad token: %d", res.StatusCode)
+	}
+}
+
+func TestDomainLifecycle(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	// Garbage name -> 400 before any lookup happens.
+	res, body := do(t, "POST", srv.URL+"/api/domains", `{"name":"not a domain!!"}`)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %v", res.StatusCode, body)
+	}
+
+	// Valid name creates even when lookups fail (unresolvable TLD).
+	res, dv := do(t, "POST", srv.URL+"/api/domains", `{"name":"nonexistent.invalid","alertDaysBefore":14}`)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %d %v", res.StatusCode, dv)
+	}
+	if dv["tld"] != "invalid" || dv["name"] != "nonexistent.invalid" {
+		t.Fatalf("bad domain row: %v", dv)
+	}
+	// Stubbed lookup populated registration data + computed countdown.
+	if dv["registrarName"] != "Test Registrar" || dv["daysUntilExpiry"] == nil {
+		t.Fatalf("lookup not applied: %v", dv)
+	}
+	id := dv["id"].(string)
+
+	// Duplicate name -> 409.
+	res, _ = do(t, "POST", srv.URL+"/api/domains", `{"name":"nonexistent.invalid"}`)
+	if res.StatusCode != http.StatusConflict {
+		t.Fatalf("expected 409, got %d", res.StatusCode)
+	}
+
+	// Patch alert threshold round-trips.
+	res, dv = do(t, "PATCH", srv.URL+"/api/domains/"+id, `{"alertDaysBefore":7,"autoRenew":true}`)
+	if res.StatusCode != http.StatusOK || dv["alertDaysBefore"] != float64(7) || dv["autoRenew"] != true {
+		t.Fatalf("patch: %v", dv)
+	}
+
+	// Refresh endpoint answers (lookup result content is network-dependent).
+	res, dv = do(t, "POST", srv.URL+"/api/domains/"+id+"/refresh", "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("refresh: %d %v", res.StatusCode, dv)
+	}
+
+	// Checks history endpoint responds with a list.
+	resp, err := http.Get(srv.URL + "/api/domains/" + id + "/checks")
+	if err != nil {
+		t.Fatalf("checks: %v", err)
+	}
+	var checks []map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&checks)
+	resp.Body.Close()
+
+	res, _ = do(t, "DELETE", srv.URL+"/api/domains/"+id, "")
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete: %d", res.StatusCode)
+	}
+	res, _ = do(t, "GET", srv.URL+"/api/domains/"+id, "")
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 after delete, got %d", res.StatusCode)
+	}
+}
+
+func TestDomainWidget(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	res, dv := do(t, "POST", srv.URL+"/api/domains", `{"name":"widget.invalid"}`)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %d %v", res.StatusCode, dv)
+	}
+	_, a := do(t, "POST", srv.URL+"/api/sections", `{"name":"A"}`)
+	_, w := do(t, "POST", srv.URL+"/api/items", `{"sectionId":"`+a["id"].(string)+`","kind":"widget","name":"D","config":{"type":"domain","domainId":"`+dv["id"].(string)+`"}}`)
+	res, data := do(t, "GET", srv.URL+"/api/widgets/"+w["id"].(string)+"/data", "")
+	inner, _ := data["data"].(map[string]any)
+	if res.StatusCode != http.StatusOK || inner["name"] != "widget.invalid" {
+		t.Fatalf("domain widget: %d %v", res.StatusCode, data)
 	}
 }
 

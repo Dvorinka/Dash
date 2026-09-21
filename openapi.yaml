@@ -372,6 +372,122 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/domains:
+    get:
+      operationId: listDomains
+      summary: All tracked domains with expiry countdowns
+      responses:
+        "200":
+          description: Domains ordered by position
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DomainView"
+    post:
+      operationId: createDomain
+      summary: Track a domain; runs the first WHOIS/DNS/SSL lookup inline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomainInput"
+      responses:
+        "201":
+          description: Domain after the initial lookup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Domain already tracked
+
+  /api/domains/{id}:
+    get:
+      operationId: getDomain
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Domain detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateDomain
+      summary: Sparse update — settings fields only; lookup data is refreshed separately
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomainInput"
+      responses:
+        "200":
+          description: Updated domain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteDomain
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Domain and its check history deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/domains/{id}/refresh:
+    post:
+      operationId: refreshDomain
+      summary: Re-run WHOIS/RDAP + DNS + TLS + geo lookup now
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Domain after the refresh
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/domains/{id}/checks:
+    get:
+      operationId: domainChecks
+      summary: Snapshot history for change detection
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 500
+      responses:
+        "200":
+          description: Snapshots, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DomainCheck"
+
   /api/widgets/types:
     get:
       operationId: widgetTypes
@@ -851,6 +967,213 @@ components:
           type: string
         certExpiry:
           type: integer
+        checkedAt:
+          type: string
+          format: date-time
+    Domain:
+      type: object
+      required: [id, name, active]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tld:
+          type: string
+        active:
+          type: boolean
+        autoRenew:
+          type: boolean
+        alertDaysBefore:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+        expiryDate:
+          type: string
+          format: date-time
+          nullable: true
+        creationDate:
+          type: string
+          format: date-time
+          nullable: true
+        updatedDate:
+          type: string
+          format: date-time
+          nullable: true
+        registrarName:
+          type: string
+        registrarId:
+          type: string
+        registrarUrl:
+          type: string
+        registryDomainId:
+          type: string
+        dnssec:
+          type: string
+        statuses:
+          type: array
+          items:
+            type: string
+        privacyEnabled:
+          type: boolean
+        transferLock:
+          type: boolean
+        registrantName:
+          type: string
+        registrantOrg:
+          type: string
+        registrantCountry:
+          type: string
+        abuseEmail:
+          type: string
+        nameServers:
+          type: array
+          items:
+            type: string
+        mxRecords:
+          type: array
+          items:
+            type: string
+        txtRecords:
+          type: array
+          items:
+            type: string
+        cname:
+          type: string
+        ipv4:
+          type: array
+          items:
+            type: string
+        ipv6:
+          type: array
+          items:
+            type: string
+        sslIssuer:
+          type: string
+        sslValidFrom:
+          type: string
+          format: date-time
+          nullable: true
+        sslValidTo:
+          type: string
+          format: date-time
+          nullable: true
+        sslSubject:
+          type: string
+        sslFingerprint:
+          type: string
+        sslKeySize:
+          type: integer
+        sslSigAlgo:
+          type: string
+        sslAltNames:
+          type: array
+          items:
+            type: string
+        hostCountry:
+          type: string
+        hostCountryCode:
+          type: string
+        hostRegion:
+          type: string
+        hostCity:
+          type: string
+        hostIsp:
+          type: string
+        hostOrg:
+          type: string
+        hostAs:
+          type: string
+        hostLat:
+          type: number
+        hostLon:
+          type: number
+        dnsProvider:
+          type: string
+        emailProvider:
+          type: string
+        hostingProvider:
+          type: string
+        caProvider:
+          type: string
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        faviconUrl:
+          type: string
+        lookupError:
+          type: string
+        intervalH:
+          type: integer
+        lastChecked:
+          type: string
+          format: date-time
+          nullable: true
+        position:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+    DomainInput:
+      type: object
+      properties:
+        name:
+          type: string
+        active:
+          type: boolean
+        autoRenew:
+          type: boolean
+        alertDaysBefore:
+          type: integer
+        intervalH:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+    DomainView:
+      allOf:
+        - $ref: "#/components/schemas/Domain"
+        - type: object
+          properties:
+            daysUntilExpiry:
+              type: integer
+              nullable: true
+            sslDaysUntilExpiry:
+              type: integer
+              nullable: true
+            expiring:
+              type: boolean
+            sslExpiring:
+              type: boolean
+    DomainCheck:
+      type: object
+      properties:
+        id:
+          type: integer
+        expiryDate:
+          type: string
+          format: date-time
+          nullable: true
+        sslValidTo:
+          type: string
+          format: date-time
+          nullable: true
+        ipv4:
+          type: array
+          items:
+            type: string
+        nameServers:
+          type: array
+          items:
+            type: string
         checkedAt:
           type: string
           format: date-time

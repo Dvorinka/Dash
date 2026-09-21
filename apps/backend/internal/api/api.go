@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tdvorak/dash/internal/domain"
 	"github.com/tdvorak/dash/internal/widget"
 	"go.uber.org/zap"
 )
@@ -24,11 +25,12 @@ type Server struct {
 	log      *zap.Logger
 	status   *statusCache
 	widgets  *widgetCache
+	// lookup performs domain refreshes; swappable so tests don't hit the
+	// real WHOIS/RDAP/DNS path.
+	lookup func(ctx context.Context, name string) *domain.Result
 }
 
-// NewRouter builds the HTTP handler: zap access log, recovery, /api routes.
-// A non-nil ctx starts the monitor scheduler; nil keeps it off (tests).
-func NewRouter(ctx context.Context, logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
+func newServer(logger *zap.Logger, db *sql.DB, iconsDir string) *Server {
 	s := &Server{
 		db:       db,
 		iconsDir: iconsDir,
@@ -36,13 +38,25 @@ func NewRouter(ctx context.Context, logger *zap.Logger, db *sql.DB, iconsDir str
 		status:   newStatusCache(60 * time.Second),
 		widgets:  newWidgetCache(30 * time.Second),
 	}
+	s.lookup = domain.NewLookup().Run
 	widget.Register(&monitorWidget{db: db})
+	widget.Register(&domainWidget{db: db})
+	return s
+}
+
+// NewRouter builds the HTTP handler: zap access log, recovery, /api routes.
+// A non-nil ctx starts the monitor scheduler; nil keeps it off (tests).
+func NewRouter(ctx context.Context, logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
+	s := newServer(logger, db, iconsDir)
 	if ctx != nil {
 		go s.runScheduler(ctx.Done())
 	}
+	return s.routes()
+}
 
+func (s *Server) routes() *gin.Engine {
 	r := gin.New()
-	r.Use(accessLog(logger), gin.Recovery())
+	r.Use(accessLog(s.log), gin.Recovery())
 
 	v1 := r.Group("/api")
 	v1.GET("/healthz", s.healthz)
@@ -68,6 +82,14 @@ func NewRouter(ctx context.Context, logger *zap.Logger, db *sql.DB, iconsDir str
 	v1.GET("/monitors/:id/heartbeats", s.monitorHeartbeats)
 	v1.POST("/monitors/:id/check", s.checkNow)
 	v1.Any("/push/:token", s.pushIngest)
+
+	v1.GET("/domains", s.listDomainsH)
+	v1.POST("/domains", s.createDomain)
+	v1.GET("/domains/:id", s.getDomain)
+	v1.PATCH("/domains/:id", s.patchDomain)
+	v1.DELETE("/domains/:id", s.deleteDomain)
+	v1.POST("/domains/:id/refresh", s.refreshDomainH)
+	v1.GET("/domains/:id/checks", s.domainChecks)
 
 	v1.GET("/status", s.getStatus)
 	v1.GET("/widgets/types", s.widgetTypes)

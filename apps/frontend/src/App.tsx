@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Route, useLocation } from "wouter";
-import { Activity, LayoutGrid, Moon, Plus, Search, Settings, Sun } from "lucide-react";
+import { Activity, Globe, LayoutGrid, Moon, Plus, Search, Settings, Sun } from "lucide-react";
 import { BoardProvider, useBoard } from "@/board/store";
 import { Board } from "@/board/Board";
 import { ServiceDialog } from "@/components/ServiceDialog";
@@ -9,6 +9,8 @@ import { SettingsDialog } from "@/components/SettingsDialog";
 import { CommandPalette } from "@/components/CommandPalette";
 import { MonitorsPage } from "@/pages/MonitorsPage";
 import { MonitorDetailPage } from "@/pages/MonitorDetailPage";
+import { DomainsPage } from "@/pages/DomainsPage";
+import { DomainDetailPage } from "@/pages/DomainDetailPage";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/types";
@@ -24,6 +26,7 @@ export default function App() {
 const NAV = [
 	{ href: "/", label: "Board", icon: LayoutGrid },
 	{ href: "/monitors", label: "Monitors", icon: Activity },
+	{ href: "/domains", label: "Domains", icon: Globe },
 ];
 
 function Shell() {
@@ -131,6 +134,12 @@ function Shell() {
 			</Route>
 			<Route path="/monitors/:id">
 				{(p) => <MonitorDetailPage id={p.id} />}
+			</Route>
+			<Route path="/domains">
+				<DomainsPage />
+			</Route>
+			<Route path="/domains/:id">
+				{(p) => <DomainDetailPage id={p.id} />}
 			</Route>
 
 			<ServiceDialog open={svcOpen} onOpenChange={setSvcOpen} item={editing?.kind === "service" ? editing : undefined} />

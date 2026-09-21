@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Activity, ArrowRight, Download, LayoutGrid, Moon, Plus, Settings, Sun } from "lucide-react";
+import { Activity, ArrowRight, Download, Globe, LayoutGrid, Moon, Plus, Settings, Sun } from "lucide-react";
 import { useBoard } from "@/board/store";
 import { hostOf, IconImg } from "@/board/primitives";
 import { rendererLabels, rendererList } from "@/renderers";
@@ -44,6 +44,7 @@ export function CommandPalette({
 		const cmds: Command[] = [
 			{ id: "nav-board", group: "Actions", glyph: LayoutGrid, label: "Go to Board", run: () => navigate("/") },
 			{ id: "nav-monitors", group: "Actions", glyph: Activity, label: "Go to Monitors", run: () => navigate("/monitors") },
+			{ id: "nav-domains", group: "Actions", glyph: Globe, label: "Go to Domains", run: () => navigate("/domains") },
 			{ id: "add-service", group: "Actions", glyph: Plus, label: "Add service", hint: "new", run: onAddService },
 			{ id: "add-widget", group: "Actions", glyph: Plus, label: "Add widget", hint: "new", run: onAddWidget },
 			{ id: "settings", group: "Actions", glyph: Settings, label: "Open settings", run: onSettings },
