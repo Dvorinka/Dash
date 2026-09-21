@@ -10,7 +10,7 @@ import (
 // it and the add-widget dialog can offer it like any other type.
 type clock struct{}
 
-func init() { register(clock{}) }
+func init() { Register(clock{}) }
 
 func (clock) Meta() Type {
 	return Type{

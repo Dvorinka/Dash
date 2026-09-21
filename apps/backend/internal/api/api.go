@@ -2,6 +2,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -12,24 +13,32 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tdvorak/dash/internal/widget"
 	"go.uber.org/zap"
 )
 
-// Server holds handler dependencies: DB, icon dir, status + widget caches.
+// Server holds handler dependencies: DB, icon dir, logger, caches.
 type Server struct {
 	db       *sql.DB
 	iconsDir string
+	log      *zap.Logger
 	status   *statusCache
 	widgets  *widgetCache
 }
 
 // NewRouter builds the HTTP handler: zap access log, recovery, /api routes.
-func NewRouter(logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
+// A non-nil ctx starts the monitor scheduler; nil keeps it off (tests).
+func NewRouter(ctx context.Context, logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
 	s := &Server{
 		db:       db,
 		iconsDir: iconsDir,
+		log:      logger,
 		status:   newStatusCache(60 * time.Second),
 		widgets:  newWidgetCache(30 * time.Second),
+	}
+	widget.Register(&monitorWidget{db: db})
+	if ctx != nil {
+		go s.runScheduler(ctx.Done())
 	}
 
 	r := gin.New()
@@ -51,6 +60,15 @@ func NewRouter(logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
 	v1.POST("/items/:id/icon", s.uploadIcon)
 	v1.GET("/icons/:file", s.getIcon)
 
+	v1.GET("/monitors", s.listMonitorsH)
+	v1.POST("/monitors", s.createMonitor)
+	v1.GET("/monitors/:id", s.getMonitor)
+	v1.PATCH("/monitors/:id", s.patchMonitor)
+	v1.DELETE("/monitors/:id", s.deleteMonitor)
+	v1.GET("/monitors/:id/heartbeats", s.monitorHeartbeats)
+	v1.POST("/monitors/:id/check", s.checkNow)
+	v1.Any("/push/:token", s.pushIngest)
+
 	v1.GET("/status", s.getStatus)
 	v1.GET("/widgets/types", s.widgetTypes)
 	v1.GET("/widgets/:id/data", s.widgetData)
@@ -58,6 +76,7 @@ func NewRouter(logger *zap.Logger, db *sql.DB, iconsDir string) *gin.Engine {
 	v1.PUT("/settings", s.putSettings)
 	v1.GET("/export", s.exportBoard)
 	v1.POST("/import", s.importBoard)
+	v1.POST("/import/external", s.importExternal)
 
 	return r
 }

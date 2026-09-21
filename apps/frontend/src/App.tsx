@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { LayoutGrid, Moon, Plus, Search, Settings, Sun } from "lucide-react";
+import { Link, Route, useLocation } from "wouter";
+import { Activity, LayoutGrid, Moon, Plus, Search, Settings, Sun } from "lucide-react";
 import { BoardProvider, useBoard } from "@/board/store";
 import { Board } from "@/board/Board";
 import { ServiceDialog } from "@/components/ServiceDialog";
 import { WidgetDialog } from "@/components/WidgetDialog";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { CommandPalette } from "@/components/CommandPalette";
+import { MonitorsPage } from "@/pages/MonitorsPage";
+import { MonitorDetailPage } from "@/pages/MonitorDetailPage";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { Item } from "@/types";
 
 export default function App() {
@@ -17,8 +21,14 @@ export default function App() {
 	);
 }
 
+const NAV = [
+	{ href: "/", label: "Board", icon: LayoutGrid },
+	{ href: "/monitors", label: "Monitors", icon: Activity },
+];
+
 function Shell() {
 	const board = useBoard();
+	const [loc] = useLocation();
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [svcOpen, setSvcOpen] = useState(false);
@@ -60,6 +70,24 @@ function Shell() {
 					</svg>
 					Dash
 				</div>
+				<nav className="ml-6 flex items-center gap-1" aria-label="Primary">
+					{NAV.map((n) => {
+						const active = n.href === "/" ? loc === "/" : loc.startsWith(n.href);
+						return (
+							<Link
+								key={n.href}
+								href={n.href}
+								className={cn(
+									"flex items-center gap-1.5 rounded-[7px] px-2.5 py-1.5 text-[12.5px] transition-colors",
+									active ? "bg-surface-hover text-text" : "text-text-faint hover:text-text",
+								)}
+							>
+								<n.icon size={13} strokeWidth={1.8} />
+								{n.label}
+							</Link>
+						);
+					})}
+				</nav>
 				<div className="ml-auto flex items-center gap-2">
 					<Button
 						variant="outline" aria-label="Search (⌘K)"
@@ -95,7 +123,15 @@ function Shell() {
 				</div>
 			</header>
 
-			<Board onEditItem={openEditor} />
+			<Route path="/">
+				<Board onEditItem={openEditor} />
+			</Route>
+			<Route path="/monitors">
+				<MonitorsPage />
+			</Route>
+			<Route path="/monitors/:id">
+				{(p) => <MonitorDetailPage id={p.id} />}
+			</Route>
 
 			<ServiceDialog open={svcOpen} onOpenChange={setSvcOpen} item={editing?.kind === "service" ? editing : undefined} />
 			<WidgetDialog open={wdgOpen} onOpenChange={setWdgOpen} item={editing?.kind === "widget" ? editing : undefined} />

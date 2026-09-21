@@ -22,7 +22,7 @@ func testServer(t *testing.T) *httptest.Server {
 	}
 	t.Cleanup(func() { d.Close() })
 	gin.SetMode(gin.TestMode)
-	return httptest.NewServer(NewRouter(zap.NewNop(), d, t.TempDir()))
+	return httptest.NewServer(NewRouter(nil, zap.NewNop(), d, t.TempDir()))
 }
 
 func do(t *testing.T, method, url, body string) (*http.Response, map[string]any) {
@@ -175,6 +175,209 @@ func TestWidgetEndpoints(t *testing.T) {
 	res, _ = do(t, "GET", srv.URL+"/api/widgets/"+w["id"].(string)+"/data", "")
 	if res.StatusCode != http.StatusBadGateway || time.Since(start) > time.Second {
 		t.Fatalf("expected cached 502, got %d in %v", res.StatusCode, time.Since(start))
+	}
+}
+
+func TestImportExternalHomepage(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	body := `- Media:
+    - Plex:
+        href: http://plex.local:32400
+        icon: plex
+    - NoLink:
+        description: widget-only entry
+- Apps:
+    - Sonarr:
+        href: https://sonarr.example.com
+        icon: https://icons.example.com/sonarr.png
+`
+	res, _ := do(t, "POST", srv.URL+"/api/import/external", body)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("homepage import: %d", res.StatusCode)
+	}
+	var secs []Section
+	resp, err := http.Get(srv.URL + "/api/sections")
+	if err != nil {
+		t.Fatalf("get sections: %v", err)
+	}
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&secs); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(secs) != 2 {
+		t.Fatalf("expected 2 sections, got %+v", secs)
+	}
+	media := secs[0]
+	if media.Name != "Media" || len(media.Items) != 1 {
+		t.Fatalf("bad Media section: %+v", media)
+	}
+	if media.Items[0].Name != "Plex" || len(media.Items[0].URLs) != 1 {
+		t.Fatalf("bad Plex item: %+v", media.Items[0])
+	}
+	if media.Items[0].Icon == "" {
+		t.Fatal("expected resolved CDN icon")
+	}
+	apps := secs[1]
+	if apps.Items[0].Icon != "https://icons.example.com/sonarr.png" {
+		t.Fatalf("icon passthrough failed: %+v", apps.Items[0])
+	}
+}
+
+func TestImportExternalDashy(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	body := `appConfig:
+  title: test
+sections:
+  - name: Media
+    items:
+      - title: Plex
+        url: http://plex.local
+        icon: favicon
+      - title: Broken
+        url: "notaurl"
+`
+	res, _ := do(t, "POST", srv.URL+"/api/import/external", body)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("dashy import: %d", res.StatusCode)
+	}
+	var secs []Section
+	resp, err := http.Get(srv.URL + "/api/sections")
+	if err != nil {
+		t.Fatalf("get sections: %v", err)
+	}
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&secs); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(secs) != 1 || len(secs[0].Items) != 1 {
+		t.Fatalf("bad sections: %+v", secs)
+	}
+	if secs[0].Items[0].Icon != "http://plex.local/favicon.ico" {
+		t.Fatalf("favicon resolution failed: %+v", secs[0].Items[0])
+	}
+}
+
+func TestImportExternalHomarr(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	body := `{"apps":[{"name":"Plex","url":"http://plex.local","icon":"hl-plex","categoryId":"c1"},{"name":"Sonarr","url":"http://sonarr.local","categoryId":"c1"}],"categories":[{"id":"c1","name":"Media"}]}`
+	res, _ := do(t, "POST", srv.URL+"/api/import/external", body)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("homarr import: %d", res.StatusCode)
+	}
+	var secs []Section
+	resp, err := http.Get(srv.URL + "/api/sections")
+	if err != nil {
+		t.Fatalf("get sections: %v", err)
+	}
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&secs); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(secs) != 1 || secs[0].Name != "Media" || len(secs[0].Items) != 2 {
+		t.Fatalf("bad sections: %+v", secs)
+	}
+}
+
+func TestImportExternalRejectsGarbage(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+	res, body := do(t, "POST", srv.URL+"/api/import/external", `{"foo": 1}`)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %v", res.StatusCode, body)
+	}
+}
+
+func TestMonitorLifecycle(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	// Target that returns 200.
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer up.Close()
+
+	res, mv := do(t, "POST", srv.URL+"/api/monitors", `{"name":"Site","type":"http","url":"`+up.URL+`","intervalS":60}`)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %d %v", res.StatusCode, mv)
+	}
+	id := mv["id"].(string)
+
+	// check-now -> up, heartbeat recorded.
+	res, mv = do(t, "POST", srv.URL+"/api/monitors/"+id+"/check", "")
+	if res.StatusCode != http.StatusOK || mv["status"] != "up" {
+		t.Fatalf("check-now: %d %v", res.StatusCode, mv)
+	}
+	resp, err := http.Get(srv.URL + "/api/monitors/" + id + "/heartbeats")
+	if err != nil {
+		t.Fatalf("heartbeats: %v", err)
+	}
+	var hbs []map[string]any
+	_ = json.NewDecoder(resp.Body).Decode(&hbs)
+	resp.Body.Close()
+	if len(hbs) != 1 || hbs[0]["status"] != "up" {
+		t.Fatalf("expected 1 up heartbeat, got %v", hbs)
+	}
+
+	// pause -> paused + inactive
+	res, mv = do(t, "PATCH", srv.URL+"/api/monitors/"+id, `{"active":false}`)
+	if res.StatusCode != http.StatusOK || mv["status"] != "paused" || mv["active"] != false {
+		t.Fatalf("pause: %v", mv)
+	}
+
+	// delete
+	res, _ = do(t, "DELETE", srv.URL+"/api/monitors/"+id, "")
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete: %d", res.StatusCode)
+	}
+	res, _ = do(t, "GET", srv.URL+"/api/monitors/"+id, "")
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 after delete, got %d", res.StatusCode)
+	}
+}
+
+func TestMonitorCheckDown(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+	res, mv := do(t, "POST", srv.URL+"/api/monitors", `{"name":"Dead","type":"http","url":"http://127.0.0.1:1","timeoutS":1}`)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %v", mv)
+	}
+	id := mv["id"].(string)
+	res, mv = do(t, "POST", srv.URL+"/api/monitors/"+id+"/check", "")
+	if res.StatusCode != http.StatusOK || mv["status"] != "down" {
+		t.Fatalf("expected down, got %v", mv)
+	}
+}
+
+func TestPushMonitor(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+	res, mv := do(t, "POST", srv.URL+"/api/monitors", `{"name":"Backup","type":"push","intervalS":60}`)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %v", mv)
+	}
+	token, _ := mv["pushToken"].(string)
+	if token == "" {
+		t.Fatal("no push token issued")
+	}
+	res, _ = do(t, "GET", srv.URL+"/api/push/"+token+"?msg=done", "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("push: %d", res.StatusCode)
+	}
+	res, mv = do(t, "GET", srv.URL+"/api/monitors/"+mv["id"].(string), "")
+	if mv["status"] != "up" {
+		t.Fatalf("expected up after push, got %v", mv["status"])
+	}
+	res, _ = do(t, "GET", srv.URL+"/api/push/bogus", "")
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("bad token: %d", res.StatusCode)
 	}
 }
 

@@ -11,6 +11,12 @@ export type Status = components["schemas"]["Status"];
 export type StatusMap = Record<string, Status>;
 export type ExportPayload = components["schemas"]["Export"];
 
+// Monitoring (merge program) — same generated-schema rule applies.
+export type Monitor = components["schemas"]["Monitor"];
+export type MonitorInput = components["schemas"]["MonitorInput"];
+export type MonitorView = components["schemas"]["MonitorView"];
+export type Heartbeat = components["schemas"]["Heartbeat"];
+
 export type Theme = "dark" | "light";
 export type RendererName = "bento" | "cards" | "index" | "console";
 

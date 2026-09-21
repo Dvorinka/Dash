@@ -28,11 +28,22 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 
 	async function importJson(file: File) {
 		setMsg("");
-		const res = await fetch("/api/import", { method: "POST", body: file });
+		// Dash exports are JSON with {version, sections}; anything else
+		// (Homepage/Homarr/Dashy) goes to the external importer for sniffing.
+		let target = "/api/import/external";
+		try {
+			const j: unknown = JSON.parse(await file.text());
+			if (j !== null && typeof j === "object" && "version" in j && "sections" in j) {
+				target = "/api/import";
+			}
+		} catch { /* not JSON — external importer handles YAML */ }
+		const res = await fetch(target, { method: "POST", body: file });
 		if (res.ok) {
 			location.reload(); // import replaces state; a reload re-syncs everything
 		} else {
-			setMsg("Import failed — not a Dash export?");
+			// SAFETY: error responses always carry {error: string} per openapi.yaml Error schema.
+			const body = (await res.json().catch(() => null)) as { error?: string } | null;
+			setMsg(body?.error ?? "Import failed");
 		}
 	}
 
@@ -90,7 +101,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 							<Upload size={12} /> Import
 						</Button>
 						<input
-							ref={fileRef} type="file" accept="application/json" className="hidden"
+							ref={fileRef} type="file" accept=".json,.yml,.yaml" className="hidden"
 							onChange={(e) => {
 								const f = e.target.files?.[0];
 								if (f) void importJson(f);
@@ -98,6 +109,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 							}}
 						/>
 					</div>
+					<p className="text-[11px] text-text-faint">Import accepts Dash exports plus Homepage, Homarr, and Dashy configs.</p>
 					{msg ? <p className="text-[12px] text-destructive">{msg}</p> : null}
 				</div>
 			</DialogContent>

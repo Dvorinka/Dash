@@ -10,7 +10,7 @@ import (
 // Immich REST API: GET /api/statistics with an x-api-key header.
 type immich struct{}
 
-func init() { register(immich{}) }
+func init() { Register(immich{}) }
 
 func (immich) Meta() Type {
 	return Type{

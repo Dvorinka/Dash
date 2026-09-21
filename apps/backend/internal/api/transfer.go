@@ -2,10 +2,25 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
+
+// errBadInput marks payload validation failures so import handlers can map
+// them to 400 while genuine DB failures stay 500.
+var errBadInput = errors.New("invalid import payload")
+
+// failImport maps replaceBoard errors: bad input -> 400, the rest -> 500.
+func failImport(c *gin.Context, err error) {
+	if errors.Is(err, errBadInput) {
+		fail(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	fail(c, http.StatusInternalServerError, err.Error())
+}
 
 // Export is the portable backup shape: version + settings + board tree.
 type Export struct {
@@ -36,34 +51,43 @@ func (s *Server) importBoard(c *gin.Context) {
 		fail(c, http.StatusBadRequest, "invalid export payload")
 		return
 	}
-
-	tx, err := s.db.Begin()
+	if err := s.replaceBoard(in.Sections, in.Settings); err != nil {
+		failImport(c, err)
+		return
+	}
+	sections, err := s.board()
 	if err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
+	}
+	c.JSON(http.StatusOK, sections)
+}
+
+// replaceBoard swaps all board rows inside one transaction — shared by the
+// Dash export import and the external-config importers.
+func (s *Server) replaceBoard(sections []Section, settings map[string]json.RawMessage) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
 	for _, q := range []string{`DELETE FROM urls`, `DELETE FROM items`, `DELETE FROM sections`} {
 		if _, err := tx.Exec(q); err != nil {
-			fail(c, http.StatusInternalServerError, err.Error())
-			return
+			return err
 		}
 	}
-	for _, sec := range in.Sections {
+	for _, sec := range sections {
 		if sec.ID == "" || sec.Name == "" {
-			fail(c, http.StatusBadRequest, "section missing id or name")
-			return
+			return fmt.Errorf("%w: section missing id or name", errBadInput)
 		}
 		if _, err := tx.Exec(`INSERT INTO sections (id, name, position, collapsed) VALUES (?, ?, ?, ?)`,
 			sec.ID, sec.Name, sec.Position, sec.Collapsed); err != nil {
-			fail(c, http.StatusInternalServerError, err.Error())
-			return
+			return err
 		}
 		for _, it := range sec.Items {
 			if it.ID == "" || it.Name == "" {
-				fail(c, http.StatusBadRequest, "item missing id or name")
-				return
+				return fmt.Errorf("%w: item missing id or name", errBadInput)
 			}
 			var cfg any
 			if it.Config != nil {
@@ -72,13 +96,11 @@ func (s *Server) importBoard(c *gin.Context) {
 			if _, err := tx.Exec(
 				`INSERT INTO items (id, section_id, kind, name, icon, position, config) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 				it.ID, sec.ID, orDefault(it.Kind, "service"), it.Name, it.Icon, it.Position, cfg); err != nil {
-				fail(c, http.StatusInternalServerError, err.Error())
-				return
+				return err
 			}
 			for _, u := range it.URLs {
 				if !validURL(u.URL) {
-					fail(c, http.StatusBadRequest, "invalid url: "+u.URL)
-					return
+					return fmt.Errorf("%w: invalid url: %s", errBadInput, u.URL)
 				}
 				uid := u.ID
 				if uid == "" {
@@ -86,31 +108,19 @@ func (s *Server) importBoard(c *gin.Context) {
 				}
 				if _, err := tx.Exec(`INSERT INTO urls (id, item_id, url, label, position) VALUES (?, ?, ?, ?, ?)`,
 					uid, it.ID, u.URL, u.Label, u.Position); err != nil {
-					fail(c, http.StatusInternalServerError, err.Error())
-					return
+					return err
 				}
 			}
 		}
 	}
-	for k, v := range in.Settings {
+	for k, v := range settings {
 		if _, err := tx.Exec(
 			`INSERT INTO settings (key, value) VALUES (?, ?)
 			 ON CONFLICT(key) DO UPDATE SET value = excluded.value`, k, string(v)); err != nil {
-			fail(c, http.StatusInternalServerError, err.Error())
-			return
+			return err
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		fail(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	sections, err := s.board()
-	if err != nil {
-		fail(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.JSON(http.StatusOK, sections)
+	return tx.Commit()
 }
 
 func orDefault(v, def string) string {

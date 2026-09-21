@@ -214,6 +214,164 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/monitors:
+    get:
+      operationId: listMonitors
+      summary: All monitors with live uptime stats
+      responses:
+        "200":
+          description: Monitors ordered by position
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonitorView"
+    post:
+      operationId: createMonitor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitorInput"
+      responses:
+        "201":
+          description: Created monitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/monitors/{id}:
+    get:
+      operationId: getMonitor
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Monitor with stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateMonitor
+      summary: Sparse update; `active` toggles pause/resume
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitorInput"
+      responses:
+        "200":
+          description: Updated monitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteMonitor
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Monitor and its heartbeats deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/monitors/{id}/heartbeats:
+    get:
+      operationId: monitorHeartbeats
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+            maximum: 720
+      responses:
+        "200":
+          description: Check history, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Heartbeat"
+
+  /api/monitors/{id}/check:
+    post:
+      operationId: checkMonitorNow
+      summary: Run one check synchronously
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Monitor after the check
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/push/{token}:
+    get:
+      operationId: pushMonitorGet
+      summary: Record an up heartbeat for a push monitor
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: msg
+          in: query
+          schema:
+            type: string
+        - name: ping
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Heartbeat recorded
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: pushMonitorPost
+      summary: Record an up heartbeat for a push monitor
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: msg
+          in: query
+          schema:
+            type: string
+        - name: ping
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Heartbeat recorded
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/widgets/types:
     get:
       operationId: widgetTypes
@@ -318,6 +476,40 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/Export"
+      responses:
+        "200":
+          description: Imported board tree
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Section"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/import/external:
+    post:
+      operationId: importExternal
+      summary: >
+        Import a foreign dashboard config — Homepage services.yml, Homarr
+        JSON export, or Dashy conf.yml. Format is auto-detected; the board
+        is replaced and existing settings are preserved.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          application/json:
+            schema:
+              type: string
+              format: binary
+          text/yaml:
+            schema:
+              type: string
+              format: binary
       responses:
         "200":
           description: Imported board tree
@@ -514,6 +706,150 @@ components:
           type: string
           enum: [up, down]
         latencyMs:
+          type: integer
+        checkedAt:
+          type: string
+          format: date-time
+    Monitor:
+      type: object
+      required: [id, name, type, active, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [http, tcp, ping, dns, keyword, json, push]
+        url:
+          type: string
+        hostname:
+          type: string
+        port:
+          type: integer
+        method:
+          type: string
+        headers:
+          type: string
+          description: JSON object of request headers
+        body:
+          type: string
+        keyword:
+          type: string
+        keywordInvert:
+          type: boolean
+        jsonQuery:
+          type: string
+          description: Dot path into a JSON response, e.g. "data.status"
+        expected:
+          type: string
+        dnsType:
+          type: string
+        intervalS:
+          type: integer
+        timeoutS:
+          type: integer
+        retries:
+          type: integer
+        active:
+          type: boolean
+        status:
+          type: string
+          enum: [up, down, pending, paused, maintenance]
+        pushToken:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+        position:
+          type: number
+        lastCheck:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    MonitorInput:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [http, tcp, ping, dns, keyword, json, push]
+        url:
+          type: string
+        hostname:
+          type: string
+        port:
+          type: integer
+        method:
+          type: string
+        headers:
+          type: string
+        body:
+          type: string
+        keyword:
+          type: string
+        keywordInvert:
+          type: boolean
+        jsonQuery:
+          type: string
+        expected:
+          type: string
+        dnsType:
+          type: string
+        intervalS:
+          type: integer
+        timeoutS:
+          type: integer
+        retries:
+          type: integer
+        active:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+    UptimeStats:
+      type: object
+      properties:
+        up:
+          type: integer
+        down:
+          type: integer
+        uptime24h:
+          type: number
+        uptime30d:
+          type: number
+        avgPing24h:
+          type: integer
+    MonitorView:
+      allOf:
+        - $ref: "#/components/schemas/Monitor"
+        - type: object
+          properties:
+            stats:
+              $ref: "#/components/schemas/UptimeStats"
+    Heartbeat:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [up, down]
+        pingMs:
+          type: integer
+        msg:
+          type: string
+        certExpiry:
           type: integer
         checkedAt:
           type: string

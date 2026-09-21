@@ -42,17 +42,17 @@ func main() {
 	}
 	defer func() { _ = sqlDB.Close() }()
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	iconsDir := filepath.Join(dataDir, "icons")
-	router := api.NewRouter(logger, sqlDB, iconsDir)
+	router := api.NewRouter(ctx, logger, sqlDB, iconsDir)
 	if err := web.Register(router); err != nil {
 		logger.Fatal("register embedded UI", zap.Error(err))
 	}
 
 	addr := ":" + envOr("DASH_PORT", "8080")
 	srv := &http.Server{Addr: addr, Handler: router, ReadHeaderTimeout: 10 * time.Second}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	go func() {
 		logger.Info("listening", zap.String("addr", addr), zap.String("data", dataDir))

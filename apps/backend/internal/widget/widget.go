@@ -40,7 +40,9 @@ type Fetcher interface {
 
 var registry = map[string]Fetcher{}
 
-func register(f Fetcher) { registry[f.Meta().Type] = f }
+// Register adds a fetcher — used by the api package for DB-backed widgets
+// (monitor/domain/system) that can't live in this leaf package.
+func Register(f Fetcher) { registry[f.Meta().Type] = f }
 
 // Get resolves a config.type to its fetcher.
 func Get(t string) (Fetcher, bool) {

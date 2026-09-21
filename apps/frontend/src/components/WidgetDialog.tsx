@@ -31,6 +31,7 @@ export function WidgetDialog({
 	const [name, setName] = useState("");
 	const [sectionId, setSectionId] = useState("");
 	const [values, setValues] = useState<Record<string, string>>({});
+	const [monitors, setMonitors] = useState<{ id?: string; name?: string }[]>([]);
 	const [busy, setBusy] = useState(false);
 	const [err, setErr] = useState("");
 
@@ -42,6 +43,10 @@ export function WidgetDialog({
 			.then((r) => r.json() as Promise<WidgetType[]>)
 			.then(setTypes)
 			.catch(() => setTypes([]));
+		fetch("/api/monitors")
+			.then((r) => r.json() as Promise<{ id?: string; name?: string }[]>)
+			.then(setMonitors)
+			.catch(() => setMonitors([]));
 
 		const cfg = item?.config ?? null;
 		setType(cfg && typeof cfg.type === "string" ? cfg.type : "");
@@ -141,14 +146,28 @@ export function WidgetDialog({
 							<Label htmlFor={`wdg-${f.key}`}>
 								{f.label}{f.required ? "" : " (optional)"}
 							</Label>
-							<Input
-								id={`wdg-${f.key}`}
-								type={f.secret ? "password" : "text"}
-								value={values[f.key] ?? ""}
-								placeholder={f.placeholder}
-								onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-								className="font-mono text-[12px]"
-							/>
+							{f.key === "monitorId" ? (
+								<Select
+									value={values[f.key] ?? ""}
+									onValueChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
+								>
+									<SelectTrigger><SelectValue placeholder="Pick a monitor…" /></SelectTrigger>
+									<SelectContent>
+										{monitors.map((m) => (
+											<SelectItem key={m.id} value={m.id ?? ""}>{m.name}</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							) : (
+								<Input
+									id={`wdg-${f.key}`}
+									type={f.secret ? "password" : "text"}
+									value={values[f.key] ?? ""}
+									placeholder={f.placeholder}
+									onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
+									className="font-mono text-[12px]"
+								/>
+							)}
 						</div>
 					))}
 
