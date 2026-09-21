@@ -198,7 +198,7 @@ Beszel-style server monitoring, push-based.
 - [x] goreleaser → binaries; GHCR image on tag; semver + `CHANGELOG.md`
 - [x] `CONTRIBUTING.md`, issue/PR templates, code of conduct, security policy
 - [x] i18n scaffolding (`src/i18n/` — typed `t()` + `en` dict; full string extraction deferred to first real locale)
-- [ ] Public repo flip + announcement assets
+- [x] Public repo (already flipped) + announcement draft (`docs/announcement.md`) — v0.7.0 released: binaries + GHCR image live
 
 **Exit:** a stranger can `docker run`, import their Homepage config, and have a working board in under two minutes.
 
