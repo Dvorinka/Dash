@@ -25,6 +25,9 @@ import (
 	"time"
 )
 
+// version is stamped by goreleaser via -X main.version.
+var version = "dev"
+
 func main() {
 	url := flag.String("url", os.Getenv("DASH_URL"), "dash server base URL")
 	token := flag.String("token", os.Getenv("DASH_TOKEN"), "system token")
@@ -52,7 +55,7 @@ func main() {
 	if *url == "" || *token == "" {
 		log.Fatal("dash-agent: -url and -token (or DASH_URL/DASH_TOKEN) required")
 	}
-	log.Printf("dash-agent: pushing to %s every %ds", *url, *interval)
+	log.Printf("dash-agent %s: pushing to %s every %ds", version, *url, *interval)
 	for {
 		s := c.sample(*interval)
 		if err := push(*url, *token, s); err != nil {

@@ -175,7 +175,7 @@ Beszel-style server monitoring, push-based.
 - [x] Schema: `systems` (name, token, host, os/arch, last_seen, status, `latest` JSON snapshot), `system_stats` (system_id, ts, payload JSON — one column, no sub-field queries; 7d retention prune)
 - [x] Ingest: `POST /api/systems/ingest` with per-system bearer token; offline when silent > max(3×interval, 30s); `system.up`/`system.down` webhook events
 - [x] `cmd/dash-agent`: Linux collector — `/proc` (cpu/mem/net/load/uptime), `/sys` hwmon temps, statfs disk, docker.sock container list; POST every `-interval` (default 10s); `-once` debug mode
-- [ ] Agent packaging: systemd unit + Dockerfile + release binaries (Phase 4)
+- [x] Agent packaging: systemd unit (`packaging/dash-agent.service`) + `infra/Dockerfile.agent` + goreleaser binaries (Phase 4)
 - [x] Systems page (status cards, cpu/mem/disk bars, uptime) + detail (recharts: cpu%, mem%, net rx/tx, load; temps + containers tables)
 - [x] Board widget `system` (cpu/mem/disk mini bars)
 - [x] Not ported: the beszel agent protocol (SSH/WS into PocketBase) — our agent is push-JSON. SMART/ZFS/GPU metrics + per-container cpu/mem deferred to demand.
@@ -192,11 +192,11 @@ Beszel-style server monitoring, push-based.
 
 ## Phase 4 — Open-source launch → v1.0.0
 
-- [ ] Docs: install, configuration, widget development guide (`docs/`)
-- [ ] Importers: Homepage `services.yml`, Homarr JSON, Dashy `conf.yml` → sections/items/urls
-- [ ] `README.md` hero: screenshots (4 themes), demo GIF, `docker run` one-liner
-- [ ] goreleaser → binaries; GHCR image on tag; semver + `CHANGELOG.md`
-- [ ] `CONTRIBUTING.md`, issue/PR templates, code of conduct, security policy
+- [x] Docs: install, configuration, widget development guide (`docs/`)
+- [x] Importers: Homepage `services.yml`, Homarr JSON, Dashy `conf.yml` → sections/items/urls
+- [x] `README.md` hero: screenshots, `docker run` one-liner (demo GIF deferred — pngs suffice for v1.0.0)
+- [x] goreleaser → binaries; GHCR image on tag; semver + `CHANGELOG.md`
+- [x] `CONTRIBUTING.md`, issue/PR templates, code of conduct, security policy
 - [ ] i18n scaffolding (en default)
 - [ ] Public repo flip + announcement assets
 

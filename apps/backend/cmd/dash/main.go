@@ -19,6 +19,9 @@ import (
 	"github.com/tdvorak/dash/internal/web"
 )
 
+// version is stamped by goreleaser via -X main.version.
+var version = "dev"
+
 func main() {
 	dev := os.Getenv("DASH_DEV") == "1"
 
@@ -55,7 +58,7 @@ func main() {
 	srv := &http.Server{Addr: addr, Handler: router, ReadHeaderTimeout: 10 * time.Second}
 
 	go func() {
-		logger.Info("listening", zap.String("addr", addr), zap.String("data", dataDir))
+		logger.Info("listening", zap.String("addr", addr), zap.String("data", dataDir), zap.String("version", version))
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("serve", zap.Error(err))
 		}
