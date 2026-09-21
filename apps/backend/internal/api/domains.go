@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -318,16 +319,36 @@ func (s *Server) deleteDomain(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// refreshDomain re-runs the full lookup and writes a snapshot row.
+// refreshDomain re-runs the full lookup and writes a snapshot row. Expiry
+// threshold crossings fire notify events on the edge (only when a state
+// newly becomes true, not on every refresh).
 func (s *Server) refreshDomain(id string) {
 	row, err := s.loadDomain(id)
 	if err != nil {
 		return
 	}
+	prev := viewOf(row)
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 	r := s.lookup(ctx, row.Name)
 	s.applyResult(id, r)
+
+	next, err := s.loadDomain(id)
+	if err != nil {
+		return
+	}
+	nv := viewOf(next)
+	switch {
+	case nv.DaysUntilExpiry != nil && *nv.DaysUntilExpiry < 0 && !(prev.DaysUntilExpiry != nil && *prev.DaysUntilExpiry < 0):
+		s.notify("domain.expired", next.Name, fmt.Sprintf("Domain %s has expired", next.Name))
+	case nv.Expiring && !prev.Expiring:
+		s.notify("domain.expiring", next.Name,
+			fmt.Sprintf("Domain %s expires in %d days", next.Name, *nv.DaysUntilExpiry))
+	}
+	if nv.SSLExpiring && !prev.SSLExpiring && nv.SSLDaysUntilExpiry != nil {
+		s.notify("domain.sslExpiring", next.Name,
+			fmt.Sprintf("TLS certificate for %s expires in %d days", next.Name, *nv.SSLDaysUntilExpiry))
+	}
 }
 
 func (s *Server) refreshDomainH(c *gin.Context) {

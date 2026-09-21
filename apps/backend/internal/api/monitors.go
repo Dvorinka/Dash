@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -491,10 +492,17 @@ func (s *Server) writeHeartbeat(m *monitor.Monitor, res *monitor.Result) {
 	}
 }
 
-// onMonitorTransition is the alert seam — M2 wires notifications here.
+// onMonitorTransition fires on real state flips (pending excluded upstream)
+// — the notification seam for up/down events.
 func (s *Server) onMonitorTransition(m *monitor.Monitor, prev, next string) {
 	s.log.Info("monitor transition",
 		zap.String("monitor", m.Name), zap.String("from", prev), zap.String("to", next))
+	target := m.URL
+	if target == "" {
+		target = m.Hostname
+	}
+	s.notify("monitor."+next, m.Name,
+		fmt.Sprintf("Monitor %q is %s (%s)", m.Name, next, target))
 }
 
 func truncate(s string, n int) string {

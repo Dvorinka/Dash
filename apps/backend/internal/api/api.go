@@ -90,6 +90,7 @@ func (s *Server) routes() *gin.Engine {
 	v1.DELETE("/domains/:id", s.deleteDomain)
 	v1.POST("/domains/:id/refresh", s.refreshDomainH)
 	v1.GET("/domains/:id/checks", s.domainChecks)
+	v1.POST("/notify/test", s.notifyTest)
 
 	v1.GET("/status", s.getStatus)
 	v1.GET("/widgets/types", s.widgetTypes)

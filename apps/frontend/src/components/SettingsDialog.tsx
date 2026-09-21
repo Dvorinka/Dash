@@ -1,12 +1,14 @@
-import { useRef, useState } from "react";
-import { Download, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bell, Download, Upload } from "lucide-react";
 import { useBoard } from "@/board/store";
+import { api } from "@/api";
 import { rendererDescriptions, rendererLabels, rendererList } from "@/renderers";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -14,6 +16,23 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 	const board = useBoard();
 	const fileRef = useRef<HTMLInputElement>(null);
 	const [msg, setMsg] = useState("");
+	const [webhook, setWebhook] = useState("");
+	const [webhookMsg, setWebhookMsg] = useState("");
+
+	useEffect(() => {
+		if (!open) return;
+		void api.GET("/api/settings").then(({ data }) => {
+			const v = data?.notify_webhook;
+			setWebhook(typeof v === "string" ? v : "");
+			setWebhookMsg("");
+		});
+	}, [open]);
+
+	async function saveWebhook() {
+		setWebhookMsg("");
+		await api.PUT("/api/settings", { body: { notify_webhook: webhook.trim() } });
+		setWebhookMsg("saved");
+	}
 
 	async function exportJson() {
 		const res = await fetch("/api/export");
@@ -91,6 +110,38 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 								<SelectItem value="light">Light</SelectItem>
 							</SelectContent>
 						</Select>
+					</div>
+
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="notify-webhook">Notification webhook</Label>
+						<div className="flex gap-2">
+							<Input
+								id="notify-webhook"
+								value={webhook}
+								onChange={(e) => { setWebhook(e.target.value); setWebhookMsg(""); }}
+								placeholder="https://ntfy.sh/dash or Slack/Discord hook"
+								className="font-mono text-[12px]"
+							/>
+							<Button type="button" variant="outline" size="sm" onClick={() => void saveWebhook()}>
+								Save
+							</Button>
+							<Button
+								type="button" variant="outline" size="icon" aria-label="Send test notification"
+								disabled={!webhook.trim()}
+								onClick={() => {
+									setWebhookMsg("");
+									void api.POST("/api/notify/test").then(({ error }) =>
+										setWebhookMsg(error ? "failed" : "sent"));
+								}}
+							>
+								<Bell size={12} />
+							</Button>
+						</div>
+						<p className="text-[11px] text-text-faint">
+							Monitor up/down flips and domain/certificate expiry post JSON here.
+							Works with Slack, Discord, ntfy, or any JSON receiver.
+						</p>
+						{webhookMsg ? <p className="text-[11px] text-text-faint">{webhookMsg}</p> : null}
 					</div>
 
 					<div className="flex gap-2 pt-1">

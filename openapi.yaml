@@ -540,6 +540,17 @@ paths:
                 additionalProperties:
                   $ref: "#/components/schemas/Status"
 
+  /api/notify/test:
+    post:
+      operationId: notifyTest
+      summary: Send a test notification to the configured webhook
+      description: Requires the `notify_webhook` settings key to hold an http(s) URL.
+      responses:
+        "200":
+          description: Test notification dispatched
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
   /api/settings:
     get:
       operationId: getSettings

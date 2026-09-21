@@ -476,6 +476,69 @@ func TestDomainWidget(t *testing.T) {
 	}
 }
 
+func TestNotifyWebhook(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	// Receiver captures the webhook payload.
+	got := make(chan map[string]any, 1)
+	hook := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		got <- body
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer hook.Close()
+
+	// Unconfigured -> 400.
+	res, _ := do(t, "POST", srv.URL+"/api/notify/test", "")
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 without webhook, got %d", res.StatusCode)
+	}
+
+	// Configure + test.
+	if res, _ := do(t, "PUT", srv.URL+"/api/settings", `{"notify_webhook":"`+hook.URL+`"}`); res.StatusCode != http.StatusOK {
+		t.Fatalf("put settings: %d", res.StatusCode)
+	}
+	res, _ = do(t, "POST", srv.URL+"/api/notify/test", "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("notify test: %d", res.StatusCode)
+	}
+	select {
+	case body := <-got:
+		if body["event"] != "test" || body["text"] == "" {
+			t.Fatalf("bad payload: %v", body)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("webhook never received the test notification")
+	}
+
+	// Monitor transition fires monitor.down through the same webhook.
+	res, mv := do(t, "POST", srv.URL+"/api/monitors", `{"name":"Flip","type":"http","url":"http://127.0.0.1:1","timeoutS":1}`)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %v", mv)
+	}
+	id := mv["id"].(string)
+	// pending -> down (no fire), then up -> down needs an up first.
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	defer up.Close()
+	res, _ = do(t, "PATCH", srv.URL+"/api/monitors/"+id, `{"url":"`+up.URL+`"}`)
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("patch: %d", res.StatusCode)
+	}
+	do(t, "POST", srv.URL+"/api/monitors/"+id+"/check", "") // -> up
+	do(t, "PATCH", srv.URL+"/api/monitors/"+id, `{"url":"http://127.0.0.1:1","timeoutS":1}`)
+	do(t, "POST", srv.URL+"/api/monitors/"+id+"/check", "") // -> down, fires webhook
+	select {
+	case body := <-got:
+		if body["event"] != "monitor.down" {
+			t.Fatalf("expected monitor.down, got %v", body)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("webhook never received monitor.down")
+	}
+}
+
 func TestMidpoint(t *testing.T) {
 	f := func(v float64) *float64 { return &v }
 	if got := midpoint(nil, nil); got != 1024 {
