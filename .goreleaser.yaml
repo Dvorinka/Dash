@@ -31,11 +31,17 @@ builds:
 
 archives:
   - id: dash
+    ids: [dash]
     formats: [tar.gz]
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
     format_overrides:
       - goos: windows
         formats: [zip]
+    files: [README.md, LICENSE]
+  - id: dash-agent
+    ids: [dash-agent]
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}-agent_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
     files: [README.md, LICENSE]
 
 checksum:
