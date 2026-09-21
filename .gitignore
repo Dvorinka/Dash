@@ -5,7 +5,6 @@ packages/api-client/dist/
 packages/api-client/src/schema.d.ts
 apps/backend/internal/web/dist/*
 !apps/backend/internal/web/dist/.keep
-!apps/backend/internal/web/dist/index.html
 
 # data / runtime
 data/*

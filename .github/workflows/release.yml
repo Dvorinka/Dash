@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # goreleaser needs full history for tag + changelog
 
       - uses: actions/setup-node@v4
         with:
@@ -22,7 +24,9 @@ jobs:
       - run: npm run build
 
         # go:embed all:dist reads internal/web/dist at compile time.
-      - run: rm -rf apps/backend/internal/web/dist && cp -r apps/frontend/dist apps/backend/internal/web/dist
+        # Merge into dist/ — don't rm -rf: the tracked .keep must survive or
+        # goreleaser aborts on the dirty tree.
+      - run: cp -r apps/frontend/dist/. apps/backend/internal/web/dist/
 
       - uses: actions/setup-go@v5
         with:
