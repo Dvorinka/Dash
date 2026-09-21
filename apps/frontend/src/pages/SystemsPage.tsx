@@ -11,10 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
+const TB = 2 ** 40;
+const GB = 2 ** 30;
+const MB = 2 ** 20;
+
 export function fmtBytes(b: number) {
-	if (b >= 1 << 40) return `${(b / (1 << 40)).toFixed(1)} TB`;
-	if (b >= 1 << 30) return `${(b / (1 << 30)).toFixed(1)} GB`;
-	return `${(b / (1 << 20)).toFixed(0)} MB`;
+	if (b >= TB) return `${(b / TB).toFixed(1)} TB`;
+	if (b >= GB) return `${(b / GB).toFixed(1)} GB`;
+	return `${(b / MB).toFixed(0)} MB`;
 }
 
 export function fmtUptime(s: number) {

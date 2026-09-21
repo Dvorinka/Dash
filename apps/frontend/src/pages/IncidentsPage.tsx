@@ -54,7 +54,9 @@ export function IncidentsPage() {
 		// The select only offers the three severities, but its value is a
 		// plain string — narrow at the boundary instead of asserting.
 		const severity = sev === "critical" || sev === "minor" ? sev : "major";
-		await api.POST("/api/incidents", { body: { title: title.trim(), severity, message: msg || undefined } });
+		await api.POST("/api/incidents", {
+			body: { title: title.trim(), severity, ...(msg.trim() ? { message: msg.trim() } : {}) },
+		});
 		setBusy(false);
 		setDlgOpen(false);
 		setTitle(""); setMsg("");
@@ -63,7 +65,10 @@ export function IncidentsPage() {
 
 	async function transition(id: string | undefined, to: Status, message?: string) {
 		if (!id) return;
-		await api.PATCH("/api/incidents/{id}", { params: { path: { id } }, body: { status: to, message } });
+		await api.PATCH("/api/incidents/{id}", {
+			params: { path: { id } },
+			body: { status: to, ...(message?.trim() ? { message } : {}) },
+		});
 		await load();
 	}
 

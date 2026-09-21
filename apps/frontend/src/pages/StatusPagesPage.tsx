@@ -57,7 +57,7 @@ export function StatusPagesPage() {
 		const { error } = await api.POST("/api/status-pages", {
 			body: {
 				title: pTitle.trim(),
-				slug: pSlug.trim() || undefined,
+				...(pSlug.trim() ? { slug: pSlug.trim() } : {}),
 				description: pDesc.trim(),
 				monitorIds: pMonitors,
 			},
