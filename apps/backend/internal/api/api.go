@@ -41,6 +41,7 @@ func newServer(logger *zap.Logger, db *sql.DB, iconsDir string) *Server {
 	s.lookup = domain.NewLookup().Run
 	widget.Register(&monitorWidget{db: db})
 	widget.Register(&domainWidget{db: db})
+	widget.Register(&systemWidget{db: db})
 	return s
 }
 
@@ -91,6 +92,14 @@ func (s *Server) routes() *gin.Engine {
 	v1.POST("/domains/:id/refresh", s.refreshDomainH)
 	v1.GET("/domains/:id/checks", s.domainChecks)
 	v1.POST("/notify/test", s.notifyTest)
+
+	v1.GET("/systems", s.listSystemsH)
+	v1.POST("/systems", s.createSystem)
+	v1.GET("/systems/:id", s.getSystem)
+	v1.PATCH("/systems/:id", s.patchSystem)
+	v1.DELETE("/systems/:id", s.deleteSystem)
+	v1.GET("/systems/:id/stats", s.systemStats)
+	v1.POST("/systems/ingest", s.ingestSystem)
 
 	v1.GET("/status", s.getStatus)
 	v1.GET("/widgets/types", s.widgetTypes)

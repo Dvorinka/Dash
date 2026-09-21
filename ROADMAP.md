@@ -172,12 +172,13 @@ Domain-locker-grade domain intelligence.
 
 Beszel-style server monitoring, push-based.
 
-- [ ] Schema: `systems` (name, token, host, os/arch, last_seen, status), `system_stats` (system_id, ts, cpu, mem, disk, net, load, temps JSON, containers JSON — retention prune)
-- [ ] Ingest: `POST /api/systems/ingest` with per-system bearer token; offline when silent > 3× interval
-- [ ] `cmd/dash-agent`: Linux-first collector — `/proc` (cpu/mem/net/load/uptime), `/sys` hwmon temps, statfs disk; container stats when `/var/run/docker.sock` present; POST every 10s; systemd unit + Dockerfile
-- [ ] Systems page (gauge cards, uptime, last seen) + detail (recharts: cpu%, mem, disk io, net, temps)
-- [ ] Board widget `system` (cpu/mem bars)
-- [ ] Not ported: the beszel agent protocol (SSH/WS into PocketBase) — our agent is push-JSON. SMART/ZFS/GPU metrics deferred to demand.
+- [x] Schema: `systems` (name, token, host, os/arch, last_seen, status, `latest` JSON snapshot), `system_stats` (system_id, ts, payload JSON — one column, no sub-field queries; 7d retention prune)
+- [x] Ingest: `POST /api/systems/ingest` with per-system bearer token; offline when silent > max(3×interval, 30s); `system.up`/`system.down` webhook events
+- [x] `cmd/dash-agent`: Linux collector — `/proc` (cpu/mem/net/load/uptime), `/sys` hwmon temps, statfs disk, docker.sock container list; POST every `-interval` (default 10s); `-once` debug mode
+- [ ] Agent packaging: systemd unit + Dockerfile + release binaries (Phase 4)
+- [x] Systems page (status cards, cpu/mem/disk bars, uptime) + detail (recharts: cpu%, mem%, net rx/tx, load; temps + containers tables)
+- [x] Board widget `system` (cpu/mem/disk mini bars)
+- [x] Not ported: the beszel agent protocol (SSH/WS into PocketBase) — our agent is push-JSON. SMART/ZFS/GPU metrics + per-container cpu/mem deferred to demand.
 
 ### Phase M4 — Ops layer → v0.7.0
 

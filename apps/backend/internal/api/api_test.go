@@ -539,6 +539,102 @@ func TestNotifyWebhook(t *testing.T) {
 	}
 }
 
+func TestSystemIngest(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	// No token -> 401.
+	res, _ := do(t, "POST", srv.URL+"/api/systems/ingest", `{"cpu":1}`)
+	if res.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", res.StatusCode)
+	}
+
+	res, sys := do(t, "POST", srv.URL+"/api/systems", `{"name":"nas"}`)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("create: %v", sys)
+	}
+	id, token := sys["id"].(string), sys["token"].(string)
+	if token == "" {
+		t.Fatal("no agent token issued")
+	}
+
+	// Bad token -> 401.
+	req, _ := http.NewRequest("POST", srv.URL+"/api/systems/ingest",
+		strings.NewReader(`{"cpu":50}`))
+	req.Header.Set("Authorization", "Bearer wrong")
+	if r, err := http.DefaultClient.Do(req); err != nil || r.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("bad token: %v %v", r.StatusCode, err)
+	}
+
+	// Real push -> system goes up, latest + stats stored.
+	push := func() (*http.Response, map[string]any) {
+		t.Helper()
+		req, _ := http.NewRequest("POST", srv.URL+"/api/systems/ingest",
+			strings.NewReader(`{"host":"nas.local","os":"linux","arch":"amd64",
+				"cpuModel":"Test CPU","cores":4,"cpu":42.5,"memTotal":8000,"memUsed":4000,
+				"diskTotal":100000,"diskUsed":50000,"netRx":100,"netTx":50,"load1":1.5}`))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("push: %v", err)
+		}
+		defer res.Body.Close()
+		var out map[string]any
+		_ = json.NewDecoder(res.Body).Decode(&out)
+		return res, out
+	}
+	if res, out := push(); res.StatusCode != http.StatusOK {
+		t.Fatalf("ingest: %v", out)
+	}
+
+	res, sys = do(t, "GET", srv.URL+"/api/systems/"+id, "")
+	if res.StatusCode != http.StatusOK || sys["status"] != "up" {
+		t.Fatalf("get: %v", sys)
+	}
+	if sys["host"] != "nas.local" || sys["cores"].(float64) != 4 {
+		t.Fatalf("host fields not stored: %v", sys)
+	}
+	latest := sys["latest"].(map[string]any)
+	if latest["cpu"].(float64) != 42.5 {
+		t.Fatalf("latest not stored: %v", latest)
+	}
+
+	res, list := do(t, "GET", srv.URL+"/api/systems/"+id+"/stats?hours=1", "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("stats: %v", list)
+	}
+	// stats returns an array — decode separately.
+	req2, _ := http.NewRequest("GET", srv.URL+"/api/systems/"+id+"/stats?hours=1", nil)
+	r2, _ := http.DefaultClient.Do(req2)
+	var arr []map[string]any
+	_ = json.NewDecoder(r2.Body).Decode(&arr)
+	r2.Body.Close()
+	if len(arr) != 1 || arr[0]["cpu"].(float64) != 42.5 {
+		t.Fatalf("stats rows: %v", arr)
+	}
+
+	// Widget fetcher serves the latest sample.
+	_, a := do(t, "POST", srv.URL+"/api/sections", `{"name":"A"}`)
+	_, w := do(t, "POST", srv.URL+"/api/items", `{"sectionId":"`+a["id"].(string)+`","kind":"widget","name":"S","config":{"type":"system","systemId":"`+id+`"}}`)
+	res, data := do(t, "GET", srv.URL+"/api/widgets/"+w["id"].(string)+"/data", "")
+	inner, _ := data["data"].(map[string]any)
+	if res.StatusCode != http.StatusOK || inner["name"] != "nas" || inner["cpu"].(float64) != 42.5 {
+		t.Fatalf("system widget: %d %v", res.StatusCode, data)
+	}
+
+	// Rename + token rotation.
+	res, sys = do(t, "PATCH", srv.URL+"/api/systems/"+id, `{"name":"nas2","rotateToken":true}`)
+	if sys["name"] != "nas2" || sys["token"] == token {
+		t.Fatalf("patch: %v", sys)
+	}
+
+	res, _ = do(t, "DELETE", srv.URL+"/api/systems/"+id, "")
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete: %d", res.StatusCode)
+	}
+}
+
 func TestMidpoint(t *testing.T) {
 	f := func(v float64) *float64 { return &v }
 	if got := midpoint(nil, nil); got != 1024 {

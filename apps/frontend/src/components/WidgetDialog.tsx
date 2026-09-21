@@ -34,6 +34,7 @@ export function WidgetDialog({
 	const [values, setValues] = useState<Record<string, string>>({});
 	const [monitors, setMonitors] = useState<{ id?: string; name?: string }[]>([]);
 	const [domains, setDomains] = useState<{ id?: string; name?: string }[]>([]);
+	const [systems, setSystems] = useState<{ id?: string; name?: string }[]>([]);
 	const [busy, setBusy] = useState(false);
 	const [err, setErr] = useState("");
 
@@ -47,6 +48,7 @@ export function WidgetDialog({
 			.catch(() => setTypes([]));
 		void api.GET("/api/monitors").then(({ data }) => setMonitors(data ?? []));
 		void api.GET("/api/domains").then(({ data }) => setDomains(data ?? []));
+		void api.GET("/api/systems").then(({ data }) => setSystems(data ?? []));
 
 		const cfg = item?.config ?? null;
 		setType(cfg && typeof cfg.type === "string" ? cfg.type : "");
@@ -146,14 +148,14 @@ export function WidgetDialog({
 							<Label htmlFor={`wdg-${f.key}`}>
 								{f.label}{f.required ? "" : " (optional)"}
 							</Label>
-							{f.key === "monitorId" || f.key === "domainId" ? (
+							{f.key === "monitorId" || f.key === "domainId" || f.key === "systemId" ? (
 								<Select
 									value={values[f.key] ?? ""}
 									onValueChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
 								>
 									<SelectTrigger><SelectValue placeholder="Pick one…" /></SelectTrigger>
 									<SelectContent>
-										{(f.key === "monitorId" ? monitors : domains).map((m) => (
+										{(f.key === "monitorId" ? monitors : f.key === "domainId" ? domains : systems).map((m) => (
 											<SelectItem key={m.id} value={m.id ?? ""}>{m.name}</SelectItem>
 										))}
 									</SelectContent>

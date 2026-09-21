@@ -411,6 +411,10 @@ func (s *Server) runScheduler(done <-chan struct{}) {
 			if _, err := s.db.Exec(`DELETE FROM heartbeats WHERE checked_at < datetime('now','-30 days')`); err != nil {
 				s.log.Error("heartbeat prune", zap.Error(err))
 			}
+			// System samples are high-rate; a week of raw ticks is enough.
+			if _, err := s.db.Exec(`DELETE FROM system_stats WHERE ts < datetime('now','-7 days')`); err != nil {
+				s.log.Error("system stats prune", zap.Error(err))
+			}
 		}
 	}
 }
@@ -453,6 +457,7 @@ func (s *Server) sweep() {
 	}
 
 	s.sweepDomains()
+	s.sweepSystems()
 }
 
 // runCheck executes one monitor check (with retries) and persists the result.

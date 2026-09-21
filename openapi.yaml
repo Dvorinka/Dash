@@ -551,6 +551,129 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /api/systems:
+    get:
+      operationId: listSystems
+      responses:
+        "200":
+          description: All monitored systems with their latest sample
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/System"
+    post:
+      operationId: createSystem
+      summary: Register a system; the returned token authenticates agent pushes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        "201":
+          description: Created system
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/systems/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    get:
+      operationId: getSystem
+      responses:
+        "200":
+          description: System detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: patchSystem
+      summary: Rename or rotate the agent token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                rotateToken: { type: boolean }
+      responses:
+        "200":
+          description: Updated system
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteSystem
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/systems/{id}/stats:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    get:
+      operationId: systemStats
+      summary: Stored agent samples for charting
+      parameters:
+        - name: hours
+          in: query
+          schema: { type: integer, default: 24, maximum: 168 }
+      responses:
+        "200":
+          description: Samples oldest-to-newest
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/StatSample"
+                    - type: object
+                      properties:
+                        ts: { type: string, format: date-time }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/systems/ingest:
+    post:
+      operationId: ingestSystem
+      summary: "Agent push endpoint; Authorization: Bearer <system token>"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatSample"
+      responses:
+        "200":
+          description: Sample stored
+        "401":
+          description: Missing or unknown token
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
   /api/settings:
     get:
       operationId: getSettings
@@ -650,6 +773,10 @@ paths:
           $ref: "#/components/responses/BadRequest"
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   parameters:
     id:
       name: id
@@ -1186,6 +1313,71 @@ components:
           items:
             type: string
         checkedAt:
+          type: string
+          format: date-time
+    StatSample:
+      type: object
+      description: One agent push; missing fields mean the platform can't provide them
+      properties:
+        host: { type: string }
+        os: { type: string }
+        arch: { type: string }
+        cpuModel: { type: string }
+        cores: { type: integer }
+        intervalS: { type: integer }
+        uptimeS: { type: number }
+        cpu:
+          type: number
+          description: CPU usage percent 0-100
+        memTotal: { type: number, description: bytes }
+        memUsed: { type: number, description: bytes }
+        swapTotal: { type: number, description: bytes }
+        swapUsed: { type: number, description: bytes }
+        diskTotal: { type: number, description: root filesystem bytes }
+        diskUsed: { type: number, description: bytes }
+        netRx: { type: number, description: bytes per second }
+        netTx: { type: number, description: bytes per second }
+        load1: { type: number }
+        load5: { type: number }
+        load15: { type: number }
+        temps:
+          type: object
+          additionalProperties: { type: number }
+          description: Sensor label -> celsius
+        containers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContainerStat"
+    ContainerStat:
+      type: object
+      properties:
+        name: { type: string }
+        state: { type: string }
+    System:
+      type: object
+      required: [id, name, token, status]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        token:
+          type: string
+          description: Agent bearer token
+        host: { type: string }
+        os: { type: string }
+        arch: { type: string }
+        cpuModel: { type: string }
+        cores: { type: integer }
+        intervalS: { type: integer }
+        status:
+          type: string
+          enum: [pending, up, down]
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        latest:
+          $ref: "#/components/schemas/StatSample"
+        createdAt:
           type: string
           format: date-time
     WidgetField:

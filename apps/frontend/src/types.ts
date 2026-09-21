@@ -20,6 +20,10 @@ export type Domain = components["schemas"]["Domain"];
 export type DomainInput = components["schemas"]["DomainInput"];
 export type DomainView = components["schemas"]["DomainView"];
 export type DomainCheck = components["schemas"]["DomainCheck"];
+export type System = components["schemas"]["System"];
+export type StatSample = components["schemas"]["StatSample"];
+/** Stats rows are StatSample plus the server-side timestamp. */
+export type SystemStat = StatSample & { ts?: string };
 
 export type Theme = "dark" | "light";
 export type RendererName = "bento" | "cards" | "index" | "console";
