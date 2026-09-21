@@ -674,6 +674,273 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /api/incidents:
+    get:
+      operationId: listIncidents
+      parameters:
+        - name: status
+          in: query
+          description: "`open` filters to open+ack"
+          schema: { type: string }
+      responses:
+        "200":
+          description: Incidents newest-first, updates embedded
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Incident"
+    post:
+      operationId: createIncident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "201":
+          description: Created incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/incidents/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    patch:
+      operationId: patchIncident
+      summary: Update fields; a status change appends a timeline entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "200":
+          description: Updated incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteIncident
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/incidents/{id}/updates:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    post:
+      operationId: addIncidentUpdate
+      summary: Append a timeline note; `status` also moves the incident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "200":
+          description: Incident with updated timeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/maintenance:
+    get:
+      operationId: listWindows
+      responses:
+        "200":
+          description: Maintenance windows newest-first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaintenanceWindow"
+    post:
+      operationId: createWindow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceWindowInput"
+      responses:
+        "201":
+          description: Created window
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceWindow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/maintenance/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    delete:
+      operationId: deleteWindow
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/status-pages:
+    get:
+      operationId: listStatusPages
+      responses:
+        "200":
+          description: All status pages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StatusPage"
+    post:
+      operationId: createStatusPage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusPageInput"
+      responses:
+        "201":
+          description: Created page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusPage"
+        "409":
+          description: Slug already in use
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/status-pages/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    patch:
+      operationId: patchStatusPage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusPageInput"
+      responses:
+        "200":
+          description: Updated page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusPage"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteStatusPage
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/status-pages/{slug}/public:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: publicStatus
+      summary: Live public view for a status page
+      responses:
+        "200":
+          description: Title, overall state, monitors, systems, incidents, maintenance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicStatus"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/badge/{kind}/{file}:
+    parameters:
+      - name: kind
+        in: path
+        required: true
+        schema: { type: string, enum: [monitor, domain, system] }
+      - name: file
+        in: path
+        required: true
+        description: "Entity id, conventionally suffixed .svg"
+        schema: { type: string }
+    get:
+      operationId: badge
+      summary: Stateless SVG shield from live state
+      responses:
+        "200":
+          description: SVG badge
+          content:
+            image/svg+xml: {}
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/metrics:
+    get:
+      operationId: metrics
+      summary: Prometheus text exposition
+      responses:
+        "200":
+          description: text/plain metrics
+          content:
+            text/plain: {}
+
+  /api/import/csv:
+    post:
+      operationId: importCSV
+      summary: "Bulk import from CSV; ?kind=monitors|domains"
+      parameters:
+        - name: kind
+          in: query
+          schema: { type: string, enum: [monitors, domains], default: monitors }
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema: { type: string }
+      responses:
+        "200":
+          description: Import summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created: { type: integer }
+                  skipped: { type: integer }
+                  errors:
+                    type: array
+                    items: { type: string }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
   /api/settings:
     get:
       operationId: getSettings
@@ -1380,6 +1647,123 @@ components:
         createdAt:
           type: string
           format: date-time
+    IncidentUpdate:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string }
+        message: { type: string }
+        at: { type: string, format: date-time }
+    Incident:
+      type: object
+      required: [id, title, severity, status]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        severity: { type: string, enum: [minor, major, critical] }
+        status: { type: string, enum: [open, ack, resolved, closed] }
+        monitorId: { type: string, nullable: true }
+        updates:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncidentUpdate"
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    IncidentInput:
+      type: object
+      properties:
+        title: { type: string }
+        severity: { type: string, enum: [minor, major, critical] }
+        status: { type: string, enum: [open, ack, resolved, closed] }
+        monitorId: { type: string }
+        message:
+          type: string
+          description: Timeline note attached to the create/transition
+    MaintenanceWindow:
+      type: object
+      required: [id, title, startsAt, endsAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        monitorIds:
+          type: array
+          items: { type: string }
+          description: Empty array covers all monitors
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    MaintenanceWindowInput:
+      type: object
+      required: [title, startsAt, endsAt]
+      properties:
+        title: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        monitorIds:
+          type: array
+          items: { type: string }
+    StatusPage:
+      type: object
+      required: [id, slug, title]
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        monitorIds:
+          type: array
+          items: { type: string }
+          description: Empty array means all active monitors
+        systemIds:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+    StatusPageInput:
+      type: object
+      required: [title]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        monitorIds:
+          type: array
+          items: { type: string }
+        systemIds:
+          type: array
+          items: { type: string }
+    PublicStatus:
+      type: object
+      properties:
+        title: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        overall: { type: string, enum: [up, down, maintenance, pending] }
+        monitors:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              status: { type: string }
+              uptime24h: { type: number }
+        systems:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              status: { type: string }
+        incidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Incident"
+        maintenance:
+          type: array
+          items:
+            $ref: "#/components/schemas/MaintenanceWindow"
     WidgetField:
       type: object
       required: [key, label]

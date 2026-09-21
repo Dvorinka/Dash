@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -632,6 +633,128 @@ func TestSystemIngest(t *testing.T) {
 	res, _ = do(t, "DELETE", srv.URL+"/api/systems/"+id, "")
 	if res.StatusCode != http.StatusNoContent {
 		t.Fatalf("delete: %d", res.StatusCode)
+	}
+}
+
+func TestOpsLayer(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	// Monitor that flips up->down should auto-open an incident, and
+	// recovery should auto-resolve it.
+	up := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	defer up.Close()
+	_, mv := do(t, "POST", srv.URL+"/api/monitors",
+		`{"name":"Flip","type":"http","url":"`+up.URL+`","timeoutS":1}`)
+	id := mv["id"].(string)
+	do(t, "POST", srv.URL+"/api/monitors/"+id+"/check", "") // up
+	do(t, "PATCH", srv.URL+"/api/monitors/"+id, `{"url":"http://127.0.0.1:1"}`)
+	do(t, "POST", srv.URL+"/api/monitors/"+id+"/check", "") // down -> incident
+
+	res, _ := do(t, "GET", srv.URL+"/api/incidents?status=open", "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("incidents: %d", res.StatusCode)
+	}
+	req, _ := http.NewRequest("GET", srv.URL+"/api/incidents?status=open", nil)
+	r, _ := http.DefaultClient.Do(req)
+	var incs []map[string]any
+	_ = json.NewDecoder(r.Body).Decode(&incs)
+	r.Body.Close()
+	if len(incs) != 1 || incs[0]["monitorId"] != id {
+		t.Fatalf("auto incident: %v", incs)
+	}
+	incID := incs[0]["id"].(string)
+
+	do(t, "PATCH", srv.URL+"/api/monitors/"+id, `{"url":"`+up.URL+`"}`)
+	do(t, "POST", srv.URL+"/api/monitors/"+id+"/check", "") // up -> resolved
+	res, inc := do(t, "GET", srv.URL+"/api/incidents?status=open", "")
+	req, _ = http.NewRequest("GET", srv.URL+"/api/incidents?status=open", nil)
+	r, _ = http.DefaultClient.Do(req)
+	incs = nil
+	_ = json.NewDecoder(r.Body).Decode(&incs)
+	r.Body.Close()
+	if len(incs) != 0 {
+		t.Fatalf("incident should auto-resolve, got %v", incs)
+	}
+
+	// Manual incident lifecycle: create -> update -> resolve.
+	res, inc = do(t, "POST", srv.URL+"/api/incidents",
+		`{"title":"disk full","severity":"critical","message":"nas raid degraded"}`)
+	if res.StatusCode != http.StatusCreated || inc["status"] != "open" {
+		t.Fatalf("create incident: %v", inc)
+	}
+	incID = inc["id"].(string)
+	res, inc = do(t, "PATCH", srv.URL+"/api/incidents/"+incID, `{"status":"resolved","message":"swapped drive"}`)
+	if inc["status"] != "resolved" {
+		t.Fatalf("resolve: %v", inc)
+	}
+	ups, _ := inc["updates"].([]any)
+	if len(ups) < 2 {
+		t.Fatalf("updates timeline: %v", inc["updates"])
+	}
+
+	// Maintenance window suppresses a transition's side-effects.
+	_, mw := do(t, "POST", srv.URL+"/api/maintenance",
+		`{"title":"upgrade","startsAt":"`+time.Now().Add(-time.Hour).UTC().Format(time.RFC3339)+
+			`","endsAt":"`+time.Now().Add(time.Hour).UTC().Format(time.RFC3339)+`"}`)
+	if mw["active"] != true {
+		t.Fatalf("window should be active: %v", mw)
+	}
+	do(t, "PATCH", srv.URL+"/api/monitors/"+id, `{"url":"http://127.0.0.1:1"}`)
+	do(t, "POST", srv.URL+"/api/monitors/"+id+"/check", "") // down under maintenance
+	req, _ = http.NewRequest("GET", srv.URL+"/api/incidents?status=open", nil)
+	r, _ = http.DefaultClient.Do(req)
+	incs = nil
+	_ = json.NewDecoder(r.Body).Decode(&incs)
+	r.Body.Close()
+	if len(incs) != 0 {
+		t.Fatalf("maintenance must suppress auto-incidents: %v", incs)
+	}
+
+	// Status page + public view shows maintenance state.
+	res, sp := do(t, "POST", srv.URL+"/api/status-pages", `{"title":"Ops","slug":"ops"}`)
+	if res.StatusCode != http.StatusCreated || sp["slug"] != "ops" {
+		t.Fatalf("status page: %v", sp)
+	}
+	res, pub := do(t, "GET", srv.URL+"/api/status-pages/ops/public", "")
+	if res.StatusCode != http.StatusOK || pub["overall"] != "maintenance" {
+		t.Fatalf("public status: %v", pub)
+	}
+	mons, _ := pub["monitors"].([]any)
+	if len(mons) != 1 {
+		t.Fatalf("public monitors: %v", pub["monitors"])
+	}
+	if m0, _ := mons[0].(map[string]any); m0["status"] != "maintenance" {
+		t.Fatalf("monitor should read maintenance: %v", m0)
+	}
+
+	// Badge + metrics smoke.
+	res, _ = do(t, "GET", srv.URL+"/api/badge/monitor/"+id+".svg", "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("badge: %d", res.StatusCode)
+	}
+	res, _ = do(t, "GET", srv.URL+"/api/metrics", "")
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("metrics: %d", res.StatusCode)
+	}
+	req, _ = http.NewRequest("GET", srv.URL+"/api/metrics", nil)
+	r, _ = http.DefaultClient.Do(req)
+	body, _ := io.ReadAll(r.Body)
+	r.Body.Close()
+	if !strings.Contains(string(body), "dash_monitors_total") {
+		t.Fatalf("metrics body: %s", body)
+	}
+
+	// CSV import.
+	req, _ = http.NewRequest("POST", srv.URL+"/api/import/csv?kind=monitors",
+		strings.NewReader("name,type,url\nA,http,https://a.example\nB,tcp,https://b.example:9\n"))
+	req.Header.Set("Content-Type", "text/csv")
+	r, _ = http.DefaultClient.Do(req)
+	var out map[string]any
+	_ = json.NewDecoder(r.Body).Decode(&out)
+	r.Body.Close()
+	if out["created"].(float64) != 2 {
+		t.Fatalf("csv import: %v", out)
 	}
 }
 

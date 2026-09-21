@@ -101,6 +101,26 @@ func (s *Server) routes() *gin.Engine {
 	v1.GET("/systems/:id/stats", s.systemStats)
 	v1.POST("/systems/ingest", s.ingestSystem)
 
+	v1.GET("/incidents", s.listIncidents)
+	v1.POST("/incidents", s.createIncident)
+	v1.PATCH("/incidents/:id", s.patchIncident)
+	v1.DELETE("/incidents/:id", s.deleteIncident)
+	v1.POST("/incidents/:id/updates", s.addIncidentUpdate)
+
+	v1.GET("/maintenance", s.listWindows)
+	v1.POST("/maintenance", s.createWindow)
+	v1.DELETE("/maintenance/:id", s.deleteWindow)
+
+	v1.GET("/status-pages", s.listStatusPages)
+	v1.POST("/status-pages", s.createStatusPage)
+	v1.PATCH("/status-pages/:id", s.patchStatusPage)
+	v1.DELETE("/status-pages/:id", s.deleteStatusPage)
+	v1.GET("/status-pages/:slug/public", s.publicStatus)
+
+	v1.GET("/badge/:kind/:file", s.badge)
+	v1.GET("/metrics", s.metrics)
+	v1.POST("/import/csv", s.importCSV)
+
 	v1.GET("/status", s.getStatus)
 	v1.GET("/widgets/types", s.widgetTypes)
 	v1.GET("/widgets/:id/data", s.widgetData)

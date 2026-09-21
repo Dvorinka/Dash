@@ -24,6 +24,11 @@ export type System = components["schemas"]["System"];
 export type StatSample = components["schemas"]["StatSample"];
 /** Stats rows are StatSample plus the server-side timestamp. */
 export type SystemStat = StatSample & { ts?: string };
+export type Incident = components["schemas"]["Incident"];
+export type IncidentInput = components["schemas"]["IncidentInput"];
+export type MaintenanceWindow = components["schemas"]["MaintenanceWindow"];
+export type StatusPage = components["schemas"]["StatusPage"];
+export type PublicStatus = components["schemas"]["PublicStatus"];
 
 export type Theme = "dark" | "light";
 export type RendererName = "bento" | "cards" | "index" | "console";

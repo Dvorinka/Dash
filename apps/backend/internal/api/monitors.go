@@ -498,10 +498,15 @@ func (s *Server) writeHeartbeat(m *monitor.Monitor, res *monitor.Result) {
 }
 
 // onMonitorTransition fires on real state flips (pending excluded upstream)
-// — the notification seam for up/down events.
+// — the notification + auto-incident seam for up/down events. An active
+// maintenance window covering this monitor suppresses both.
 func (s *Server) onMonitorTransition(m *monitor.Monitor, prev, next string) {
 	s.log.Info("monitor transition",
 		zap.String("monitor", m.Name), zap.String("from", prev), zap.String("to", next))
+	if s.inMaintenance(m.ID) {
+		return
+	}
+	s.autoIncident(m.ID, m.Name, next)
 	target := m.URL
 	if target == "" {
 		target = m.Hostname

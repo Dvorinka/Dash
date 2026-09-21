@@ -23,10 +23,49 @@ func failImport(c *gin.Context, err error) {
 }
 
 // Export is the portable backup shape: version + settings + board tree.
+// v2 adds monitoring entities alongside — additive, so v1 files still import.
 type Export struct {
 	Version  int                        `json:"version"`
 	Settings map[string]json.RawMessage `json:"settings"`
 	Sections []Section                  `json:"sections"`
+	Monitors []json.RawMessage          `json:"monitors,omitempty"`
+	Domains  []json.RawMessage          `json:"domains,omitempty"`
+	Systems  []json.RawMessage          `json:"systems,omitempty"`
+}
+
+// dumpRows serializes each row of a table to JSON via the driver's column
+// metadata — schema drift can't silently drop columns from the backup.
+func (s *Server) dumpRows(table string) ([]json.RawMessage, error) {
+	rows, err := s.db.Query(`SELECT * FROM ` + table) // table is a fixed literal
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	out := []json.RawMessage{}
+	for rows.Next() {
+		vals := make([]any, len(cols))
+		ptrs := make([]any, len(cols))
+		for i := range vals {
+			ptrs[i] = &vals[i]
+		}
+		if err := rows.Scan(ptrs...); err != nil {
+			return nil, err
+		}
+		obj := map[string]any{}
+		for i, col := range cols {
+			obj[col] = vals[i]
+		}
+		b, err := json.Marshal(obj)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, b)
+	}
+	return out, rows.Err()
 }
 
 func (s *Server) exportBoard(c *gin.Context) {
@@ -40,7 +79,20 @@ func (s *Server) exportBoard(c *gin.Context) {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, Export{Version: 1, Settings: settings, Sections: sections})
+	ex := Export{Version: 2, Settings: settings, Sections: sections}
+	for _, t := range []struct {
+		name string
+		dst  *[]json.RawMessage
+	}{
+		{"monitors", &ex.Monitors},
+		{"domains", &ex.Domains},
+		{"systems", &ex.Systems},
+	} {
+		if rows, err := s.dumpRows(t.name); err == nil {
+			*t.dst = rows
+		}
+	}
+	c.JSON(http.StatusOK, ex)
 }
 
 // importBoard replaces board state inside one transaction. Ids from the

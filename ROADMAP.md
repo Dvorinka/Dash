@@ -182,13 +182,13 @@ Beszel-style server monitoring, push-based.
 
 ### Phase M4 — Ops layer → v0.7.0
 
-- [ ] Incidents: `incidents` + `incident_updates`; manual CRUD + auto-open on monitor down, auto-resolve on recovery; severity + status flow (open → ack → resolved → closed)
-- [ ] Maintenance windows: `maintenance_windows`; suppress alerts, show `maintenance` state while active
-- [ ] Status pages: `status_pages` + `status_page_monitors`; public `/status/:slug` route + public API endpoint
-- [ ] Badges: `GET /badge/:kind/:id.svg` — stateless SVG from live data (status/uptime/response/domain/system)
-- [ ] `GET /metrics` Prometheus exposition
-- [ ] Bulk: CSV import monitors + domains; JSON export folded into existing `/api/export`
-- [ ] ⌘K palette + header nav wired for new pages
+- [x] Incidents: `incidents` + `incident_updates`; manual CRUD + auto-open on monitor down, auto-resolve on recovery; severity + status flow (open → ack → resolved → closed)
+- [x] Maintenance windows: `maintenance_windows` (monitor_ids empty = all); suppress alerts + auto-incidents, status pages show `maintenance` state while active
+- [x] Status pages: `status_pages` (monitor_ids/system_ids JSON columns — a join table for ≤ dozens of ids is ceremony); admin `/status`, public `/status/:slug` + `GET /api/status-pages/:slug/public`
+- [x] Badges: `GET /api/badge/:kind/:id.svg` — stateless SVG from live data (monitor status+uptime, domain days-left, system status)
+- [x] `GET /api/metrics` Prometheus exposition
+- [x] Bulk: `POST /api/import/csv?kind=monitors|domains` header-driven CSV; monitors/domains/systems rows folded into `/api/export` (v2, additive)
+- [x] ⌘K palette + header nav wired for new pages
 
 ## Phase 4 — Open-source launch → v1.0.0
 

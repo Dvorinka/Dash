@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Route, useLocation } from "wouter";
-import { Activity, Globe, LayoutGrid, Moon, Plus, Search, Server, Settings, Sun } from "lucide-react";
+import { Activity, AlertTriangle, Globe, LayoutGrid, Megaphone, Moon, Plus, Search, Server, Settings, Sun } from "lucide-react";
 import { BoardProvider, useBoard } from "@/board/store";
 import { Board } from "@/board/Board";
 import { ServiceDialog } from "@/components/ServiceDialog";
@@ -13,6 +13,9 @@ import { DomainsPage } from "@/pages/DomainsPage";
 import { DomainDetailPage } from "@/pages/DomainDetailPage";
 import { SystemsPage } from "@/pages/SystemsPage";
 import { SystemDetailPage } from "@/pages/SystemDetailPage";
+import { IncidentsPage } from "@/pages/IncidentsPage";
+import { StatusPagesPage } from "@/pages/StatusPagesPage";
+import { StatusPublicPage } from "@/pages/StatusPublicPage";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Item } from "@/types";
@@ -30,6 +33,8 @@ const NAV = [
 	{ href: "/monitors", label: "Monitors", icon: Activity },
 	{ href: "/domains", label: "Domains", icon: Globe },
 	{ href: "/systems", label: "Systems", icon: Server },
+	{ href: "/incidents", label: "Incidents", icon: AlertTriangle },
+	{ href: "/status", label: "Status", icon: Megaphone },
 ];
 
 function Shell() {
@@ -149,6 +154,15 @@ function Shell() {
 			</Route>
 			<Route path="/systems/:id">
 				{(p) => <SystemDetailPage id={p.id} />}
+			</Route>
+			<Route path="/incidents">
+				<IncidentsPage />
+			</Route>
+			<Route path="/status">
+				<StatusPagesPage />
+			</Route>
+			<Route path="/status/:slug">
+				{(p) => <StatusPublicPage slug={p.slug} />}
 			</Route>
 
 			<ServiceDialog open={svcOpen} onOpenChange={setSvcOpen} item={editing?.kind === "service" ? editing : undefined} />
