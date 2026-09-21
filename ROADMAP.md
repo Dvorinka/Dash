@@ -34,6 +34,10 @@ or popover logic.
 | `v0.1.0` | Phase 0 + 1 — working MVP, single image | manual smoke test ✅ |
 | `v0.2.0` | Phase 2 — widget layer + first integrations | Pi-hole widget live ✅ |
 | `v0.3.0` | Phase 3 — four renderers, ⌘K palette, icon suggest | palette + switcher live ✅ |
+| `v0.4.0` | Phase M1 — uptime monitors + alerts backbone | monitor lifecycle live |
+| `v0.5.0` | Phase M2 — domain intelligence | domain lookup + expiry alerts |
+| `v0.6.0` | Phase M3 — system monitoring + agent | agent ingest + charts |
+| `v0.7.0` | Phase M4 — incidents, status pages, badges, metrics | public status page live |
 | `v1.0.0` | Phase 4 — OSS polish, docs, importers, CI releases | public repo launch |
 | `v1.x` | Phase 5 — demand-driven extras only | per-feature |
 
@@ -113,14 +117,87 @@ The product's spine: sections, services, drag-drop, multi-URL.
 
 **Exit:** all four renderers work off the same board state; palette navigates everything. — verified: both new renderers render/persist/dnd/collapse, palette filters and executes, icon suggest resolves real CDN assets, 360px + light theme, docker image 43.9 MB.
 
+## Merge program — Beszel fork → Dash
+
+Source: the local Beszel fork (`~/Desktop/PROG+HTML/Beszel` — PocketBase hub
+with custom monitors/domains/status-pages) plus lissy93/domain-locker as
+design inspiration. Upstream references cloned to `../_ref/beszel` and
+`../_ref/domain-locker` for consultation only.
+
+**No code moves verbatim.** The fork is PocketBase collections + its own
+auth + a WebSocket agent; Dash is Gin + SQLite + goose with no auth. We port
+data models, check logic, and lookup pipelines — DB, API, and UI layers are
+re-implemented on Dash conventions.
+
+**Deployment reality.** Monitoring needs a persistent process (schedulers),
+non-HTTP egress (WHOIS :43, ICMP, SMTP, raw TCP), and a writable DB. None of
+that exists on serverless — Vercel cannot host this product, full stop. The
+deploy story stays `docker run` + GHCR image + goreleaser binaries; agents
+are a second small binary.
+
+**UI model.** The app becomes routed: `/` board (default), `/monitors`,
+`/domains`, `/systems`, `/status/:slug` (public, no board chrome). Router:
+`wouter` (~2 kB — every route we need, nothing more). Charts: `recharts`.
+Board widgets surface monitoring entities through the existing widget
+registry — monitor uptime, domain expiry, system gauges — so the board
+becomes the summary layer over the monitoring pages.
+
+### Phase M1 — Monitors → v0.4.0
+
+Uptime checking: the backbone everything else hangs off.
+
+- [ ] Schema: `monitors` (name, type, url/hostname/port, method, keyword, json_query, expected_value, interval_s, timeout_s, retries, active, status, tags, notes), `heartbeats` (monitor_id, status, ping_ms, msg, cert_expiry, checked_at — 30-day retention prune)
+- [ ] In-process scheduler: due-monitor sweep, bounded worker pool, heartbeat write, status transitions
+- [ ] Checkers: `http`/`https`, `tcp`, `ping` (unprivileged ICMP datagram via `x/net/icmp` — distroless has no ping binary), `dns`, `keyword`, `json-query`, `push` (caller-generated ingest URL)
+- [ ] API: `/api/monitors` CRUD, `/:id/heartbeats?range=`, pause/resume, check-now
+- [ ] Monitors page (status, uptime 24h/30d, ping, interval) + detail (response chart, heartbeat log)
+- [ ] Board widget type `monitor` bound to a monitor id
+- [ ] ServiceDialog checkbox: create matching http monitor from a service URL
+- [ ] The fork's ~30 exotic monitor types were TCP stubs — not ported. Real types only.
+
+### Phase M2 — Domains → v0.5.0
+
+Domain-locker-grade domain intelligence.
+
+- [ ] Schema: `domains` (core columns + `extra` JSON for the long tail), `domain_history` (domain_id, change_type, field, old, new, at)
+- [ ] Lookup pipeline ported from fork `hub/domains/whois/lookup.go`, trimmed: RDAP over HTTPS → native WHOIS TCP:43 + parser; SSL chain via `crypto/tls`; DNS (NS/MX/TXT/A/AAAA) via `net.Resolver`; host geo via ip-api; provider detection via fork `detect/providers.go`; favicon
+- [ ] Daily scheduler + manual refresh; field diffs recorded to `domain_history`
+- [ ] Alerts: `alert_rules` + `notifications` tables; dispatchers — generic webhook (JSON POST), SMTP via `net/smtp`, Discord/Slack presets. Triggers: domain expiry ≤ N days, SSL expiry ≤ N days, monitor down/recovered (M1), system offline (M3)
+- [ ] Domains page + detail (expiry countdown, registrar, SSL, DNS, subdomains)
+- [ ] Board widget `domain` (expiry countdown)
+- [ ] Subdomain discovery: port `subdomain_discovery.go`, opt-in per domain
+- [ ] Not ported (v1): whoisxml API, EURid web scraping, SEO/robots parsing, valuation estimates — demand only
+
+### Phase M3 — Systems → v0.6.0
+
+Beszel-style server monitoring, push-based.
+
+- [x] Schema: `systems` (name, token, host, os/arch, last_seen, status, `latest` JSON snapshot), `system_stats` (system_id, ts, payload JSON — one column, no sub-field queries; 7d retention prune)
+- [x] Ingest: `POST /api/systems/ingest` with per-system bearer token; offline when silent > max(3×interval, 30s); `system.up`/`system.down` webhook events
+- [x] `cmd/dash-agent`: Linux collector — `/proc` (cpu/mem/net/load/uptime), `/sys` hwmon temps, statfs disk, docker.sock container list; POST every `-interval` (default 10s); `-once` debug mode
+- [x] Agent packaging: systemd unit (`packaging/dash-agent.service`) + `infra/Dockerfile.agent` + goreleaser binaries (Phase 4)
+- [x] Systems page (status cards, cpu/mem/disk bars, uptime) + detail (recharts: cpu%, mem%, net rx/tx, load; temps + containers tables)
+- [x] Board widget `system` (cpu/mem/disk mini bars)
+- [x] Not ported: the beszel agent protocol (SSH/WS into PocketBase) — our agent is push-JSON. SMART/ZFS/GPU metrics + per-container cpu/mem deferred to demand.
+
+### Phase M4 — Ops layer → v0.7.0
+
+- [x] Incidents: `incidents` + `incident_updates`; manual CRUD + auto-open on monitor down, auto-resolve on recovery; severity + status flow (open → ack → resolved → closed)
+- [x] Maintenance windows: `maintenance_windows` (monitor_ids empty = all); suppress alerts + auto-incidents, status pages show `maintenance` state while active
+- [x] Status pages: `status_pages` (monitor_ids/system_ids JSON columns — a join table for ≤ dozens of ids is ceremony); admin `/status`, public `/status/:slug` + `GET /api/status-pages/:slug/public`
+- [x] Badges: `GET /api/badge/:kind/:id.svg` — stateless SVG from live data (monitor status+uptime, domain days-left, system status)
+- [x] `GET /api/metrics` Prometheus exposition
+- [x] Bulk: `POST /api/import/csv?kind=monitors|domains` header-driven CSV; monitors/domains/systems rows folded into `/api/export` (v2, additive)
+- [x] ⌘K palette + header nav wired for new pages
+
 ## Phase 4 — Open-source launch → v1.0.0
 
-- [ ] Docs: install, configuration, widget development guide (`docs/`)
-- [ ] Importers: Homepage `services.yml`, Homarr JSON, Dashy `conf.yml` → sections/items/urls
-- [ ] `README.md` hero: screenshots (4 themes), demo GIF, `docker run` one-liner
-- [ ] goreleaser → binaries; GHCR image on tag; semver + `CHANGELOG.md`
-- [ ] `CONTRIBUTING.md`, issue/PR templates, code of conduct, security policy
-- [ ] i18n scaffolding (en default)
+- [x] Docs: install, configuration, widget development guide (`docs/`)
+- [x] Importers: Homepage `services.yml`, Homarr JSON, Dashy `conf.yml` → sections/items/urls
+- [x] `README.md` hero: screenshots, `docker run` one-liner (demo GIF deferred — pngs suffice for v1.0.0)
+- [x] goreleaser → binaries; GHCR image on tag; semver + `CHANGELOG.md`
+- [x] `CONTRIBUTING.md`, issue/PR templates, code of conduct, security policy
+- [x] i18n scaffolding (`src/i18n/` — typed `t()` + `en` dict; full string extraction deferred to first real locale)
 - [ ] Public repo flip + announcement assets
 
 **Exit:** a stranger can `docker run`, import their Homepage config, and have a working board in under two minutes.

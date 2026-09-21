@@ -11,7 +11,7 @@ import (
 // AdGuard Home REST API: GET /control/stats with HTTP basic auth.
 type adguard struct{}
 
-func init() { register(adguard{}) }
+func init() { Register(adguard{}) }
 
 func (adguard) Meta() Type {
 	return Type{

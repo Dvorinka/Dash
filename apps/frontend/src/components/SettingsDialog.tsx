@@ -1,12 +1,14 @@
-import { useRef, useState } from "react";
-import { Download, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Bell, Download, Upload } from "lucide-react";
 import { useBoard } from "@/board/store";
+import { api } from "@/api";
 import { rendererDescriptions, rendererLabels, rendererList } from "@/renderers";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -14,6 +16,23 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 	const board = useBoard();
 	const fileRef = useRef<HTMLInputElement>(null);
 	const [msg, setMsg] = useState("");
+	const [webhook, setWebhook] = useState("");
+	const [webhookMsg, setWebhookMsg] = useState("");
+
+	useEffect(() => {
+		if (!open) return;
+		void api.GET("/api/settings").then(({ data }) => {
+			const v = data?.notify_webhook;
+			setWebhook(typeof v === "string" ? v : "");
+			setWebhookMsg("");
+		});
+	}, [open]);
+
+	async function saveWebhook() {
+		setWebhookMsg("");
+		await api.PUT("/api/settings", { body: { notify_webhook: webhook.trim() } });
+		setWebhookMsg("saved");
+	}
 
 	async function exportJson() {
 		const res = await fetch("/api/export");
@@ -28,11 +47,22 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 
 	async function importJson(file: File) {
 		setMsg("");
-		const res = await fetch("/api/import", { method: "POST", body: file });
+		// Dash exports are JSON with {version, sections}; anything else
+		// (Homepage/Homarr/Dashy) goes to the external importer for sniffing.
+		let target = "/api/import/external";
+		try {
+			const j: unknown = JSON.parse(await file.text());
+			if (j !== null && typeof j === "object" && "version" in j && "sections" in j) {
+				target = "/api/import";
+			}
+		} catch { /* not JSON — external importer handles YAML */ }
+		const res = await fetch(target, { method: "POST", body: file });
 		if (res.ok) {
 			location.reload(); // import replaces state; a reload re-syncs everything
 		} else {
-			setMsg("Import failed — not a Dash export?");
+			// SAFETY: error responses always carry {error: string} per openapi.yaml Error schema.
+			const body = (await res.json().catch(() => null)) as { error?: string } | null;
+			setMsg(body?.error ?? "Import failed");
 		}
 	}
 
@@ -82,6 +112,38 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 						</Select>
 					</div>
 
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="notify-webhook">Notification webhook</Label>
+						<div className="flex gap-2">
+							<Input
+								id="notify-webhook"
+								value={webhook}
+								onChange={(e) => { setWebhook(e.target.value); setWebhookMsg(""); }}
+								placeholder="https://ntfy.sh/dash or Slack/Discord hook"
+								className="font-mono text-[12px]"
+							/>
+							<Button type="button" variant="outline" size="sm" onClick={() => void saveWebhook()}>
+								Save
+							</Button>
+							<Button
+								type="button" variant="outline" size="icon" aria-label="Send test notification"
+								disabled={!webhook.trim()}
+								onClick={() => {
+									setWebhookMsg("");
+									void api.POST("/api/notify/test").then(({ error }) =>
+										setWebhookMsg(error ? "failed" : "sent"));
+								}}
+							>
+								<Bell size={12} />
+							</Button>
+						</div>
+						<p className="text-[11px] text-text-faint">
+							Monitor up/down flips and domain/certificate expiry post JSON here.
+							Works with Slack, Discord, ntfy, or any JSON receiver.
+						</p>
+						{webhookMsg ? <p className="text-[11px] text-text-faint">{webhookMsg}</p> : null}
+					</div>
+
 					<div className="flex gap-2 pt-1">
 						<Button type="button" variant="outline" size="sm" onClick={() => void exportJson()}>
 							<Download size={12} /> Export JSON
@@ -90,7 +152,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 							<Upload size={12} /> Import
 						</Button>
 						<input
-							ref={fileRef} type="file" accept="application/json" className="hidden"
+							ref={fileRef} type="file" accept=".json,.yml,.yaml" className="hidden"
 							onChange={(e) => {
 								const f = e.target.files?.[0];
 								if (f) void importJson(f);
@@ -98,6 +160,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 							}}
 						/>
 					</div>
+					<p className="text-[11px] text-text-faint">Import accepts Dash exports plus Homepage, Homarr, and Dashy configs.</p>
 					{msg ? <p className="text-[12px] text-destructive">{msg}</p> : null}
 				</div>
 			</DialogContent>

@@ -1,0 +1,31 @@
+name: Bug report
+description: Something is broken
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant server logs or browser console output.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Dash version
+      description: Image tag or release version.
+      placeholder: v0.7.0
+  - type: dropdown
+    id: install
+    attributes:
+      label: Install method
+      options:
+        - Docker
+        - Binary
+        - Built from source

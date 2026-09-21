@@ -11,6 +11,25 @@ export type Status = components["schemas"]["Status"];
 export type StatusMap = Record<string, Status>;
 export type ExportPayload = components["schemas"]["Export"];
 
+// Monitoring (merge program) — same generated-schema rule applies.
+export type Monitor = components["schemas"]["Monitor"];
+export type MonitorInput = components["schemas"]["MonitorInput"];
+export type MonitorView = components["schemas"]["MonitorView"];
+export type Heartbeat = components["schemas"]["Heartbeat"];
+export type Domain = components["schemas"]["Domain"];
+export type DomainInput = components["schemas"]["DomainInput"];
+export type DomainView = components["schemas"]["DomainView"];
+export type DomainCheck = components["schemas"]["DomainCheck"];
+export type System = components["schemas"]["System"];
+export type StatSample = components["schemas"]["StatSample"];
+/** Stats rows are StatSample plus the server-side timestamp. */
+export type SystemStat = StatSample & { ts?: string };
+export type Incident = components["schemas"]["Incident"];
+export type IncidentInput = components["schemas"]["IncidentInput"];
+export type MaintenanceWindow = components["schemas"]["MaintenanceWindow"];
+export type StatusPage = components["schemas"]["StatusPage"];
+export type PublicStatus = components["schemas"]["PublicStatus"];
+
 export type Theme = "dark" | "light";
 export type RendererName = "bento" | "cards" | "index" | "console";
 

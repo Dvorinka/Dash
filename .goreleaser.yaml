@@ -1,0 +1,61 @@
+version: 2
+
+project_name: dash
+
+before:
+  hooks:
+    # The embedded UI must be built and copied into internal/web/dist before
+    # any Go build. The release workflow does this; fail loudly here if the
+    # stub is still in place.
+    - sh -c 'test -d apps/backend/internal/web/dist/assets'
+
+builds:
+  - id: dash
+    dir: apps/backend
+    binary: dash
+    main: ./cmd/dash
+    env: [CGO_ENABLED=0]
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ldflags: ["-s", "-w", "-X main.version={{.Version}}"]
+
+  - id: dash-agent
+    dir: apps/backend
+    binary: dash-agent
+    main: ./cmd/dash-agent
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64, arm64, arm]
+    goarm: ["7"]
+    ldflags: ["-s", "-w", "-X main.version={{.Version}}"]
+
+archives:
+  - id: dash
+    ids: [dash]
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [README.md, LICENSE]
+  - id: dash-agent
+    ids: [dash-agent]
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}-agent_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+    files: [README.md, LICENSE]
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^chore:"
+      - "^test:"
+
+release:
+  footer: |
+    Docker: `docker pull ghcr.io/dvorinka/dash:{{ .Tag }}`

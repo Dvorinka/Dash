@@ -214,6 +214,280 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/monitors:
+    get:
+      operationId: listMonitors
+      summary: All monitors with live uptime stats
+      responses:
+        "200":
+          description: Monitors ordered by position
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MonitorView"
+    post:
+      operationId: createMonitor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitorInput"
+      responses:
+        "201":
+          description: Created monitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/monitors/{id}:
+    get:
+      operationId: getMonitor
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Monitor with stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateMonitor
+      summary: Sparse update; `active` toggles pause/resume
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitorInput"
+      responses:
+        "200":
+          description: Updated monitor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteMonitor
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Monitor and its heartbeats deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/monitors/{id}/heartbeats:
+    get:
+      operationId: monitorHeartbeats
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+            maximum: 720
+      responses:
+        "200":
+          description: Check history, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Heartbeat"
+
+  /api/monitors/{id}/check:
+    post:
+      operationId: checkMonitorNow
+      summary: Run one check synchronously
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Monitor after the check
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonitorView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/push/{token}:
+    get:
+      operationId: pushMonitorGet
+      summary: Record an up heartbeat for a push monitor
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: msg
+          in: query
+          schema:
+            type: string
+        - name: ping
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Heartbeat recorded
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: pushMonitorPost
+      summary: Record an up heartbeat for a push monitor
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: msg
+          in: query
+          schema:
+            type: string
+        - name: ping
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Heartbeat recorded
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/domains:
+    get:
+      operationId: listDomains
+      summary: All tracked domains with expiry countdowns
+      responses:
+        "200":
+          description: Domains ordered by position
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DomainView"
+    post:
+      operationId: createDomain
+      summary: Track a domain; runs the first WHOIS/DNS/SSL lookup inline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomainInput"
+      responses:
+        "201":
+          description: Domain after the initial lookup
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainView"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Domain already tracked
+
+  /api/domains/{id}:
+    get:
+      operationId: getDomain
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Domain detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateDomain
+      summary: Sparse update — settings fields only; lookup data is refreshed separately
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DomainInput"
+      responses:
+        "200":
+          description: Updated domain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteDomain
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Domain and its check history deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/domains/{id}/refresh:
+    post:
+      operationId: refreshDomain
+      summary: Re-run WHOIS/RDAP + DNS + TLS + geo lookup now
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Domain after the refresh
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainView"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/domains/{id}/checks:
+    get:
+      operationId: domainChecks
+      summary: Snapshot history for change detection
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 500
+      responses:
+        "200":
+          description: Snapshots, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DomainCheck"
+
   /api/widgets/types:
     get:
       operationId: widgetTypes
@@ -265,6 +539,407 @@ paths:
                 type: object
                 additionalProperties:
                   $ref: "#/components/schemas/Status"
+
+  /api/notify/test:
+    post:
+      operationId: notifyTest
+      summary: Send a test notification to the configured webhook
+      description: Requires the `notify_webhook` settings key to hold an http(s) URL.
+      responses:
+        "200":
+          description: Test notification dispatched
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/systems:
+    get:
+      operationId: listSystems
+      responses:
+        "200":
+          description: All monitored systems with their latest sample
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/System"
+    post:
+      operationId: createSystem
+      summary: Register a system; the returned token authenticates agent pushes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        "201":
+          description: Created system
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/systems/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    get:
+      operationId: getSystem
+      responses:
+        "200":
+          description: System detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: patchSystem
+      summary: Rename or rotate the agent token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                rotateToken: { type: boolean }
+      responses:
+        "200":
+          description: Updated system
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/System"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteSystem
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/systems/{id}/stats:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    get:
+      operationId: systemStats
+      summary: Stored agent samples for charting
+      parameters:
+        - name: hours
+          in: query
+          schema: { type: integer, default: 24, maximum: 168 }
+      responses:
+        "200":
+          description: Samples oldest-to-newest
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/StatSample"
+                    - type: object
+                      properties:
+                        ts: { type: string, format: date-time }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/systems/ingest:
+    post:
+      operationId: ingestSystem
+      summary: "Agent push endpoint; Authorization: Bearer <system token>"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatSample"
+      responses:
+        "200":
+          description: Sample stored
+        "401":
+          description: Missing or unknown token
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/incidents:
+    get:
+      operationId: listIncidents
+      parameters:
+        - name: status
+          in: query
+          description: "`open` filters to open+ack"
+          schema: { type: string }
+      responses:
+        "200":
+          description: Incidents newest-first, updates embedded
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Incident"
+    post:
+      operationId: createIncident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "201":
+          description: Created incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/incidents/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    patch:
+      operationId: patchIncident
+      summary: Update fields; a status change appends a timeline entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "200":
+          description: Updated incident
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteIncident
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/incidents/{id}/updates:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    post:
+      operationId: addIncidentUpdate
+      summary: Append a timeline note; `status` also moves the incident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "200":
+          description: Incident with updated timeline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/maintenance:
+    get:
+      operationId: listWindows
+      responses:
+        "200":
+          description: Maintenance windows newest-first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MaintenanceWindow"
+    post:
+      operationId: createWindow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MaintenanceWindowInput"
+      responses:
+        "201":
+          description: Created window
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MaintenanceWindow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/maintenance/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    delete:
+      operationId: deleteWindow
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/status-pages:
+    get:
+      operationId: listStatusPages
+      responses:
+        "200":
+          description: All status pages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StatusPage"
+    post:
+      operationId: createStatusPage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusPageInput"
+      responses:
+        "201":
+          description: Created page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusPage"
+        "409":
+          description: Slug already in use
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/status-pages/{id}:
+    parameters:
+      - $ref: "#/components/parameters/id"
+    patch:
+      operationId: patchStatusPage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusPageInput"
+      responses:
+        "200":
+          description: Updated page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatusPage"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteStatusPage
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/status-pages/{slug}/public:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: publicStatus
+      summary: Live public view for a status page
+      responses:
+        "200":
+          description: Title, overall state, monitors, systems, incidents, maintenance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicStatus"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/badge/{kind}/{file}:
+    parameters:
+      - name: kind
+        in: path
+        required: true
+        schema: { type: string, enum: [monitor, domain, system] }
+      - name: file
+        in: path
+        required: true
+        description: "Entity id, conventionally suffixed .svg"
+        schema: { type: string }
+    get:
+      operationId: badge
+      summary: Stateless SVG shield from live state
+      responses:
+        "200":
+          description: SVG badge
+          content:
+            image/svg+xml: {}
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/metrics:
+    get:
+      operationId: metrics
+      summary: Prometheus text exposition
+      responses:
+        "200":
+          description: text/plain metrics
+          content:
+            text/plain: {}
+
+  /api/import/csv:
+    post:
+      operationId: importCSV
+      summary: "Bulk import from CSV; ?kind=monitors|domains"
+      parameters:
+        - name: kind
+          in: query
+          schema: { type: string, enum: [monitors, domains], default: monitors }
+      requestBody:
+        required: true
+        content:
+          text/csv:
+            schema: { type: string }
+      responses:
+        "200":
+          description: Import summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created: { type: integer }
+                  skipped: { type: integer }
+                  errors:
+                    type: array
+                    items: { type: string }
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
   /api/settings:
     get:
@@ -330,7 +1005,45 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /api/import/external:
+    post:
+      operationId: importExternal
+      summary: >
+        Import a foreign dashboard config — Homepage services.yml, Homarr
+        JSON export, or Dashy conf.yml. Format is auto-detected; the board
+        is replaced and existing settings are preserved.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          application/json:
+            schema:
+              type: string
+              format: binary
+          text/yaml:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Imported board tree
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Section"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   parameters:
     id:
       name: id
@@ -518,6 +1231,539 @@ components:
         checkedAt:
           type: string
           format: date-time
+    Monitor:
+      type: object
+      required: [id, name, type, active, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [http, tcp, ping, dns, keyword, json, push]
+        url:
+          type: string
+        hostname:
+          type: string
+        port:
+          type: integer
+        method:
+          type: string
+        headers:
+          type: string
+          description: JSON object of request headers
+        body:
+          type: string
+        keyword:
+          type: string
+        keywordInvert:
+          type: boolean
+        jsonQuery:
+          type: string
+          description: Dot path into a JSON response, e.g. "data.status"
+        expected:
+          type: string
+        dnsType:
+          type: string
+        intervalS:
+          type: integer
+        timeoutS:
+          type: integer
+        retries:
+          type: integer
+        active:
+          type: boolean
+        status:
+          type: string
+          enum: [up, down, pending, paused, maintenance]
+        pushToken:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+        position:
+          type: number
+        lastCheck:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    MonitorInput:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [http, tcp, ping, dns, keyword, json, push]
+        url:
+          type: string
+        hostname:
+          type: string
+        port:
+          type: integer
+        method:
+          type: string
+        headers:
+          type: string
+        body:
+          type: string
+        keyword:
+          type: string
+        keywordInvert:
+          type: boolean
+        jsonQuery:
+          type: string
+        expected:
+          type: string
+        dnsType:
+          type: string
+        intervalS:
+          type: integer
+        timeoutS:
+          type: integer
+        retries:
+          type: integer
+        active:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+    UptimeStats:
+      type: object
+      properties:
+        up:
+          type: integer
+        down:
+          type: integer
+        uptime24h:
+          type: number
+        uptime30d:
+          type: number
+        avgPing24h:
+          type: integer
+    MonitorView:
+      allOf:
+        - $ref: "#/components/schemas/Monitor"
+        - type: object
+          properties:
+            stats:
+              $ref: "#/components/schemas/UptimeStats"
+    Heartbeat:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [up, down]
+        pingMs:
+          type: integer
+        msg:
+          type: string
+        certExpiry:
+          type: integer
+        checkedAt:
+          type: string
+          format: date-time
+    Domain:
+      type: object
+      required: [id, name, active]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tld:
+          type: string
+        active:
+          type: boolean
+        autoRenew:
+          type: boolean
+        alertDaysBefore:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+        expiryDate:
+          type: string
+          format: date-time
+          nullable: true
+        creationDate:
+          type: string
+          format: date-time
+          nullable: true
+        updatedDate:
+          type: string
+          format: date-time
+          nullable: true
+        registrarName:
+          type: string
+        registrarId:
+          type: string
+        registrarUrl:
+          type: string
+        registryDomainId:
+          type: string
+        dnssec:
+          type: string
+        statuses:
+          type: array
+          items:
+            type: string
+        privacyEnabled:
+          type: boolean
+        transferLock:
+          type: boolean
+        registrantName:
+          type: string
+        registrantOrg:
+          type: string
+        registrantCountry:
+          type: string
+        abuseEmail:
+          type: string
+        nameServers:
+          type: array
+          items:
+            type: string
+        mxRecords:
+          type: array
+          items:
+            type: string
+        txtRecords:
+          type: array
+          items:
+            type: string
+        cname:
+          type: string
+        ipv4:
+          type: array
+          items:
+            type: string
+        ipv6:
+          type: array
+          items:
+            type: string
+        sslIssuer:
+          type: string
+        sslValidFrom:
+          type: string
+          format: date-time
+          nullable: true
+        sslValidTo:
+          type: string
+          format: date-time
+          nullable: true
+        sslSubject:
+          type: string
+        sslFingerprint:
+          type: string
+        sslKeySize:
+          type: integer
+        sslSigAlgo:
+          type: string
+        sslAltNames:
+          type: array
+          items:
+            type: string
+        hostCountry:
+          type: string
+        hostCountryCode:
+          type: string
+        hostRegion:
+          type: string
+        hostCity:
+          type: string
+        hostIsp:
+          type: string
+        hostOrg:
+          type: string
+        hostAs:
+          type: string
+        hostLat:
+          type: number
+        hostLon:
+          type: number
+        dnsProvider:
+          type: string
+        emailProvider:
+          type: string
+        hostingProvider:
+          type: string
+        caProvider:
+          type: string
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        faviconUrl:
+          type: string
+        lookupError:
+          type: string
+        intervalH:
+          type: integer
+        lastChecked:
+          type: string
+          format: date-time
+          nullable: true
+        position:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+    DomainInput:
+      type: object
+      properties:
+        name:
+          type: string
+        active:
+          type: boolean
+        autoRenew:
+          type: boolean
+        alertDaysBefore:
+          type: integer
+        intervalH:
+          type: integer
+        tags:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+    DomainView:
+      allOf:
+        - $ref: "#/components/schemas/Domain"
+        - type: object
+          properties:
+            daysUntilExpiry:
+              type: integer
+              nullable: true
+            sslDaysUntilExpiry:
+              type: integer
+              nullable: true
+            expiring:
+              type: boolean
+            sslExpiring:
+              type: boolean
+    DomainCheck:
+      type: object
+      properties:
+        id:
+          type: integer
+        expiryDate:
+          type: string
+          format: date-time
+          nullable: true
+        sslValidTo:
+          type: string
+          format: date-time
+          nullable: true
+        ipv4:
+          type: array
+          items:
+            type: string
+        nameServers:
+          type: array
+          items:
+            type: string
+        checkedAt:
+          type: string
+          format: date-time
+    StatSample:
+      type: object
+      description: One agent push; missing fields mean the platform can't provide them
+      properties:
+        host: { type: string }
+        os: { type: string }
+        arch: { type: string }
+        cpuModel: { type: string }
+        cores: { type: integer }
+        intervalS: { type: integer }
+        uptimeS: { type: number }
+        cpu:
+          type: number
+          description: CPU usage percent 0-100
+        memTotal: { type: number, description: bytes }
+        memUsed: { type: number, description: bytes }
+        swapTotal: { type: number, description: bytes }
+        swapUsed: { type: number, description: bytes }
+        diskTotal: { type: number, description: root filesystem bytes }
+        diskUsed: { type: number, description: bytes }
+        netRx: { type: number, description: bytes per second }
+        netTx: { type: number, description: bytes per second }
+        load1: { type: number }
+        load5: { type: number }
+        load15: { type: number }
+        temps:
+          type: object
+          additionalProperties: { type: number }
+          description: Sensor label -> celsius
+        containers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContainerStat"
+    ContainerStat:
+      type: object
+      properties:
+        name: { type: string }
+        state: { type: string }
+    System:
+      type: object
+      required: [id, name, token, status]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        token:
+          type: string
+          description: Agent bearer token
+        host: { type: string }
+        os: { type: string }
+        arch: { type: string }
+        cpuModel: { type: string }
+        cores: { type: integer }
+        intervalS: { type: integer }
+        status:
+          type: string
+          enum: [pending, up, down]
+        lastSeenAt:
+          type: string
+          format: date-time
+          nullable: true
+        latest:
+          $ref: "#/components/schemas/StatSample"
+        createdAt:
+          type: string
+          format: date-time
+    IncidentUpdate:
+      type: object
+      properties:
+        id: { type: integer }
+        status: { type: string }
+        message: { type: string }
+        at: { type: string, format: date-time }
+    Incident:
+      type: object
+      required: [id, title, severity, status]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        severity: { type: string, enum: [minor, major, critical] }
+        status: { type: string, enum: [open, ack, resolved, closed] }
+        monitorId: { type: string, nullable: true }
+        updates:
+          type: array
+          items:
+            $ref: "#/components/schemas/IncidentUpdate"
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    IncidentInput:
+      type: object
+      properties:
+        title: { type: string }
+        severity: { type: string, enum: [minor, major, critical] }
+        status: { type: string, enum: [open, ack, resolved, closed] }
+        monitorId: { type: string }
+        message:
+          type: string
+          description: Timeline note attached to the create/transition
+    MaintenanceWindow:
+      type: object
+      required: [id, title, startsAt, endsAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        monitorIds:
+          type: array
+          items: { type: string }
+          description: Empty array covers all monitors
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    MaintenanceWindowInput:
+      type: object
+      required: [title, startsAt, endsAt]
+      properties:
+        title: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        monitorIds:
+          type: array
+          items: { type: string }
+    StatusPage:
+      type: object
+      required: [id, slug, title]
+      properties:
+        id: { type: string }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        monitorIds:
+          type: array
+          items: { type: string }
+          description: Empty array means all active monitors
+        systemIds:
+          type: array
+          items: { type: string }
+        createdAt: { type: string, format: date-time }
+    StatusPageInput:
+      type: object
+      required: [title]
+      properties:
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string }
+        monitorIds:
+          type: array
+          items: { type: string }
+        systemIds:
+          type: array
+          items: { type: string }
+    PublicStatus:
+      type: object
+      properties:
+        title: { type: string }
+        slug: { type: string }
+        description: { type: string }
+        overall: { type: string, enum: [up, down, maintenance, pending] }
+        monitors:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              status: { type: string }
+              uptime24h: { type: number }
+        systems:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              status: { type: string }
+        incidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Incident"
+        maintenance:
+          type: array
+          items:
+            $ref: "#/components/schemas/MaintenanceWindow"
     WidgetField:
       type: object
       required: [key, label]

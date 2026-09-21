@@ -11,7 +11,7 @@ import (
 // jarvis: v5 only for now — v6 (/api/...) lands when someone runs it.
 type pihole struct{}
 
-func init() { register(pihole{}) }
+func init() { Register(pihole{}) }
 
 func (pihole) Meta() Type {
 	return Type{

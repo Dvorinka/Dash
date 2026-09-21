@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { useBoard } from "@/board/store";
+import { api } from "@/api";
 import type { Item, UrlInput } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +34,7 @@ export function ServiceDialog({
 	const [icon, setIcon] = useState("");
 	const [urls, setUrls] = useState<UrlInput[]>([{ url: "", label: "local" }]);
 	const [sectionId, setSectionId] = useState("");
+	const [alsoMonitor, setAlsoMonitor] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const [err, setErr] = useState("");
 	const fileRef = useRef<HTMLInputElement>(null);
@@ -48,6 +50,7 @@ export function ServiceDialog({
 				: [{ url: "", label: "local" }],
 		);
 		setSectionId(item?.sectionId ?? board.sections[0]?.id ?? "");
+		setAlsoMonitor(false);
 	}, [open, item, board.sections]);
 
 	const setUrl = (i: number, patch: Partial<UrlInput>) =>
@@ -81,6 +84,12 @@ export function ServiceDialog({
 					urls: cleanUrls,
 				});
 				if (created && file) await board.uploadIcon(created.id, file);
+				if (alsoMonitor && cleanUrls[0]) {
+					// Uptime check on the primary URL — appears under /monitors.
+					await api.POST("/api/monitors", {
+						body: { name: name.trim(), type: "http", url: cleanUrls[0].url },
+					});
+				}
 			}
 			onOpenChange(false);
 		} catch (e) {
@@ -192,6 +201,17 @@ export function ServiceDialog({
 						) : null}
 						<p className="text-[11px] text-text-faint">URL or uploaded file; blank shows a letter tile.</p>
 					</div>
+
+					{!editing && (
+						<label className="flex items-center gap-2 text-[12.5px] text-text-dim">
+							<input
+								type="checkbox"
+								checked={alsoMonitor}
+								onChange={(e) => setAlsoMonitor(e.target.checked)}
+							/>
+							Also create an uptime monitor for the first URL
+						</label>
+					)}
 
 					{err ? <p className="text-[12px] text-destructive">{err}</p> : null}
 				</div>

@@ -20,6 +20,8 @@ data/*
 # misc
 .DS_Store
 coverage/
+dist/
 
 # local tooling artifacts
 .playwright-mcp/
+.playwright-cli/

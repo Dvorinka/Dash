@@ -1,0 +1,16 @@
+name: Feature request
+description: Suggest an addition
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: Concrete use case, not just "add X".
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed shape
+      description: Optional. How it might look or work.

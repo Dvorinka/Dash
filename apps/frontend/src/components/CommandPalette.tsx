@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Download, LayoutGrid, Moon, Plus, Settings, Sun } from "lucide-react";
+import { useLocation } from "wouter";
+import { Activity, AlertTriangle, ArrowRight, Download, Globe, LayoutGrid, Megaphone, Moon, Plus, Server, Settings, Sun } from "lucide-react";
 import { useBoard } from "@/board/store";
 import { hostOf, IconImg } from "@/board/primitives";
 import { rendererLabels, rendererList } from "@/renderers";
@@ -34,12 +35,19 @@ export function CommandPalette({
 	onSettings(): void;
 }) {
 	const board = useBoard();
+	const [, navigate] = useLocation();
 	const [query, setQuery] = useState("");
 	const [active, setActive] = useState(0);
 	const listRef = useRef<HTMLDivElement>(null);
 
 	const commands = useMemo<Command[]>(() => {
 		const cmds: Command[] = [
+			{ id: "nav-board", group: "Actions", glyph: LayoutGrid, label: "Go to Board", run: () => navigate("/") },
+			{ id: "nav-monitors", group: "Actions", glyph: Activity, label: "Go to Monitors", run: () => navigate("/monitors") },
+			{ id: "nav-domains", group: "Actions", glyph: Globe, label: "Go to Domains", run: () => navigate("/domains") },
+			{ id: "nav-systems", group: "Actions", glyph: Server, label: "Go to Systems", run: () => navigate("/systems") },
+			{ id: "nav-incidents", group: "Actions", glyph: AlertTriangle, label: "Go to Incidents", run: () => navigate("/incidents") },
+			{ id: "nav-status", group: "Actions", glyph: Megaphone, label: "Go to Status pages", run: () => navigate("/status") },
 			{ id: "add-service", group: "Actions", glyph: Plus, label: "Add service", hint: "new", run: onAddService },
 			{ id: "add-widget", group: "Actions", glyph: Plus, label: "Add widget", hint: "new", run: onAddWidget },
 			{ id: "settings", group: "Actions", glyph: Settings, label: "Open settings", run: onSettings },
@@ -73,7 +81,7 @@ export function CommandPalette({
 			}
 		}
 		return cmds;
-	}, [board.sections, board.theme, board.renderer, board.setSetting, onAddService, onAddWidget, onSettings]);
+	}, [board.sections, board.theme, board.renderer, board.setSetting, onAddService, onAddWidget, onSettings, navigate]);
 
 	const q = query.trim().toLowerCase();
 	const filtered = q
