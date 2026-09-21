@@ -39,7 +39,10 @@ or popover logic.
 | `v0.6.0` | Phase M3 — system monitoring + agent | agent ingest + charts |
 | `v0.7.0` | Phase M4 — incidents, status pages, badges, metrics | public status page live |
 | `v1.0.0` | Phase 4 — OSS polish, docs, importers, CI releases | public repo launch |
-| `v1.x` | Phase 5 — demand-driven extras only | per-feature |
+| `v1.1.0` | P5a — uptime graphs, iframe/JSON widgets, theming, PWA, demo GIF | per-item ships |
+| `v1.2.0` | P5b — SMTP + notifier presets + alert rules | alert pipeline live |
+| `v1.3.0` | P5c — per-container metrics, SMART/ZFS/GPU, subdomain discovery | agent payload v2 |
+| `v2.0.0` | P5d — opt-in auth, multiple boards, full i18n | structure change |
 
 ---
 
@@ -202,18 +205,92 @@ Beszel-style server monitoring, push-based.
 
 **Exit:** a stranger can `docker run`, import their Homepage config, and have a working board in under two minutes.
 
-## Phase 5 — Post-1.0 (demand-driven only)
+## Phase 5 — Post-1.0 (planned, demand-confirmed 2026-09-21)
 
-Build only what users actually ask for. Candidates, unordered:
+All items below confirmed in scope. Sequenced by dependency and risk —
+quick wins first, structure-changing work last. Nothing here is built yet.
 
-- Optional auth (local password + OIDC) — most-requested, likely first
-- Health-check history + uptime graphs
-- Custom CSS / accent color / wallpaper
-- Iframe/embed widgets, API-status widgets (generic JSON path)
-- PWA install, mobile layout polish
-- Multiple boards
+### P5a — Quick wins (frontend-heavy, no schema risk)
 
-## Non-goals (v1)
+- [ ] **Uptime graphs** — monitor detail renders 24h/30d heartbeat bars +
+      latency line (recharts, already a dep). Data: existing
+      `/api/monitors/:id/heartbeats` + uptime stats. Frontend only.
+- [ ] **iframe widget** — `config.url`, sandboxed `<iframe>` tile in the
+      widget registry; local type, no backend fetcher.
+- [ ] **Generic JSON-path widget** — backend fetcher: GET `config.url` with
+      optional headers, extract `config.path` (dot/bracket path), display
+      value + optional label/format. Covers most "is API X alive" asks.
+- [ ] **Custom CSS / accent / wallpaper** — settings keys `accent`,
+      `custom_css`, `wallpaper_url`; injected as CSS var override + `<style>`
+      + board background layer. Respect reduced-motion/contrast defaults.
+- [ ] **PWA** — `manifest.webmanifest` (icons, name, theme color), minimal
+      service worker: cache-first for static assets, network-first for /api.
+      No offline board editing — read-only graceful degradation.
+- [ ] **Demo GIF** — scripted playwright walkthrough (board → monitors →
+      status page) rendered via ffmpeg; committed to `docs/screenshots/`.
 
-Auth, Postgres/external DB, multi-user, mobile app, container lifecycle
-management, YAML-as-source-of-truth. Revisit only with evidence of demand.
+### P5b — Alert depth
+
+- [ ] **SMTP transport** — `net/smtp` stdlib (STARTTLS + plain-auth only,
+      no external dep). Settings: `smtp_host`, `smtp_port`, `smtp_user`,
+      `smtp_pass` (secret), `smtp_from`, `smtp_to`. Same event pipeline as
+      the webhook; test button reuses `/api/notify/test`.
+- [ ] **Notifier presets** — refactor `notify.go` into a transport registry:
+      `webhook` (generic, current), `slack`, `discord`, `telegram`, `gotify`,
+      `ntfy`, `smtp`. Presets = field set + payload template per transport;
+      settings store per-transport config. UI: transport picker + fields.
+- [ ] **Alert rules** — per-monitor JSON `alerts` config: consecutive
+      failures before down (default 1), latency-warn ms, cert-days threshold
+      for domains, mute flag. Scheduler evaluates rules before firing events;
+      maintenance windows keep priority. Migration adds nullable
+      `alerts TEXT` on `monitors`/`domains`.
+
+### P5c — Agent + domain depth
+
+- [ ] **Per-container metrics** — agent calls Docker `/containers/{id}/stats?stream=false`
+      (cpu%, mem used/limit) when docker.sock present; payload adds
+      `containers[].cpu`, `.memUsed`, `.memLimit` (JSON — no migration).
+      UI: containers table gets cpu/mem columns + optional sparkline.
+- [ ] **SMART / ZFS / GPU** — optional collectors, all best-effort and
+      silently skipped when tooling is absent:
+      SMART via `smartctl -j` exec if installed; ZFS via `zpool status`/`-j`
+      parse; GPU via `/sys/class/drm` (amd/intel basic) and `nvidia-smi -j`
+      when present. No new hard deps — exec-or-skip.
+- [ ] **Subdomain discovery** — crt.sh CT-log query + A/AAAA resolve for
+      discovered names; `subdomains` table (domain_id, name, ips, first_seen,
+      last_seen). Domain detail: subdomains tab with probe status. Daily
+      sweep alongside the domain refresh job.
+
+### P5d — Structure (big, changes product shape)
+
+- [ ] **Auth (opt-in, email/username + password)** — deliberate constraint:
+      stays disabled by default; enabling is a settings toggle. First enable
+      creates the admin user. `users` table (id, email, name, passhash
+      bcrypt/argon2id, created_at), session cookie (httpOnly, signed,
+      SQLite-backed sessions or HMAC token), `POST /api/auth/login|logout`,
+      middleware gating all /api + non-public UI routes; public status pages
+      and badges stay open. No OIDC, no SSO — local accounts only.
+      Security pass required: rate-limit login, constant-time compare,
+      session rotation.
+- [ ] **Multiple boards** — `boards` table (id, name, slug, position),
+      `sections.board_id` FK (migration backfills all rows to board 1).
+      Board switcher in the header (dropdown + `/b/:slug` route), settings
+      for default board. Monitors/domains/systems pages stay global — only
+      the service board multiplies.
+- [ ] **Full i18n extraction** — every UI string moves into `en.ts` via the
+      existing `t()` seam; mechanical pass over pages/dialogs/widgets.
+      Second locale (cs) lands in the same pass to prove the seam end-to-end.
+
+### Ordering rationale
+
+P5a items are isolated and shippable individually. P5b builds on the existing
+event pipeline. P5c grows the agent payload (backward-compatible JSON
+additions — old servers ignore new fields). P5d is last because auth +
+multi-board touch routing, middleware, and schema globally; doing them first
+would force rework of everything above.
+
+## Non-goals (post-1.0)
+
+Postgres/external DB, multi-user/RBAC, mobile app, container lifecycle
+management, YAML-as-source-of-truth, OIDC/SSO (local accounts only),
+Beszel-protocol agent compatibility. Revisit only with evidence of demand.
