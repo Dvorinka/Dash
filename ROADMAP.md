@@ -197,7 +197,7 @@ Beszel-style server monitoring, push-based.
 - [x] `README.md` hero: screenshots, `docker run` one-liner (demo GIF deferred — pngs suffice for v1.0.0)
 - [x] goreleaser → binaries; GHCR image on tag; semver + `CHANGELOG.md`
 - [x] `CONTRIBUTING.md`, issue/PR templates, code of conduct, security policy
-- [ ] i18n scaffolding (en default)
+- [x] i18n scaffolding (`src/i18n/` — typed `t()` + `en` dict; full string extraction deferred to first real locale)
 - [ ] Public repo flip + announcement assets
 
 **Exit:** a stranger can `docker run`, import their Homepage config, and have a working board in under two minutes.
