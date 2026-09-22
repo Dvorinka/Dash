@@ -20,6 +20,9 @@ data/*
 .DS_Store
 coverage/
 dist/
+# the blanket dist/ above excludes the embedded-UI dir itself, which would
+# make the .keep negation unreachable — re-include the dir, contents stay ignored
+!apps/backend/internal/web/dist/
 
 # local tooling artifacts
 .playwright-mcp/

@@ -1,5 +1,8 @@
 services:
   dash:
+    # Prebuilt release image — `docker compose pull && docker compose up -d`.
+    # To build from source instead: `docker compose up -d --build`.
+    image: ghcr.io/dvorinka/dash:latest
     build:
       context: .
       dockerfile: infra/Dockerfile
