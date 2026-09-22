@@ -33,7 +33,7 @@ function fmtDate(iso: string | null | undefined) {
 }
 
 // Vendor chip shown next to records and inside the provider strip.
-function ProviderBadge({ p }: { p?: Provider | null }) {
+function ProviderBadge({ p }: { p: Provider | null | undefined }) {
 	if (!p?.name) return null;
 	return (
 		<span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-bg px-2 py-0.5">
@@ -45,7 +45,7 @@ function ProviderBadge({ p }: { p?: Provider | null }) {
 	);
 }
 
-function ProvTile({ label, p }: { label: string; p?: Provider }) {
+function ProvTile({ label, p }: { label: string; p: Provider | undefined }) {
 	return (
 		<div className="flex min-w-0 items-center gap-2.5 rounded-[9px] border border-border/60 bg-bg px-3 py-2.5">
 			{p?.icon
