@@ -38,9 +38,9 @@ No YAML, no external database; auth is optional and off by default.
 <details>
 <summary>More screenshots</summary>
 
-| Domains | Status page |
-|:-:|:-:|
-| ![Domain watch](docs/screenshots/domains.png) | ![Public status page](docs/screenshots/status-page.png) |
+| Domain intel | Domains | Status page |
+|:-:|:-:|:-:|
+| ![Domain detail with provider detection](docs/screenshots/domain-detail.png) | ![Domain watch](docs/screenshots/domains.png) | ![Public status page](docs/screenshots/status-page.png) |
 
 </details>
 
@@ -48,8 +48,8 @@ No YAML, no external database; auth is optional and off by default.
 
 - **Service boards** — multiple boards, sections, drag-and-drop, multi-URL services, icon upload, four renderers (Bento, Cards, Index, Console), dark/light themes, custom accent/wallpaper/CSS.
 - **Uptime monitors** — HTTP, TCP, ping, DNS, keyword, JSON-path, and push checks on a schedule; heartbeat history, uptime graphs, per-monitor alert rules.
-- **Domain watch** — WHOIS/RDAP, DNS records, TLS certificate expiry, registrar and provider detection, CT-log subdomain discovery.
-- **System monitoring** — lightweight `dash-agent` pushes CPU, memory, disk, network, load, temperatures, per-container stats, and SMART/ZFS/GPU when available.
+- **Domain watch** — WHOIS/RDAP, TLS certificate, host geolocation, and CT-log subdomain discovery; every DNS record is attributed to its vendor (Cloudflare, Google Workspace, Purelymail, …) with provider badges across registrar, DNS, hosting, email, and CA.
+- **System monitoring** — lightweight `dash-agent` pushes CPU, memory, disk, network, load, temperatures, per-container stats, and SMART/ZFS/GPU when available; rendered as stacked per-container charts, per-sensor temperature lines, and load/bandwidth series.
 - **Incidents & status pages** — automatic incidents on monitor down, maintenance windows, public `/status/:slug` pages, SVG badges.
 - **Alerts** — webhook, Slack, Discord, Telegram, Gotify, ntfy, and SMTP transports.
 - **Observability** — Prometheus `/api/metrics`, JSON export, CSV bulk import, importers for Homepage, Homarr, and Dashy configs.
