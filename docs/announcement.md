@@ -1,11 +1,11 @@
-# v1.0.0 launch post — draft
+# v2.0.0 launch post — draft
 
 For r/selfhosted, HN Show, and similar. Edit freely before posting.
 
 ---
 
 **Title:** Dash — a self-hosted homelab dashboard with monitoring built in.
-Single Go binary, no YAML, no auth.
+Single Go binary, no YAML, optional auth.
 
 **Body:**
 
@@ -19,13 +19,17 @@ What it does:
   upload. Imports your existing Homepage (`services.yml`), Homarr, or Dashy
   config in one click.
 - **Monitors** — HTTP/TCP/ping/DNS/keyword/JSON-path checks plus push monitors
-  for cron jobs. Webhook alerts (Slack/Discord/ntfy). Uptime history.
+  for cron jobs. Uptime graphs, per-monitor alert rules, and notifications via
+  webhook, Slack, Discord, Telegram, Gotify, ntfy, or SMTP.
 - **Domains** — WHOIS/RDAP, DNS, TLS certificate expiry, provider detection.
   Inspired by Domain Locker, minus the paid APIs.
-- **Systems** — a ~4 MB static agent pushes CPU/mem/disk/net/temps/Docker
-  container states. Inspired by Beszel, push-JSON instead of SSH.
+- **Systems** — a ~4 MB static agent pushes CPU/mem/disk/net/temps, per-
+  container stats, and SMART/ZFS/GPU when present. Inspired by Beszel,
+  push-JSON instead of SSH.
 - **Ops** — incidents, maintenance windows, public status pages, SVG badges,
   Prometheus `/api/metrics`.
+- **Extras** — multiple boards, iframe/JSON-path widgets, CT-log subdomain
+  discovery, EN/CZ locales, installable PWA, custom CSS/wallpaper.
 
 Deployment is one container:
 
@@ -33,8 +37,9 @@ Deployment is one container:
 docker run -d -v ./data:/data -p 3000:3000 ghcr.io/dvorinka/dash:latest
 ```
 
-SQLite inside, no database to babysit, no accounts. Deliberately no auth —
-it expects a trusted LAN or your own proxy in front.
+SQLite inside, no database to babysit. Auth is opt-in: local
+username/password with bcrypt + session cookies, off by default; public
+status pages stay open either way.
 
 Stack: Go + Gin + SQLite (single static binary serving an embedded React UI).
 MIT licensed.
@@ -53,5 +58,5 @@ Show HN: Dash – self-hosted homelab dashboard with monitoring, one Go binary
 
 Dash combines a service board, uptime monitors, domain/SSL watching, system
 metrics via a tiny push agent, and public status pages. Single container or
-single binary, SQLite storage, no YAML, no auth (LAN-trust model). MIT.
+single binary, SQLite storage, no YAML. Optional local auth. MIT.
 https://github.com/Dvorinka/Dash

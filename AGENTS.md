@@ -1,7 +1,8 @@
 # Dash
 
 Self-hosted homelab dashboard. Single Go binary serving an embedded React UI.
-No auth, no YAML. See `ROADMAP.md` (canonical) and `docs/specs/` for design.
+Optional auth (off by default), no YAML. See `ROADMAP.md` (canonical) and
+`docs/specs/` for design.
 
 ## Layout
 

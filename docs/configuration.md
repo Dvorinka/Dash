@@ -21,12 +21,16 @@ snapshot; `/api/import/csv` bulk-loads monitors and domains from CSV.
 
 ## Notifications
 
-**Settings → Notifications** holds one generic webhook URL
-(`notify_webhook`). On monitor up/down transitions and domain events, Dash
-POSTs a JSON payload with `event`, `name`, `text`, `content`, `message`, and
-`at` fields — shaped so Slack, Discord, and ntfy all render it sensibly.
-**Test** sends a `test` event. Delivery is async and non-fatal; failures are
-logged.
+**Settings → Notifications** configures any number of transports — generic
+webhook, Slack, Discord, Telegram, Gotify, ntfy, and SMTP — each stored as a
+`notify_<name>` settings object. Monitor up/down transitions and domain
+events fan out to every configured transport; the payload carries `event`,
+`name`, `text`, `content`, `message`, and `at` fields. **Test** sends a `test`
+event. Delivery is async and non-fatal; failures are logged.
+
+Per-monitor alert rules (consecutive failures before down, latency-warn ms,
+mute) live on each monitor; domains get a cert-days threshold and mute.
+Maintenance windows still take precedence.
 
 ## Monitors
 
@@ -46,6 +50,27 @@ deadlines surface in the UI and through notifications.
 Bearer-token push ingest at `POST /api/systems/ingest`. A system is marked
 offline when no sample arrives within a few intervals. Stats are pruned during
 the hourly sweep.
+
+## Auth
+
+Off by default — existing installs see no gate. **Settings → Authentication →
+Enable** flips to a first-user setup screen (username/email + password,
+bcrypt). Sessions are SQLite-backed 7-day HttpOnly cookies with rotation;
+login is rate-limited per IP. Disable only works from an authenticated
+session. Public status pages, badges, `/api/metrics`, `/api/push/*`, and
+agent ingest stay open under auth.
+
+## Boards
+
+The header switcher manages multiple boards — each gets a slug and a
+`/b/:slug` route with its own sections/items. Monitors, domains, systems, and
+status pages stay global. Exports carry all boards.
+
+## Appearance & language
+
+Theme (dark/light), accent color, wallpaper URL, and custom CSS in Settings;
+the language picker switches the UI between English and Czech. A PWA manifest
+and service worker make the app installable.
 
 ## Operations
 

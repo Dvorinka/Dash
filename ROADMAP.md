@@ -149,27 +149,27 @@ becomes the summary layer over the monitoring pages.
 
 Uptime checking: the backbone everything else hangs off.
 
-- [ ] Schema: `monitors` (name, type, url/hostname/port, method, keyword, json_query, expected_value, interval_s, timeout_s, retries, active, status, tags, notes), `heartbeats` (monitor_id, status, ping_ms, msg, cert_expiry, checked_at — 30-day retention prune)
-- [ ] In-process scheduler: due-monitor sweep, bounded worker pool, heartbeat write, status transitions
-- [ ] Checkers: `http`/`https`, `tcp`, `ping` (unprivileged ICMP datagram via `x/net/icmp` — distroless has no ping binary), `dns`, `keyword`, `json-query`, `push` (caller-generated ingest URL)
-- [ ] API: `/api/monitors` CRUD, `/:id/heartbeats?range=`, pause/resume, check-now
-- [ ] Monitors page (status, uptime 24h/30d, ping, interval) + detail (response chart, heartbeat log)
-- [ ] Board widget type `monitor` bound to a monitor id
-- [ ] ServiceDialog checkbox: create matching http monitor from a service URL
-- [ ] The fork's ~30 exotic monitor types were TCP stubs — not ported. Real types only.
+- [x] Schema: `monitors` (name, type, url/hostname/port, method, keyword, json_query, expected_value, interval_s, timeout_s, retries, active, status, tags, notes), `heartbeats` (monitor_id, status, ping_ms, msg, cert_expiry, checked_at — 30-day retention prune)
+- [x] In-process scheduler: due-monitor sweep, bounded worker pool, heartbeat write, status transitions
+- [x] Checkers: `http`/`https`, `tcp`, `ping` (unprivileged ICMP datagram via `x/net/icmp` — distroless has no ping binary), `dns`, `keyword`, `json-query`, `push` (caller-generated ingest URL)
+- [x] API: `/api/monitors` CRUD, `/:id/heartbeats?range=`, pause/resume, check-now
+- [x] Monitors page (status, uptime 24h/30d, ping, interval) + detail (response chart, heartbeat log)
+- [x] Board widget type `monitor` bound to a monitor id
+- [x] ServiceDialog checkbox: create matching http monitor from a service URL
+- [x] The fork's ~30 exotic monitor types were TCP stubs — not ported. Real types only.
 
 ### Phase M2 — Domains → v0.5.0
 
 Domain-locker-grade domain intelligence.
 
-- [ ] Schema: `domains` (core columns + `extra` JSON for the long tail), `domain_history` (domain_id, change_type, field, old, new, at)
-- [ ] Lookup pipeline ported from fork `hub/domains/whois/lookup.go`, trimmed: RDAP over HTTPS → native WHOIS TCP:43 + parser; SSL chain via `crypto/tls`; DNS (NS/MX/TXT/A/AAAA) via `net.Resolver`; host geo via ip-api; provider detection via fork `detect/providers.go`; favicon
-- [ ] Daily scheduler + manual refresh; field diffs recorded to `domain_history`
-- [ ] Alerts: `alert_rules` + `notifications` tables; dispatchers — generic webhook (JSON POST), SMTP via `net/smtp`, Discord/Slack presets. Triggers: domain expiry ≤ N days, SSL expiry ≤ N days, monitor down/recovered (M1), system offline (M3)
-- [ ] Domains page + detail (expiry countdown, registrar, SSL, DNS, subdomains)
-- [ ] Board widget `domain` (expiry countdown)
-- [ ] Subdomain discovery: port `subdomain_discovery.go`, opt-in per domain
-- [ ] Not ported (v1): whoisxml API, EURid web scraping, SEO/robots parsing, valuation estimates — demand only
+- [x] Schema: `domains` (core columns + `extra` JSON for the long tail), `domain_history` (domain_id, change_type, field, old, new, at)
+- [x] Lookup pipeline ported from fork `hub/domains/whois/lookup.go`, trimmed: RDAP over HTTPS → native WHOIS TCP:43 + parser; SSL chain via `crypto/tls`; DNS (NS/MX/TXT/A/AAAA) via `net.Resolver`; host geo via ip-api; provider detection via fork `detect/providers.go`; favicon
+- [x] Daily scheduler + manual refresh; field diffs recorded to `domain_history`
+- [x] Alerts: `alert_rules` + `notifications` tables; dispatchers — generic webhook (JSON POST), SMTP via `net/smtp`, Discord/Slack presets. Triggers: domain expiry ≤ N days, SSL expiry ≤ N days, monitor down/recovered (M1), system offline (M3)
+- [x] Domains page + detail (expiry countdown, registrar, SSL, DNS, subdomains)
+- [x] Board widget `domain` (expiry countdown)
+- [x] Subdomain discovery: port `subdomain_discovery.go`, opt-in per domain
+- [x] Not ported (v1): whoisxml API, EURid web scraping, SEO/robots parsing, valuation estimates — demand only
 
 ### Phase M3 — Systems → v0.6.0
 

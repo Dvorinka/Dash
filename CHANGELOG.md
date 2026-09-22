@@ -6,6 +6,31 @@ All notable changes to Dash. Format follows
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-09-22
+
+### Added
+
+- Opt-in local auth: first-user setup, bcrypt passwords, SQLite sessions,
+  rotating 7-day HttpOnly cookie, login rate limit, sign-out/disable in
+  settings. Off by default; status pages, badges, metrics, push, and agent
+  ingest stay public
+- Multiple boards: named boards with slugs, header switcher, `/b/:slug`
+  routes, per-board sections, board-aware export
+- Full i18n: every UI string via typed `t()` keys with interpolation;
+  English + Czech locales, language select in settings
+- Uptime bar strip + latency chart on monitor detail
+- iframe embed widget and generic JSON-path widget (backend fetcher)
+- Custom accent color, wallpaper URL, and custom CSS in settings
+- PWA: manifest, icons, minimal service worker
+- Alert transports: webhook, Slack, Discord, Telegram, Gotify, ntfy, SMTP
+  (stdlib `net/smtp`); transport picker + test button in settings
+- Per-monitor alert rules: consecutive-failure threshold, latency warn, mute;
+  per-domain cert-days threshold and mute
+- Per-container CPU/memory in `dash-agent` (Docker stats when socket present);
+  optional SMART, ZFS, and GPU collectors (exec-or-sysfs, skipped when absent)
+- Subdomain discovery via Certificate Transparency + DNS, daily sweep,
+  subdomains section on domain detail
+
 ## [0.7.0] — 2026-09-21
 
 ### Added
@@ -77,7 +102,8 @@ All notable changes to Dash. Format follows
 - Single Go binary serving the embedded React UI; SQLite via goose migrations;
   Docker image on distroless
 
-[Unreleased]: https://github.com/Dvorinka/Dash/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Dvorinka/Dash/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Dvorinka/Dash/compare/v0.7.0...v2.0.0
 [0.7.0]: https://github.com/Dvorinka/Dash/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Dvorinka/Dash/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Dvorinka/Dash/compare/v0.4.0...v0.5.0
