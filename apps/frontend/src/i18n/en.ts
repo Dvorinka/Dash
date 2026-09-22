@@ -108,6 +108,7 @@ export const en = {
 	"settings.testNotify": "Send test notification",
 	"settings.wallpaperPh": "https://… — blank for none",
 	"settings.importFailed": "Import failed",
+	"settings.backup": "Backup & import",
 
 	"service.editTitle": "Edit service",
 	"service.newTitle": "Add service",

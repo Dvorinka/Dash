@@ -109,6 +109,7 @@ export const cs: Partial<Record<Key, string>> = {
 	"settings.testNotify": "Odeslat testovací notifikaci",
 	"settings.wallpaperPh": "https://… — prázdné = žádná",
 	"settings.importFailed": "Import selhal",
+	"settings.backup": "Záloha a import",
 
 	"service.editTitle": "Upravit službu",
 	"service.newTitle": "Přidat službu",

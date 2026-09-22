@@ -1,3 +1,4 @@
+import { LayoutGrid, LayoutList, Newspaper, SquareTerminal, type LucideIcon } from "lucide-react";
 import { bento } from "./bento";
 import { cards } from "./cards";
 import { editorial } from "./editorial";
@@ -26,4 +27,11 @@ export const rendererDescriptions: Record<RendererName, string> = {
 	cards: "uniform compact cards",
 	index: "editorial list · masthead",
 	console: "terminal panels · mono",
+};
+
+export const rendererIcons: Record<RendererName, LucideIcon> = {
+	bento: LayoutGrid,
+	cards: LayoutList,
+	index: Newspaper,
+	console: SquareTerminal,
 };
