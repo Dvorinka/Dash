@@ -6,6 +6,15 @@ All notable changes to Dash. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Domain detail now identifies vendors per record: A/AAAA/CNAME/NS/MX/TXT
+  rows carry provider badges (Cloudflare, Google, Purelymail, …) with favicon
+  icons, plus a five-role provider strip (registrar, DNS, hosting, email, CA)
+  above the detail sections. Detection covers ~70 NS providers, ~45 mail
+  providers, ~60 CNAME targets, ASN/org matching, response-header signals,
+  and TXT verification/SPF attribution
+
 ### Changed
 
 - Settings dialog regrouped into icon-labelled sections (renderer, appearance,

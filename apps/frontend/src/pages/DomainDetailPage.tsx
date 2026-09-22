@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Pause, Play, RefreshCw, Shield, Trash2 } from "lucide-react";
+import { ArrowLeft, Globe, Pause, Play, RefreshCw, Shield, Trash2 } from "lucide-react";
 import { api } from "@/api";
-import type { DomainCheck, DomainView, Subdomain } from "@/types";
+import type { DNSRecord, DomainCheck, DomainView, Provider, Subdomain } from "@/types";
 import { DomainDialog } from "@/components/DomainDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,61 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function fmtDate(iso: string | null | undefined) {
 	if (!iso) return "—";
 	return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+// Vendor chip shown next to records and inside the provider strip.
+function ProviderBadge({ p }: { p?: Provider | null }) {
+	if (!p?.name) return null;
+	return (
+		<span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/60 bg-bg px-2 py-0.5">
+			{p.icon
+				? <img src={p.icon} alt="" className="size-3 rounded-[3px]" loading="lazy" />
+				: <Globe size={11} className="text-text-faint" />}
+			<span className="whitespace-nowrap text-[10.5px] text-text-dim">{p.name}</span>
+		</span>
+	);
+}
+
+function ProvTile({ label, p }: { label: string; p?: Provider }) {
+	return (
+		<div className="flex min-w-0 items-center gap-2.5 rounded-[9px] border border-border/60 bg-bg px-3 py-2.5">
+			{p?.icon
+				? <img src={p.icon} alt="" className="size-5 rounded-[5px]" loading="lazy" />
+				: <Globe size={17} className="shrink-0 text-text-faint" />}
+			<div className="min-w-0">
+				<div className="font-mono text-[9px] uppercase tracking-[0.1em] text-text-faint">{label}</div>
+				<div className="truncate text-[12px] font-medium text-text">{p?.name || "—"}</div>
+			</div>
+		</div>
+	);
+}
+
+const recTypeColor = {
+	A: "text-[var(--chart-1)]",
+	AAAA: "text-[var(--chart-1)]",
+	CNAME: "text-[var(--chart-4)]",
+	NS: "text-[var(--chart-2)]",
+	MX: "text-[var(--chart-3)]",
+	TXT: "text-[var(--chart-5)]",
+} satisfies Record<NonNullable<DNSRecord["type"]>, string>;
+const recOrder = ["A", "AAAA", "CNAME", "NS", "MX", "TXT"];
+
+function RecordRow({ r }: { r: DNSRecord }) {
+	return (
+		<div className="flex items-center gap-3 border-b border-border/50 px-4 py-2 last:border-0">
+			<span className={cn("w-11 shrink-0 font-mono text-[9.5px] font-semibold uppercase tracking-[0.1em]",
+				(r.type ? recTypeColor[r.type] : undefined) ?? "text-text-faint")}>
+				{r.type}
+			</span>
+			<span className="min-w-0 flex-1 truncate font-mono text-[11px] text-text" title={r.value ?? ""}>
+				{r.value}
+				{r.type === "MX" && r.priority !== null && r.priority !== undefined
+					? <span className="text-text-faint"> (pri {r.priority})</span>
+					: null}
+			</span>
+			<ProviderBadge p={r.provider} />
+		</div>
+	);
 }
 
 export function DomainDetailPage({ id }: { id: string }) {
@@ -133,13 +188,26 @@ export function DomainDetailPage({ id }: { id: string }) {
 					<div className="font-mono text-[10px] text-text-faint">{d.caProvider || "—"}</div>
 				</div>
 				<div className="rounded-[10px] border border-border bg-surface px-4 py-3">
-					<div className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">{t("domains.providers")}</div>
-					<div className="mt-1 truncate text-[13px] font-medium">{d.dnsProvider || "—"}</div>
-					<div className="font-mono text-[10px] text-text-faint">{d.hostingProvider || d.emailProvider || "—"}</div>
+					<div className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">{t("domains.checked")}</div>
+					<div className="mt-1 truncate text-[13px] font-medium">
+						{d.lastChecked ? new Date(d.lastChecked).toLocaleDateString() : "—"}
+					</div>
+					<div className="font-mono text-[10px] text-text-faint">every {d.intervalH}h</div>
 				</div>
 			</div>
 
-			<div className="grid grid-cols-2 gap-3 max-[820px]:grid-cols-1">
+			{/* Vendor strip — registrar, DNS, hosting, email, CA */}
+			<Section title={t("domains.providers")}>
+				<div className="grid grid-cols-5 gap-2 p-2.5 max-[900px]:grid-cols-3 max-[560px]:grid-cols-2">
+					<ProvTile label={t("domains.registrar")} p={d.providers?.registrar} />
+					<ProvTile label={t("domains.dns")} p={d.providers?.dns} />
+					<ProvTile label={t("domains.hosting")} p={d.providers?.hosting} />
+					<ProvTile label={t("domains.email")} p={d.providers?.email} />
+					<ProvTile label={t("domains.tlsCert")} p={d.providers?.ca} />
+				</div>
+			</Section>
+
+			<div className="mt-3 grid grid-cols-2 gap-3 max-[820px]:grid-cols-1">
 				<Section title={t("domains.registration")}>
 					<Row k={t("domains.created")} v={fmtDate(d.creationDate)} />
 					<Row k={t("domains.updated")} v={fmtDate(d.updatedDate)} />
@@ -153,19 +221,17 @@ export function DomainDetailPage({ id }: { id: string }) {
 				</Section>
 
 				<Section title={t("domains.dns")}>
-					{d.nameServers?.map((n) => <Row key={n} k="NS" v={n} mono />)}
-					{d.mxRecords?.map((m) => <Row key={m} k="MX" v={m} mono />)}
-					{d.ipv4?.map((a) => <Row key={a} k="A" v={a} mono />)}
-					{d.ipv6?.map((a) => <Row key={a} k="AAAA" v={a} mono />)}
-					{d.cname ? <Row k="CNAME" v={d.cname} mono /> : null}
-					{d.txtRecords?.slice(0, 4).map((t, i) => <Row key={i} k="TXT" v={t.length > 60 ? t.slice(0, 60) + "…" : t} mono />)}
-					{d.dnsProvider ? <Row k={t("domains.dnsProvider")} v={d.dnsProvider} /> : null}
-					{d.emailProvider ? <Row k={t("domains.email")} v={d.emailProvider} /> : null}
+					{[...(d.records ?? [])]
+						.sort((a, b) => recOrder.indexOf(a.type ?? "") - recOrder.indexOf(b.type ?? ""))
+						.map((r, i) => <RecordRow key={i} r={r} />)}
+					{(d.records ?? []).length === 0 ? (
+						<p className="px-4 py-4 text-center text-[12px] text-text-faint">—</p>
+					) : null}
 				</Section>
 
 				<Section title={t("domains.tlsCert")}>
 					<Row k={t("domains.issuer")} v={d.sslIssuer} />
-					<Row k="CA" v={d.caProvider} />
+					<Row k="CA" v={d.providers?.ca ? <ProviderBadge p={d.providers.ca} /> : d.caProvider} />
 					<Row k={t("domains.valid")} v={`${fmtDate(d.sslValidFrom)} → ${fmtDate(d.sslValidTo)}`} mono />
 					<Row k={t("domains.subject")} v={d.sslSubject} mono />
 					<Row k={t("domains.key")} v={d.sslKeySize ? `${d.sslKeySize} bit` : ""} mono />
@@ -181,7 +247,7 @@ export function DomainDetailPage({ id }: { id: string }) {
 					<Row k={t("domains.isp")} v={d.hostIsp} />
 					<Row k={t("domains.org")} v={d.hostOrg} />
 					<Row k="AS" v={d.hostAs} mono />
-					<Row k={t("domains.hosting")} v={d.hostingProvider} />
+					<Row k={t("domains.hosting")} v={d.providers?.hosting ? <ProviderBadge p={d.providers.hosting} /> : d.hostingProvider} />
 					<Row k={t("domains.checked")} v={d.lastChecked ? new Date(d.lastChecked).toLocaleString() : "—"} mono />
 				</Section>
 			</div>

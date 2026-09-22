@@ -1765,6 +1765,12 @@ components:
           type: string
         caProvider:
           type: string
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/DNSRecord"
+        providers:
+          $ref: "#/components/schemas/Providers"
         headers:
           type: object
           additionalProperties:
@@ -1807,6 +1813,51 @@ components:
           type: string
         alerts:
           $ref: "#/components/schemas/AlertRules"
+    Provider:
+      type: object
+      description: Detected vendor behind a record or role
+      properties:
+        name:
+          type: string
+        domain:
+          type: string
+          description: brand domain the favicon icon was derived from
+        icon:
+          type: string
+    Providers:
+      type: object
+      description: Detected vendor strip — registrar, DNS, hosting, email, CA
+      properties:
+        registrar:
+          $ref: "#/components/schemas/Provider"
+          nullable: true
+        dns:
+          $ref: "#/components/schemas/Provider"
+          nullable: true
+        email:
+          $ref: "#/components/schemas/Provider"
+          nullable: true
+        hosting:
+          $ref: "#/components/schemas/Provider"
+          nullable: true
+        ca:
+          $ref: "#/components/schemas/Provider"
+          nullable: true
+    DNSRecord:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [A, AAAA, CNAME, NS, MX, TXT]
+        value:
+          type: string
+        priority:
+          type: integer
+          nullable: true
+          description: MX preference
+        provider:
+          $ref: "#/components/schemas/Provider"
+          nullable: true
     DomainView:
       allOf:
         - $ref: "#/components/schemas/Domain"

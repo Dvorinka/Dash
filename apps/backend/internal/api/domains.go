@@ -27,6 +27,7 @@ const domainCols = `id, name, tld, active, auto_renew, alert_days_before, tags, 
 	ssl_key_size, ssl_sig_algo, ssl_alt_names, host_country, host_country_code,
 	host_region, host_city, host_isp, host_org, host_as, host_lat, host_lon,
 	dns_provider, email_provider, hosting_provider, ca_provider, headers,
+	records, providers,
 	favicon_url, lookup_error, interval_h, last_checked, position, alerts, created_at`
 
 // domainRow mirrors the domains table; JSON text columns decode on scan.
@@ -82,6 +83,8 @@ type domainRow struct {
 	HostingProvider  string   `json:"hostingProvider"`
 	CAProvider       string   `json:"caProvider"`
 	Headers          map[string]string `json:"headers"`
+	Records          []domain.DNSRecord `json:"records"`
+	Providers        domain.Providers   `json:"providers"`
 	FaviconURL       string   `json:"faviconUrl"`
 	LookupError      string   `json:"lookupError"`
 	IntervalH        int      `json:"intervalH"`
@@ -93,7 +96,7 @@ type domainRow struct {
 
 func scanDomain(row interface{ Scan(...any) error }) (*domainRow, error) {
 	var d domainRow
-	var tags, statuses, ns, mx, txt, v4, v6, altNames, headers, alerts string
+	var tags, statuses, ns, mx, txt, v4, v6, altNames, headers, records, providers, alerts string
 	var active, autoRenew, privacy, lock int
 	err := row.Scan(&d.ID, &d.Name, &d.TLD, &active, &autoRenew, &d.AlertDaysBefore,
 		&tags, &d.Notes, &d.ExpiryDate, &d.CreationDate, &d.UpdatedDate,
@@ -104,7 +107,7 @@ func scanDomain(row interface{ Scan(...any) error }) (*domainRow, error) {
 		&d.SSLKeySize, &d.SSLSigAlgo, &altNames, &d.HostCountry, &d.HostCountryCode,
 		&d.HostRegion, &d.HostCity, &d.HostISP, &d.HostOrg, &d.HostAS, &d.HostLat,
 		&d.HostLon, &d.DNSProvider, &d.EmailProvider, &d.HostingProvider, &d.CAProvider,
-		&headers, &d.FaviconURL, &d.LookupError, &d.IntervalH, &d.LastChecked,
+		&headers, &records, &providers, &d.FaviconURL, &d.LookupError, &d.IntervalH, &d.LastChecked,
 		&d.Position, &alerts, &d.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -124,6 +127,9 @@ func scanDomain(row interface{ Scan(...any) error }) (*domainRow, error) {
 	d.SSLAltNames = decodeList(altNames)
 	d.Headers = map[string]string{}
 	_ = json.Unmarshal([]byte(headers), &d.Headers)
+	d.Records = []domain.DNSRecord{}
+	_ = json.Unmarshal([]byte(records), &d.Records)
+	_ = json.Unmarshal([]byte(providers), &d.Providers)
 	return &d, nil
 }
 
@@ -417,6 +423,8 @@ func (s *Server) applyResult(id string, r *domain.Result) {
 	expiry, created, updated = fmtT(r.ExpiryDate), fmtT(r.CreationDate), fmtT(r.UpdatedDate)
 	sslFrom, sslTo = fmtT(r.SSLValidFrom), fmtT(r.SSLValidTo)
 	hdr, _ := json.Marshal(r.Headers)
+	recs, _ := json.Marshal(r.Records)
+	provs, _ := json.Marshal(r.Providers)
 
 	_, err := s.db.Exec(`UPDATE domains SET
 		expiry_date=?, creation_date=?, updated_date=?, registrar_name=?,
@@ -428,7 +436,8 @@ func (s *Server) applyResult(id string, r *domain.Result) {
 		ssl_key_size=?, ssl_sig_algo=?, ssl_alt_names=?, host_country=?,
 		host_country_code=?, host_region=?, host_city=?, host_isp=?, host_org=?,
 		host_as=?, host_lat=?, host_lon=?, dns_provider=?, email_provider=?,
-		hosting_provider=?, ca_provider=?, headers=?, favicon_url=?,
+		hosting_provider=?, ca_provider=?, headers=?, records=?, providers=?,
+		favicon_url=?,
 		lookup_error=?, last_checked=strftime('%Y-%m-%dT%H:%M:%fZ','now')
 		WHERE id=?`,
 		expiry, created, updated, r.RegistrarName, r.RegistrarID, r.RegistrarURL,
@@ -440,7 +449,7 @@ func (s *Server) applyResult(id string, r *domain.Result) {
 		enc(r.SSLAltNames), r.HostCountry, r.HostCountryCode, r.HostRegion,
 		r.HostCity, r.HostISP, r.HostOrg, r.HostAS, r.HostLat, r.HostLon,
 		r.DNSProvider, r.EmailProvider, r.HostingProvider, r.CAProvider,
-		string(hdr), r.FaviconURL, truncate(r.Error, 300), id)
+		string(hdr), string(recs), string(provs), r.FaviconURL, truncate(r.Error, 300), id)
 	if err != nil {
 		s.log.Error("domain apply", zap.Error(err))
 		return
