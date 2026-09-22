@@ -42,6 +42,7 @@ type Monitor struct {
 	PushToken     string    `json:"pushToken,omitempty"`
 	Tags          []string  `json:"tags"`
 	Notes         string    `json:"notes"`
+	Alerts        json.RawMessage `json:"alerts"`
 	Position      float64   `json:"position"`
 	LastCheck     *string   `json:"lastCheck"`
 	CreatedAt     string    `json:"createdAt"`

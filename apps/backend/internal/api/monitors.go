@@ -20,21 +20,22 @@ import (
 
 const monitorCols = `id, name, type, url, hostname, port, method, headers, body,
 	keyword, keyword_invert, json_query, expected, dns_type, interval_s, timeout_s,
-	retries, active, status, push_token, tags, notes, position, last_check, created_at`
+	retries, active, status, push_token, tags, notes, alerts, position, last_check, created_at`
 
 func scanMonitor(row interface{ Scan(...any) error }) (*monitor.Monitor, error) {
 	var m monitor.Monitor
-	var tags string
+	var tags, alerts string
 	var invert, active int
 	err := row.Scan(&m.ID, &m.Name, &m.Type, &m.URL, &m.Hostname, &m.Port, &m.Method,
 		&m.Headers, &m.Body, &m.Keyword, &invert, &m.JSONQuery, &m.Expected, &m.DNSType,
 		&m.IntervalS, &m.TimeoutS, &m.Retries, &active, &m.Status, &m.PushToken,
-		&tags, &m.Notes, &m.Position, &m.LastCheck, &m.CreatedAt)
+		&tags, &m.Notes, &alerts, &m.Position, &m.LastCheck, &m.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	m.KeywordInvert = invert != 0
 	m.Active = active != 0
+	m.Alerts = json.RawMessage(alerts)
 	_ = json.Unmarshal([]byte(tags), &m.Tags)
 	if m.Tags == nil {
 		m.Tags = []string{}
@@ -142,6 +143,7 @@ type monitorInput struct {
 	Active        *bool    `json:"active"`
 	Tags          []string `json:"tags"`
 	Notes         *string  `json:"notes"`
+	Alerts        json.RawMessage `json:"alerts"`
 }
 
 func validMonitorType(t string) bool {
@@ -209,17 +211,26 @@ func (s *Server) createMonitor(c *gin.Context) {
 	if in.Tags == nil {
 		tags = []byte("[]")
 	}
+	alerts := "{}"
+	if in.Alerts != nil {
+		var rules alertRules
+		if err := json.Unmarshal(in.Alerts, &rules); err != nil {
+			fail(c, http.StatusBadRequest, "alerts must be an object")
+			return
+		}
+		alerts = string(in.Alerts)
+	}
 	_, err := s.db.Exec(`INSERT INTO monitors
 		(id, name, type, url, hostname, port, method, headers, body, keyword,
 		 keyword_invert, json_query, expected, dns_type, interval_s, timeout_s,
-		 retries, active, push_token, tags, notes, position)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		 retries, active, push_token, tags, notes, alerts, position)
+		VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		id, *in.Name, *in.Type, strOr(in.URL), strOr(in.Hostname), intOr(in.Port),
 		strOr2(in.Method, "GET"), strOr2(in.Headers, "{}"), strOr(in.Body),
 		strOr(in.Keyword), boolOr(in.KeywordInvert), strOr(in.JSONQuery),
 		strOr(in.Expected), strOr2(in.DNSType, "A"), intOr2(in.IntervalS, 60),
 		intOr2(in.TimeoutS, 10), intOr(in.Retries), boolOr2(in.Active, true),
-		token, string(tags), strOr(in.Notes), float64(time.Now().UnixNano())/1e9)
+		token, string(tags), strOr(in.Notes), alerts, float64(time.Now().UnixNano())/1e9)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -293,6 +304,14 @@ func (s *Server) patchMonitor(c *gin.Context) {
 	if in.Tags != nil {
 		tags, _ := json.Marshal(in.Tags)
 		_, _ = s.db.Exec(`UPDATE monitors SET tags = ? WHERE id = ?`, string(tags), id)
+	}
+	if in.Alerts != nil {
+		var rules alertRules
+		if err := json.Unmarshal(in.Alerts, &rules); err != nil {
+			fail(c, http.StatusBadRequest, "alerts must be an object")
+			return
+		}
+		_, _ = s.db.Exec(`UPDATE monitors SET alerts = ? WHERE id = ?`, string(in.Alerts), id)
 	}
 	if in.Active != nil {
 		// pause/resume flips the stored status back to pending for a fresh probe
@@ -412,6 +431,9 @@ func (s *Server) runScheduler(done <-chan struct{}) {
 				s.log.Error("heartbeat prune", zap.Error(err))
 			}
 			// System samples are high-rate; a week of raw ticks is enough.
+			if _, err := s.db.Exec(`DELETE FROM sessions WHERE expires_at < strftime('%Y-%m-%dT%H:%M:%fZ','now')`); err != nil {
+				s.log.Error("session prune", zap.Error(err))
+			}
 			if _, err := s.db.Exec(`DELETE FROM system_stats WHERE ts < datetime('now','-7 days')`); err != nil {
 				s.log.Error("system stats prune", zap.Error(err))
 			}
@@ -473,8 +495,13 @@ func (s *Server) runCheck(m *monitor.Monitor) *monitor.Result {
 	s.writeHeartbeat(m, res)
 	prev := m.Status
 	next := "down"
+	rules := parseAlertRules(m.Alerts)
 	if res.Up {
 		next = "up"
+	} else if n := rules.ConsecutiveFailures; n > 1 && prev != "down" &&
+		s.consecutiveDowns(m.ID, n) < n {
+		// Flap damping: hold the previous status until N checks in a row fail.
+		next = prev
 	}
 	if _, err := s.db.Exec(`UPDATE monitors SET status = ?, last_check = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?`,
 		next, m.ID); err != nil {
@@ -482,6 +509,14 @@ func (s *Server) runCheck(m *monitor.Monitor) *monitor.Result {
 	}
 	if prev != next && prev != "pending" {
 		s.onMonitorTransition(m, prev, next)
+	}
+	// Latency warn: notify once when ping crosses above the threshold.
+	if rules.LatencyWarnMs > 0 && res.Up && res.PingMs >= rules.LatencyWarnMs &&
+		!rules.Mute && prev != "pending" && !s.inMaintenance(m.ID) {
+		if p := s.prevPing(m.ID); p >= 0 && p < rules.LatencyWarnMs {
+			s.notify("monitor.slow", m.Name,
+				fmt.Sprintf("Monitor %q latency %dms (threshold %dms)", m.Name, res.PingMs, rules.LatencyWarnMs))
+		}
 	}
 	return res
 }
@@ -507,6 +542,9 @@ func (s *Server) onMonitorTransition(m *monitor.Monitor, prev, next string) {
 		return
 	}
 	s.autoIncident(m.ID, m.Name, next)
+	if parseAlertRules(m.Alerts).Mute {
+		return
+	}
 	target := m.URL
 	if target == "" {
 		target = m.Hostname

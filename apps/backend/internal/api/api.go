@@ -60,7 +60,19 @@ func (s *Server) routes() *gin.Engine {
 	r.Use(accessLog(s.log), gin.Recovery())
 
 	v1 := r.Group("/api")
+	v1.Use(s.requireAuth())
 	v1.GET("/healthz", s.healthz)
+
+	v1.GET("/auth/session", s.authSession)
+	v1.POST("/auth/setup", s.authSetup)
+	v1.POST("/auth/login", s.authLogin)
+	v1.POST("/auth/logout", s.authLogout)
+	v1.POST("/auth/disable", s.authDisable)
+
+	v1.GET("/boards", s.listBoards)
+	v1.POST("/boards", s.createBoard)
+	v1.PATCH("/boards/:id", s.updateBoard)
+	v1.DELETE("/boards/:id", s.deleteBoard)
 
 	v1.GET("/sections", s.listSections)
 	v1.POST("/sections", s.createSection)
@@ -91,6 +103,8 @@ func (s *Server) routes() *gin.Engine {
 	v1.DELETE("/domains/:id", s.deleteDomain)
 	v1.POST("/domains/:id/refresh", s.refreshDomainH)
 	v1.GET("/domains/:id/checks", s.domainChecks)
+	v1.GET("/domains/:id/subdomains", s.listSubdomains)
+	v1.POST("/domains/:id/subdomains/refresh", s.refreshSubdomains)
 	v1.POST("/notify/test", s.notifyTest)
 
 	v1.GET("/systems", s.listSystemsH)
@@ -167,6 +181,7 @@ type Section struct {
 	Name      string  `json:"name"`
 	Position  float64 `json:"position"`
 	Collapsed bool    `json:"collapsed"`
+	BoardID   string  `json:"boardId"`
 	Items     []Item  `json:"items"`
 }
 

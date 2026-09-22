@@ -786,3 +786,73 @@ func TestValidURL(t *testing.T) {
 		}
 	}
 }
+
+func TestBoards(t *testing.T) {
+	srv := testServer(t)
+	defer srv.Close()
+
+	// Default board exists and owns new sections.
+	var boards []Board
+	resp, err := http.Get(srv.URL + "/api/boards")
+	if err != nil || json.NewDecoder(resp.Body).Decode(&boards) != nil {
+		t.Fatalf("list boards: %v", err)
+	}
+	resp.Body.Close()
+	if len(boards) != 1 || boards[0].ID != "b_home" {
+		t.Fatalf("expected seeded home board, got %+v", boards)
+	}
+	_, sec := do(t, "POST", srv.URL+"/api/sections", `{"name":"A"}`)
+	if sec["boardId"] != "b_home" {
+		t.Fatalf("section should default to home board: %v", sec["boardId"])
+	}
+
+	// Create a second board; slug is derived and unique.
+	_, b2 := do(t, "POST", srv.URL+"/api/boards", `{"name":"Lab Net"}`)
+	if b2["slug"] != "lab-net" {
+		t.Fatalf("bad slug: %v", b2["slug"])
+	}
+	_, b3 := do(t, "POST", srv.URL+"/api/boards", `{"name":"Lab Net"}`)
+	if b3["slug"] == b2["slug"] {
+		t.Fatalf("slug collision: %v", b3["slug"])
+	}
+
+	// Sections scope to their board.
+	_, s2 := do(t, "POST", srv.URL+"/api/sections", `{"name":"B","boardId":"`+b2["id"].(string)+`"}`)
+	if s2["boardId"] != b2["id"] {
+		t.Fatalf("section not scoped to board: %v", s2["boardId"])
+	}
+	var home, lab []Section
+	r1, _ := http.Get(srv.URL + "/api/sections?board=b_home")
+	_ = json.NewDecoder(r1.Body).Decode(&home)
+	r1.Body.Close()
+	r2, _ := http.Get(srv.URL + "/api/sections?board=" + b2["id"].(string))
+	_ = json.NewDecoder(r2.Body).Decode(&lab)
+	r2.Body.Close()
+	if len(home) != 1 || home[0].Name != "A" || len(lab) != 1 || lab[0].Name != "B" {
+		t.Fatalf("board filter broken: home=%v lab=%v", home, lab)
+	}
+
+	// Rename keeps the slug; deleting cascades sections.
+	_, rb := do(t, "PATCH", srv.URL+"/api/boards/"+b3["id"].(string), `{"name":"Renamed"}`)
+	if rb["name"] != "Renamed" || rb["slug"] == "renamed" {
+		t.Fatalf("rename should not change slug: %+v", rb)
+	}
+	res, _ := do(t, "DELETE", srv.URL+"/api/boards/"+b2["id"].(string), "")
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("delete board: %d", res.StatusCode)
+	}
+	var labAfter []Section
+	r3, _ := http.Get(srv.URL + "/api/sections?board=" + b2["id"].(string))
+	_ = json.NewDecoder(r3.Body).Decode(&labAfter)
+	r3.Body.Close()
+	if len(labAfter) != 0 {
+		t.Fatalf("sections should cascade with board: %v", labAfter)
+	}
+
+	// Down to two boards — delete both and the last delete must refuse.
+	do(t, "DELETE", srv.URL+"/api/boards/"+b3["id"].(string), "")
+	res, _ = do(t, "DELETE", srv.URL+"/api/boards/b_home", "")
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("deleting last board should 400, got %d", res.StatusCode)
+	}
+}

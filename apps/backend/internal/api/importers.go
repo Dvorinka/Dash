@@ -30,11 +30,11 @@ func (s *Server) importExternal(c *gin.Context) {
 		fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := s.replaceBoard(sections, nil); err != nil {
+	if err := s.replaceBoard(sections, nil, nil); err != nil {
 		failImport(c, err)
 		return
 	}
-	board, err := s.board()
+	board, err := s.board("")
 	if err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
