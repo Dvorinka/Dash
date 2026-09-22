@@ -16,3 +16,9 @@ createRoot(root).render(
 		<App />
 	</StrictMode>,
 );
+
+// PWA: register the service worker only in production builds — in dev it would
+// fight Vite's HMR by caching modules.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+	window.addEventListener("load", () => void navigator.serviceWorker.register("/sw.js"));
+}

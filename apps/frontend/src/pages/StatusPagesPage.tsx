@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 // Admin for public status pages + maintenance windows. The public view
 // itself lives at /status/:slug.
@@ -63,7 +64,7 @@ export function StatusPagesPage() {
 			},
 		});
 		setBusy(false);
-		if (error) { setErr("Could not create — slug may be taken."); return; }
+		if (error) { setErr(t("statusPages.createError")); return; }
 		setPageOpen(false); setPTitle(""); setPSlug(""); setPDesc(""); setPMonitors([]);
 		void load();
 	}
@@ -79,7 +80,7 @@ export function StatusPagesPage() {
 			},
 		});
 		setBusy(false);
-		if (error) { setErr("Invalid window — check times."); return; }
+		if (error) { setErr(t("maintenance.createError")); return; }
 		setWinOpen(false); setWTitle(""); setWStart(""); setWEnd("");
 		void load();
 	}
@@ -88,17 +89,17 @@ export function StatusPagesPage() {
 		<main className="mx-auto w-full max-w-5xl px-7 py-8">
 			<div className="mb-5 flex items-center justify-between">
 				<div>
-					<h1 className="text-[15px] font-semibold tracking-tight">Status pages</h1>
-					<p className="text-[12px] text-text-faint">Public live views at <code className="font-mono">/status/&lt;slug&gt;</code>.</p>
+					<h1 className="text-[15px] font-semibold tracking-tight">{t("statusPages.title")}</h1>
+					<p className="text-[12px] text-text-faint">{t("statusPages.publicAt")} <code className="font-mono">/status/&lt;slug&gt;</code>.</p>
 				</div>
 				<Button onClick={() => setPageOpen(true)}>
-					<Plus size={13} strokeWidth={2.2} /> New page
+					<Plus size={13} strokeWidth={2.2} /> {t("statusPages.new")}
 				</Button>
 			</div>
 
 			{loaded && pages.length === 0 ? (
 				<div className="mb-8 rounded-[10px] border border-dashed border-border px-6 py-10 text-center">
-					<p className="text-[13px] text-text-dim">No status pages yet.</p>
+					<p className="text-[13px] text-text-dim">{t("statusPages.empty")}</p>
 				</div>
 			) : (
 				<div className="mb-8 flex flex-col gap-2">
@@ -107,11 +108,11 @@ export function StatusPagesPage() {
 							<span className="min-w-0 flex-1 truncate text-[13px] font-medium">{p.title}</span>
 							<code className="font-mono text-[11px] text-text-faint">/status/{p.slug}</code>
 							<Link href={`/status/${p.slug}`} className="shrink-0">
-								<Button variant="outline" size="icon" aria-label="Open public page"><ExternalLink size={12} /></Button>
+								<Button variant="outline" size="icon" aria-label={t("statusPages.open")}><ExternalLink size={12} /></Button>
 							</Link>
-							<Button variant="outline" size="icon" aria-label="Delete"
+							<Button variant="outline" size="icon" aria-label={t("common.delete")}
 								onClick={() => {
-									if (p.id && confirm(`Delete status page "${p.title}"?`)) {
+									if (p.id && confirm(t("statusPages.deleteConfirm", { title: p.title ?? "" }))) {
 										void api.DELETE("/api/status-pages/{id}", { params: { path: { id: p.id } } }).then(load);
 									}
 								}}>
@@ -124,17 +125,17 @@ export function StatusPagesPage() {
 
 			<div className="mb-5 flex items-center justify-between">
 				<div>
-					<h2 className="text-[15px] font-semibold tracking-tight">Maintenance windows</h2>
-					<p className="text-[12px] text-text-faint">Active windows mute alerts + auto-incidents and mark covered monitors.</p>
+					<h2 className="text-[15px] font-semibold tracking-tight">{t("maintenance.title")}</h2>
+					<p className="text-[12px] text-text-faint">{t("maintenance.subtitle")}</p>
 				</div>
 				<Button variant="outline" onClick={() => setWinOpen(true)}>
-					<Plus size={13} strokeWidth={2.2} /> Schedule
+					<Plus size={13} strokeWidth={2.2} /> {t("maintenance.schedule")}
 				</Button>
 			</div>
 
 			{loaded && windows.length === 0 ? (
 				<div className="rounded-[10px] border border-dashed border-border px-6 py-10 text-center">
-					<p className="text-[13px] text-text-dim">No maintenance scheduled.</p>
+					<p className="text-[13px] text-text-dim">{t("maintenance.empty")}</p>
 				</div>
 			) : (
 				<div className="flex flex-col gap-2">
@@ -146,11 +147,11 @@ export function StatusPagesPage() {
 								{new Date(w.startsAt ?? "").toLocaleString()} → {new Date(w.endsAt ?? "").toLocaleString()}
 							</span>
 							<span className={cn("font-mono text-[10px] uppercase", w.active ? "text-up" : "text-text-faint")}>
-								{w.active ? "active" : "scheduled"}
+								{w.active ? t("maintenance.active") : t("maintenance.scheduled")}
 							</span>
-							<Button variant="outline" size="icon" aria-label="Delete"
+							<Button variant="outline" size="icon" aria-label={t("common.delete")}
 								onClick={() => {
-									if (w.id && confirm(`Delete window "${w.title}"?`)) {
+									if (w.id && confirm(t("maintenance.deleteConfirm", { title: w.title ?? "" }))) {
 										void api.DELETE("/api/maintenance/{id}", { params: { path: { id: w.id } } }).then(load);
 									}
 								}}>
@@ -164,26 +165,26 @@ export function StatusPagesPage() {
 			<Dialog open={pageOpen} onOpenChange={setPageOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>New status page</DialogTitle>
-						<DialogDescription>Public live view over selected monitors.</DialogDescription>
+						<DialogTitle>{t("statusPages.newTitle")}</DialogTitle>
+						<DialogDescription>{t("statusPages.newDesc")}</DialogDescription>
 					</DialogHeader>
 					<div className="flex flex-col gap-4">
 						<div className="grid grid-cols-2 gap-3">
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="sp-title">Title</Label>
-								<Input id="sp-title" value={pTitle} onChange={(e) => setPTitle(e.target.value)} placeholder="Homelab status" autoFocus />
+								<Label htmlFor="sp-title">{t("common.title")}</Label>
+								<Input id="sp-title" value={pTitle} onChange={(e) => setPTitle(e.target.value)} placeholder={t("statusPages.titlePlaceholder")} autoFocus />
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="sp-slug">Slug</Label>
-								<Input id="sp-slug" value={pSlug} onChange={(e) => setPSlug(e.target.value)} placeholder="auto" className="font-mono text-[12px]" />
+								<Label htmlFor="sp-slug">{t("common.slug")}</Label>
+								<Input id="sp-slug" value={pSlug} onChange={(e) => setPSlug(e.target.value)} placeholder={t("statusPages.slugPlaceholder")} className="font-mono text-[12px]" />
 							</div>
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="sp-desc">Description</Label>
-							<Input id="sp-desc" value={pDesc} onChange={(e) => setPDesc(e.target.value)} placeholder="optional" />
+							<Label htmlFor="sp-desc">{t("common.description")}</Label>
+							<Input id="sp-desc" value={pDesc} onChange={(e) => setPDesc(e.target.value)} placeholder={t("common.optional")} />
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label>Monitors</Label>
+							<Label>{t("statusPages.monitors")}</Label>
 							<div className="max-h-40 overflow-y-auto rounded-[7px] border border-border p-2">
 								{monitors.map((m) => (
 									<label key={m.id} className="flex items-center gap-2 px-1 py-1 text-[12px]">
@@ -194,16 +195,16 @@ export function StatusPagesPage() {
 										{m.name}
 									</label>
 								))}
-								{monitors.length === 0 && <p className="px-1 py-1 text-[11.5px] text-text-faint">No monitors yet — empty selection shows all.</p>}
+								{monitors.length === 0 && <p className="px-1 py-1 text-[11.5px] text-text-faint">{t("statusPages.noMonitors")}</p>}
 							</div>
-							<p className="text-[11px] text-text-faint">Leave all unchecked to include every active monitor.</p>
+							<p className="text-[11px] text-text-faint">{t("statusPages.allHint")}</p>
 						</div>
 						{err ? <p className="text-[12px] text-destructive">{err}</p> : null}
 					</div>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setPageOpen(false)} disabled={busy}>Cancel</Button>
+						<Button variant="outline" onClick={() => setPageOpen(false)} disabled={busy}>{t("common.cancel")}</Button>
 						<Button onClick={() => void createPage()} disabled={busy || !pTitle.trim()}>
-							{busy ? "Creating…" : "Create"}
+							{busy ? t("common.creating") : t("common.create")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -212,30 +213,30 @@ export function StatusPagesPage() {
 			<Dialog open={winOpen} onOpenChange={setWinOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Schedule maintenance</DialogTitle>
-						<DialogDescription>Suppresses alerts and auto-incidents for the window.</DialogDescription>
+						<DialogTitle>{t("maintenance.dialogTitle")}</DialogTitle>
+						<DialogDescription>{t("maintenance.dialogDesc")}</DialogDescription>
 					</DialogHeader>
 					<div className="flex flex-col gap-4">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="mw-title">Title</Label>
-							<Input id="mw-title" value={wTitle} onChange={(e) => setWTitle(e.target.value)} placeholder="Network upgrade" autoFocus />
+							<Label htmlFor="mw-title">{t("common.title")}</Label>
+							<Input id="mw-title" value={wTitle} onChange={(e) => setWTitle(e.target.value)} placeholder={t("maintenance.titlePlaceholder")} autoFocus />
 						</div>
 						<div className="grid grid-cols-2 gap-3">
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="mw-start">Starts</Label>
+								<Label htmlFor="mw-start">{t("maintenance.starts")}</Label>
 								<Input id="mw-start" type="datetime-local" value={wStart} onChange={(e) => setWStart(e.target.value)} />
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="mw-end">Ends</Label>
+								<Label htmlFor="mw-end">{t("maintenance.ends")}</Label>
 								<Input id="mw-end" type="datetime-local" value={wEnd} onChange={(e) => setWEnd(e.target.value)} />
 							</div>
 						</div>
 						{err ? <p className="text-[12px] text-destructive">{err}</p> : null}
 					</div>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setWinOpen(false)} disabled={busy}>Cancel</Button>
+						<Button variant="outline" onClick={() => setWinOpen(false)} disabled={busy}>{t("common.cancel")}</Button>
 						<Button onClick={() => void createWindow()} disabled={busy || !wTitle.trim() || !wStart || !wEnd}>
-							{busy ? "Saving…" : "Schedule"}
+							{busy ? t("common.saving") : t("maintenance.schedule")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

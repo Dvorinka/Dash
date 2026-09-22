@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Route, useLocation } from "wouter";
 import { Activity, AlertTriangle, Globe, LayoutGrid, Megaphone, Moon, Plus, Search, Server, Settings, Sun } from "lucide-react";
 import { BoardProvider, useBoard } from "@/board/store";
+import { BoardSwitcher } from "@/components/BoardSwitcher";
 import { Board } from "@/board/Board";
 import { ServiceDialog } from "@/components/ServiceDialog";
 import { WidgetDialog } from "@/components/WidgetDialog";
@@ -16,6 +17,8 @@ import { SystemDetailPage } from "@/pages/SystemDetailPage";
 import { IncidentsPage } from "@/pages/IncidentsPage";
 import { StatusPagesPage } from "@/pages/StatusPagesPage";
 import { StatusPublicPage } from "@/pages/StatusPublicPage";
+import { LoginPage } from "@/pages/LoginPage";
+import { api } from "@/api";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { t, type Key } from "@/i18n";
@@ -41,6 +44,8 @@ const NAV: { href: string; labelKey: Key; icon: typeof LayoutGrid }[] = [
 function Shell() {
 	const board = useBoard();
 	const [loc] = useLocation();
+	// null = still checking; gate blocks everything except public status pages.
+	const [auth, setAuth] = useState<{ enabled?: boolean; setup?: boolean; authed?: boolean } | null>(null);
 	const [settingsOpen, setSettingsOpen] = useState(false);
 	const [paletteOpen, setPaletteOpen] = useState(false);
 	const [svcOpen, setSvcOpen] = useState(false);
@@ -64,10 +69,32 @@ function Shell() {
 		return () => window.removeEventListener("keydown", onKey);
 	}, []);
 
+	// Auth gate: check the session once, and again whenever the client sees a
+	// 401 (middleware in api.ts dispatches dash:unauthorized).
+	useEffect(() => {
+		const load = () => api.GET("/api/auth/session").then(({ data }) => setAuth(data ?? {}));
+		load();
+		window.addEventListener("dash:unauthorized", load);
+		return () => window.removeEventListener("dash:unauthorized", load);
+	}, []);
+
+	// URL is the board source of truth: / -> default, /b/<slug> -> that board.
+	const setActiveSlug = board.setActiveSlug;
+	useEffect(() => {
+		setActiveSlug(loc.startsWith("/b/") ? decodeURIComponent(loc.slice(3)) : "");
+	}, [loc, setActiveSlug]);
+
 	function openEditor(it: Item) {
 		setEditing(it);
 		if (it.kind === "widget") setWdgOpen(true);
 		else setSvcOpen(true);
+	}
+
+	// Public status pages stay reachable when auth is on — the backend serves
+	// their API unauthenticated, so the SPA must let the route through too.
+	const publicPage = loc.startsWith("/status/");
+	if (auth?.enabled && !auth.authed && !publicPage) {
+		return <LoginPage setup={!!auth.setup} onDone={() => location.reload()} />;
 	}
 
 	return (
@@ -82,9 +109,10 @@ function Shell() {
 					</svg>
 					Dash
 				</div>
-				<nav className="ml-6 flex items-center gap-1" aria-label="Primary">
+				<BoardSwitcher />
+				<nav className="ml-4 flex items-center gap-1" aria-label="Primary">
 					{NAV.map((n) => {
-						const active = n.href === "/" ? loc === "/" : loc.startsWith(n.href);
+						const active = n.href === "/" ? loc === "/" || loc.startsWith("/b/") : loc.startsWith(n.href);
 						return (
 							<Link
 								key={n.href}
@@ -136,6 +164,9 @@ function Shell() {
 			</header>
 
 			<Route path="/">
+				<Board onEditItem={openEditor} />
+			</Route>
+			<Route path="/b/:slug">
 				<Board onEditItem={openEditor} />
 			</Route>
 			<Route path="/monitors">

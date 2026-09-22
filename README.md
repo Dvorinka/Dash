@@ -1,25 +1,32 @@
 # Dash
 
 A self-hosted homelab dashboard. CasaOS-grade ease of use, Vercel-grade design.
-Single container, UI-managed, no YAML, no auth.
+Single container, UI-managed, no YAML. Optional auth.
 
-![Dash board](docs/screenshots/board.png)
+![Dash demo](docs/demo.gif)
 
 ## Features
 
-- **Service board** — sections, drag-and-drop, multi-URL services, icon upload,
-  four board renderers (Bento, Cards, Index, Console), dark/light themes
+- **Service board** — multiple boards, sections, drag-and-drop, multi-URL
+  services, icon upload, four renderers (Bento, Cards, Index, Console),
+  dark/light themes, custom accent/wallpaper/CSS
 - **Uptime monitors** — HTTP, TCP, ping, DNS, keyword, JSON-path, and push
-  checks on a schedule, with heartbeat history and uptime stats
+  checks on a schedule, heartbeat history, uptime graphs, per-monitor alert
+  rules
 - **Domain watch** — WHOIS/RDAP, DNS records, TLS certificate expiry,
-  registrar and provider detection
+  registrar and provider detection, CT-log subdomain discovery
 - **System monitoring** — lightweight `dash-agent` pushes CPU, memory, disk,
-  network, load, temperatures, and Docker container state
+  network, load, temperatures, per-container stats, and SMART/ZFS/GPU when
+  available
 - **Incidents & status pages** — manual and automatic incidents, maintenance
   windows, public `/status/:slug` pages, SVG badges
-- **Alerts** — generic webhook notifications (Slack, Discord, ntfy compatible)
+- **Alerts** — webhook, Slack, Discord, Telegram, Gotify, ntfy, and SMTP
+  transports
 - **Observability** — Prometheus `/api/metrics`, JSON export, CSV bulk import,
   importers for Homepage, Homarr, and Dashy configs
+- **Optional auth** — local username/password with bcrypt + session cookies,
+  off by default; public status pages stay open either way
+- **i18n + PWA** — English and Czech UI, installable manifest/service worker
 
 ## Run
 

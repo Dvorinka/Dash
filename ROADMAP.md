@@ -205,41 +205,40 @@ Beszel-style server monitoring, push-based.
 
 **Exit:** a stranger can `docker run`, import their Homepage config, and have a working board in under two minutes.
 
-## Phase 5 — Post-1.0 (planned, demand-confirmed 2026-09-21)
+## Phase 5 — Post-1.0 (shipped 2026-09-22)
 
-All items below confirmed in scope. Sequenced by dependency and risk —
-quick wins first, structure-changing work last. Nothing here is built yet.
+All items shipped on `feat/phase5`.
 
 ### P5a — Quick wins (frontend-heavy, no schema risk)
 
-- [ ] **Uptime graphs** — monitor detail renders 24h/30d heartbeat bars +
+- [x] **Uptime graphs** — monitor detail renders 24h/30d heartbeat bars +
       latency line (recharts, already a dep). Data: existing
       `/api/monitors/:id/heartbeats` + uptime stats. Frontend only.
-- [ ] **iframe widget** — `config.url`, sandboxed `<iframe>` tile in the
+- [x] **iframe widget** — `config.url`, sandboxed `<iframe>` tile in the
       widget registry; local type, no backend fetcher.
-- [ ] **Generic JSON-path widget** — backend fetcher: GET `config.url` with
+- [x] **Generic JSON-path widget** — backend fetcher: GET `config.url` with
       optional headers, extract `config.path` (dot/bracket path), display
       value + optional label/format. Covers most "is API X alive" asks.
-- [ ] **Custom CSS / accent / wallpaper** — settings keys `accent`,
+- [x] **Custom CSS / accent / wallpaper** — settings keys `accent`,
       `custom_css`, `wallpaper_url`; injected as CSS var override + `<style>`
       + board background layer. Respect reduced-motion/contrast defaults.
-- [ ] **PWA** — `manifest.webmanifest` (icons, name, theme color), minimal
+- [x] **PWA** — `manifest.webmanifest` (icons, name, theme color), minimal
       service worker: cache-first for static assets, network-first for /api.
       No offline board editing — read-only graceful degradation.
-- [ ] **Demo GIF** — scripted playwright walkthrough (board → monitors →
+- [x] **Demo GIF** — scripted playwright walkthrough (board → monitors →
       status page) rendered via ffmpeg; committed to `docs/screenshots/`.
 
 ### P5b — Alert depth
 
-- [ ] **SMTP transport** — `net/smtp` stdlib (STARTTLS + plain-auth only,
+- [x] **SMTP transport** — `net/smtp` stdlib (STARTTLS + plain-auth only,
       no external dep). Settings: `smtp_host`, `smtp_port`, `smtp_user`,
       `smtp_pass` (secret), `smtp_from`, `smtp_to`. Same event pipeline as
       the webhook; test button reuses `/api/notify/test`.
-- [ ] **Notifier presets** — refactor `notify.go` into a transport registry:
+- [x] **Notifier presets** — refactor `notify.go` into a transport registry:
       `webhook` (generic, current), `slack`, `discord`, `telegram`, `gotify`,
       `ntfy`, `smtp`. Presets = field set + payload template per transport;
       settings store per-transport config. UI: transport picker + fields.
-- [ ] **Alert rules** — per-monitor JSON `alerts` config: consecutive
+- [x] **Alert rules** — per-monitor JSON `alerts` config: consecutive
       failures before down (default 1), latency-warn ms, cert-days threshold
       for domains, mute flag. Scheduler evaluates rules before firing events;
       maintenance windows keep priority. Migration adds nullable
@@ -247,23 +246,23 @@ quick wins first, structure-changing work last. Nothing here is built yet.
 
 ### P5c — Agent + domain depth
 
-- [ ] **Per-container metrics** — agent calls Docker `/containers/{id}/stats?stream=false`
+- [x] **Per-container metrics** — agent calls Docker `/containers/{id}/stats?stream=false`
       (cpu%, mem used/limit) when docker.sock present; payload adds
       `containers[].cpu`, `.memUsed`, `.memLimit` (JSON — no migration).
       UI: containers table gets cpu/mem columns + optional sparkline.
-- [ ] **SMART / ZFS / GPU** — optional collectors, all best-effort and
+- [x] **SMART / ZFS / GPU** — optional collectors, all best-effort and
       silently skipped when tooling is absent:
       SMART via `smartctl -j` exec if installed; ZFS via `zpool status`/`-j`
       parse; GPU via `/sys/class/drm` (amd/intel basic) and `nvidia-smi -j`
       when present. No new hard deps — exec-or-skip.
-- [ ] **Subdomain discovery** — crt.sh CT-log query + A/AAAA resolve for
+- [x] **Subdomain discovery** — crt.sh CT-log query + A/AAAA resolve for
       discovered names; `subdomains` table (domain_id, name, ips, first_seen,
       last_seen). Domain detail: subdomains tab with probe status. Daily
       sweep alongside the domain refresh job.
 
 ### P5d — Structure (big, changes product shape)
 
-- [ ] **Auth (opt-in, email/username + password)** — deliberate constraint:
+- [x] **Auth (opt-in, email/username + password)** — deliberate constraint:
       stays disabled by default; enabling is a settings toggle. First enable
       creates the admin user. `users` table (id, email, name, passhash
       bcrypt/argon2id, created_at), session cookie (httpOnly, signed,
@@ -272,12 +271,12 @@ quick wins first, structure-changing work last. Nothing here is built yet.
       and badges stay open. No OIDC, no SSO — local accounts only.
       Security pass required: rate-limit login, constant-time compare,
       session rotation.
-- [ ] **Multiple boards** — `boards` table (id, name, slug, position),
+- [x] **Multiple boards** — `boards` table (id, name, slug, position),
       `sections.board_id` FK (migration backfills all rows to board 1).
       Board switcher in the header (dropdown + `/b/:slug` route), settings
       for default board. Monitors/domains/systems pages stay global — only
       the service board multiplies.
-- [ ] **Full i18n extraction** — every UI string moves into `en.ts` via the
+- [x] **Full i18n extraction** — every UI string moves into `en.ts` via the
       existing `t()` seam; mechanical pass over pages/dialogs/widgets.
       Second locale (cs) lands in the same pass to prove the seam end-to-end.
 

@@ -10,8 +10,16 @@ import (
 
 // board loads the full tree: sections ordered, each with items and urls.
 // Three flat queries assembled in memory — the whole board is ~100 rows.
-func (s *Server) board() ([]Section, error) {
-	secRows, err := s.db.Query(`SELECT id, name, position, collapsed FROM sections ORDER BY position`)
+// boardID filters to one board; "" returns every section (export, legacy).
+// COALESCE maps pre-boards rows onto the default 'b_home' board.
+func (s *Server) board(boardID string) ([]Section, error) {
+	q := `SELECT id, name, position, collapsed, COALESCE(board_id,'b_home') FROM sections`
+	var args []any
+	if boardID != "" {
+		q += ` WHERE board_id = ?`
+		args = append(args, boardID)
+	}
+	secRows, err := s.db.Query(q+` ORDER BY position`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -21,7 +29,7 @@ func (s *Server) board() ([]Section, error) {
 	byID := map[string]*Section{}
 	for secRows.Next() {
 		var sec Section
-		if err := secRows.Scan(&sec.ID, &sec.Name, &sec.Position, &sec.Collapsed); err != nil {
+		if err := secRows.Scan(&sec.ID, &sec.Name, &sec.Position, &sec.Collapsed, &sec.BoardID); err != nil {
 			return nil, err
 		}
 		sec.Items = []Item{}
@@ -89,7 +97,7 @@ func (s *Server) board() ([]Section, error) {
 }
 
 func (s *Server) listSections(c *gin.Context) {
-	sections, err := s.board()
+	sections, err := s.board(c.Query("board"))
 	if err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -99,19 +107,27 @@ func (s *Server) listSections(c *gin.Context) {
 
 func (s *Server) createSection(c *gin.Context) {
 	var in struct {
-		Name string `json:"name"`
+		Name    string `json:"name"`
+		BoardID string `json:"boardId"`
 	}
 	if err := c.ShouldBindJSON(&in); err != nil || in.Name == "" {
 		fail(c, http.StatusBadRequest, "name required")
 		return
 	}
+	boardID := in.BoardID
+	if boardID == "" {
+		boardID = "b_home"
+	}
 	var maxPos sql.NullFloat64
-	if err := s.db.QueryRow(`SELECT MAX(position) FROM sections`).Scan(&maxPos); err != nil {
+	if err := s.db.QueryRow(`SELECT MAX(position) FROM sections WHERE board_id = ?`, boardID).Scan(&maxPos); err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	sec := Section{ID: newID("s"), Name: in.Name, Position: midpoint(ptrOr(maxPos), nil), Items: []Item{}}
-	if _, err := s.db.Exec(`INSERT INTO sections (id, name, position) VALUES (?, ?, ?)`, sec.ID, sec.Name, sec.Position); err != nil {
+	sec := Section{ID: newID("s"), Name: in.Name, Position: midpoint(ptrOr(maxPos), nil), BoardID: boardID, Items: []Item{}}
+	// The subquery yields NULL for an unknown board id instead of an FK error;
+	// board() maps NULL back onto the default board.
+	if _, err := s.db.Exec(`INSERT INTO sections (id, name, position, board_id)
+		VALUES (?, ?, ?, (SELECT id FROM boards WHERE id = ?))`, sec.ID, sec.Name, sec.Position, boardID); err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -140,8 +156,8 @@ func (s *Server) updateSection(c *gin.Context) {
 		}
 	}
 	var sec Section
-	err := s.db.QueryRow(`SELECT id, name, position, collapsed FROM sections WHERE id = ?`, c.Param("id")).
-		Scan(&sec.ID, &sec.Name, &sec.Position, &sec.Collapsed)
+	err := s.db.QueryRow(`SELECT id, name, position, collapsed, COALESCE(board_id,'b_home') FROM sections WHERE id = ?`, c.Param("id")).
+		Scan(&sec.ID, &sec.Name, &sec.Position, &sec.Collapsed, &sec.BoardID)
 	if notFound(err) {
 		fail(c, http.StatusNotFound, "section not found")
 		return
@@ -192,8 +208,8 @@ func (s *Server) reorderSection(c *gin.Context) {
 		return
 	}
 	var sec Section
-	if err := s.db.QueryRow(`SELECT id, name, position, collapsed FROM sections WHERE id = ?`, in.ID).
-		Scan(&sec.ID, &sec.Name, &sec.Position, &sec.Collapsed); err != nil {
+	if err := s.db.QueryRow(`SELECT id, name, position, collapsed, COALESCE(board_id,'b_home') FROM sections WHERE id = ?`, in.ID).
+		Scan(&sec.ID, &sec.Name, &sec.Position, &sec.Collapsed, &sec.BoardID); err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}

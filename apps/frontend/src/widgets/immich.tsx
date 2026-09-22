@@ -1,5 +1,6 @@
 import type { Item } from "@/types";
 import type { WidgetData } from "@/widgets/index";
+import { t } from "@/i18n";
 
 // Immich — photo/video counts and library footprint.
 
@@ -24,10 +25,10 @@ export function ImmichWidget({ item, data, error }: { item: Item; data: WidgetDa
 				<span className="font-mono text-[22px] font-medium leading-none tracking-tight tabular-nums">
 					{data ? fmtNum(num(data, "photos")) : "…"}
 				</span>
-				<span className="text-[10.5px] uppercase tracking-[0.1em] text-text-faint">photos</span>
+				<span className="text-[10.5px] uppercase tracking-[0.1em] text-text-faint">{t("widget.photosLbl")}</span>
 			</div>
 			<div className="ml-auto flex flex-col items-end gap-1 font-mono text-[10.5px] text-text-faint">
-				<span>{fmtNum(num(data, "videos"))} videos</span>
+				<span>{t("widget.videos", { n: fmtNum(num(data, "videos")) })}</span>
 				<span>{fmtBytes(num(data, "usageBytes"))}</span>
 			</div>
 		</div>

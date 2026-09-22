@@ -41,13 +41,46 @@ type StatSample struct {
 	Load15     float64           `json:"load15"`
 	Temps      map[string]float64 `json:"temps"`
 	Containers []ContainerStat   `json:"containers"`
+	// Optional collectors — present only when the host has the tools.
+	Smart []SmartDisk `json:"smart,omitempty"`
+	ZFS   []ZFSPool   `json:"zfs,omitempty"`
+	GPU   []GPUStat   `json:"gpu,omitempty"`
 }
 
-// ContainerStat is one Docker container's liveness; per-container CPU/mem
-// needs cgroup sampling — deferred (v1 ships name+state only).
+// ContainerStat is one Docker container's liveness plus resource use.
+// CPU is percent of one core (may exceed 100); Mem* are bytes. Zero when the
+// agent couldn't reach the stats endpoint.
 type ContainerStat struct {
-	Name  string `json:"name"`
-	State string `json:"state"`
+	Name     string  `json:"name"`
+	State    string  `json:"state"`
+	CPU      float64 `json:"cpu,omitempty"`
+	MemUsed  float64 `json:"memUsed,omitempty"`
+	MemLimit float64 `json:"memLimit,omitempty"`
+}
+
+// SmartDisk is one drive's SMART summary (smartctl).
+type SmartDisk struct {
+	Device string  `json:"device"`
+	Model  string  `json:"model"`
+	Passed *bool   `json:"passed,omitempty"`
+	TempC  float64 `json:"tempC,omitempty"`
+}
+
+// ZFSPool is one pool's health and space (zpool).
+type ZFSPool struct {
+	Name   string  `json:"name"`
+	Health string  `json:"health"`
+	Size   float64 `json:"size"`
+	Free   float64 `json:"free"`
+}
+
+// GPUStat is one GPU's basic metrics (sysfs or nvidia-smi).
+type GPUStat struct {
+	Name     string  `json:"name"`
+	TempC    float64 `json:"tempC,omitempty"`
+	UtilPct  float64 `json:"utilPct,omitempty"`
+	MemUsed  float64 `json:"memUsed,omitempty"`
+	MemTotal float64 `json:"memTotal,omitempty"`
 }
 
 // System is one monitored host; `latest` is the newest StatSample.

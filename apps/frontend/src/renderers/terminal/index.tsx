@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 import { useItemDnd, useSectionDnd } from "@/board/dnd";
 import { useBoard } from "@/board/store";
 import { IconImg, ItemAnchor, hostOf } from "@/board/primitives";
@@ -42,7 +43,7 @@ function BoardView({ children }: BoardViewProps) {
 	const panels: { head: string; v: string; s: string; live?: boolean; wide?: boolean }[] = [
 		{ head: "clock --local", v: time, s: date, live: true, wide: true },
 		{ head: "services --up", v: String(up), s: `of ${probed} probed` },
-		{ head: "services --down", v: String(down), s: down === 0 ? "all green" : "needs attention" },
+		{ head: "services --down", v: String(down), s: down === 0 ? t("renderer.allGreen") : t("renderer.needsAttention") },
 		{ head: "widgets", v: String(widgets.length), s: "registered" },
 		{ head: "endpoints", v: String(endpoints), s: "urls indexed" },
 		{ head: "uptime --probes", v: probed > 0 ? `${Math.round((up / probed) * 100)}%` : "—", s: `${up}/${probed} responding` },
@@ -56,7 +57,7 @@ function BoardView({ children }: BoardViewProps) {
 				<span className="font-medium text-text-dim">{services.length} services</span>
 				{` indexed · `}
 				<span className="text-up">{up} up</span>
-				{down > 0 ? <span>{` · `}<span className="text-down">{down} down</span></span> : ` · all green`}
+				{down > 0 ? <span>{` · `}<span className="text-down">{t("renderer.downCount", { n: down })}</span></span> : ` · ${t("renderer.allGreen")}`}
 				{` · `}
 				<span className="font-medium text-text-dim">{widgets.length} widgets</span>
 				{`\ndrag rows to reorder · click rows with multiple endpoints to choose`}
@@ -70,7 +71,7 @@ function BoardView({ children }: BoardViewProps) {
 					>
 						<div className="flex items-center gap-1.5 border-b border-border px-3 py-2 text-[10px] uppercase tracking-[0.1em] text-text-faint">
 							{p.head}
-							{p.live ? <span className="ml-auto text-[9px] text-up">● live</span> : null}
+							{p.live ? <span className="ml-auto text-[9px] text-up">● {t("renderer.live")}</span> : null}
 						</div>
 						<div className="px-3 py-3">
 							<div className={cn("font-medium leading-none tracking-tight tabular-nums", p.wide ? "text-[26px]" : "text-[22px]")}>{p.v}</div>
@@ -108,7 +109,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 				</button>
 				<button
 					type="button"
-					aria-label="Drag section"
+					aria-label={t("renderer.dragSection")}
 					className="cursor-grab text-text-faint opacity-0 transition-opacity group-hover/sec:opacity-100 active:cursor-grabbing"
 					{...dnd.attributes}
 					{...dnd.listeners}
@@ -117,7 +118,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 				</button>
 				<button
 					type="button"
-					aria-label="Delete section"
+					aria-label={t("renderer.deleteSection")}
 					onClick={onDelete}
 					className="text-text-faint opacity-0 transition-opacity hover:text-destructive group-hover/sec:opacity-100"
 				>

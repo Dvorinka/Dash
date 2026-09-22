@@ -3,6 +3,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
@@ -27,7 +28,7 @@ function DialogContent({
 				{showCloseButton ? (
 					<DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-text-faint transition-colors hover:bg-surface-hover hover:text-text focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
 						<X size={14} />
-						<span className="sr-only">Close</span>
+						<span className="sr-only">{t("common.close")}</span>
 					</DialogPrimitive.Close>
 				) : null}
 			</DialogPrimitive.Content>

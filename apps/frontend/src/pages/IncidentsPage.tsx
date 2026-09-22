@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 const SEV_COLOR = {
 	critical: "text-down",
@@ -19,9 +20,9 @@ const SEV_COLOR = {
 
 type Status = NonNullable<Incident["status"]>;
 const NEXT: Partial<Record<Status, { label: string; to: Status }[]>> = {
-	open: [{ label: "Acknowledge", to: "ack" }, { label: "Resolve", to: "resolved" }],
-	ack: [{ label: "Resolve", to: "resolved" }],
-	resolved: [{ label: "Close", to: "closed" }],
+	open: [{ label: t("incidents.acknowledge"), to: "ack" }, { label: t("incidents.resolve"), to: "resolved" }],
+	ack: [{ label: t("incidents.resolve"), to: "resolved" }],
+	resolved: [{ label: t("incidents.close"), to: "closed" }],
 };
 
 export function IncidentsPage() {
@@ -83,22 +84,22 @@ export function IncidentsPage() {
 		<main className="mx-auto w-full max-w-5xl px-7 py-8">
 			<div className="mb-5 flex items-center justify-between">
 				<div>
-					<h1 className="text-[15px] font-semibold tracking-tight">Incidents</h1>
-					<p className="text-[12px] text-text-faint">Auto-opened on monitor outages, or tracked manually.</p>
+					<h1 className="text-[15px] font-semibold tracking-tight">{t("incidents.title")}</h1>
+					<p className="text-[12px] text-text-faint">{t("incidents.subtitle")}</p>
 				</div>
 				<div className="flex items-center gap-2">
 					<Button variant="outline" size="sm" onClick={() => setShowAll((v) => !v)}>
-						{showAll ? "Open only" : "Show all"}
+						{showAll ? t("incidents.openOnly") : t("incidents.showAll")}
 					</Button>
 					<Button onClick={() => setDlgOpen(true)}>
-						<Plus size={13} strokeWidth={2.2} /> New incident
+						<Plus size={13} strokeWidth={2.2} /> {t("incidents.new")}
 					</Button>
 				</div>
 			</div>
 
 			{loaded && incidents.length === 0 ? (
 				<div className="rounded-[10px] border border-dashed border-border px-6 py-14 text-center">
-					<p className="text-[13px] text-text-dim">No open incidents.</p>
+					<p className="text-[13px] text-text-dim">{t("incidents.empty")}</p>
 				</div>
 			) : (
 				<div className="flex flex-col gap-2.5">
@@ -122,9 +123,9 @@ export function IncidentsPage() {
 										{n.label}
 									</Button>
 								))}
-								<Button variant="outline" size="icon" aria-label="Delete"
+								<Button variant="outline" size="icon" aria-label={t("common.delete")}
 									onClick={() => {
-										if (inc.id && confirm(`Delete incident "${inc.title}"?`)) {
+										if (inc.id && confirm(t("incidents.deleteConfirm", { title: inc.title ?? "" }))) {
 											void api.DELETE("/api/incidents/{id}", { params: { path: { id: inc.id } } }).then(load);
 										}
 									}}>
@@ -144,14 +145,14 @@ export function IncidentsPage() {
 											</div>
 										))}
 										{(inc.updates ?? []).length === 0 && (
-											<p className="text-[11.5px] text-text-faint">No updates yet.</p>
+											<p className="text-[11.5px] text-text-faint">{t("incidents.noUpdates")}</p>
 										)}
 									</div>
 									<div className="flex gap-2">
 										<Input value={note} onChange={(e) => setNote(e.target.value)}
-											placeholder="Add a note…" className="h-8 text-[12px]"
+											placeholder={t("incidents.notePlaceholder")} className="h-8 text-[12px]"
 											onKeyDown={(e) => { if (e.key === "Enter") void addNote(inc.id); }} />
-										<Button variant="outline" size="sm" onClick={() => void addNote(inc.id)}>Post</Button>
+										<Button variant="outline" size="sm" onClick={() => void addNote(inc.id)}>{t("incidents.post")}</Button>
 									</div>
 								</div>
 							)}
@@ -163,37 +164,37 @@ export function IncidentsPage() {
 			<Dialog open={dlgOpen} onOpenChange={setDlgOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>New incident</DialogTitle>
-						<DialogDescription>Track an outage or degradation manually.</DialogDescription>
+						<DialogTitle>{t("incidents.newTitle")}</DialogTitle>
+						<DialogDescription>{t("incidents.desc")}</DialogDescription>
 					</DialogHeader>
 					<div className="flex flex-col gap-4">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="inc-title">Title</Label>
+							<Label htmlFor="inc-title">{t("common.title")}</Label>
 							<Input id="inc-title" value={title} onChange={(e) => setTitle(e.target.value)}
-								placeholder="NAS offline" autoFocus />
+								placeholder={t("incidents.titlePlaceholder")} autoFocus />
 						</div>
 						<div className="grid grid-cols-2 gap-3">
 							<div className="flex flex-col gap-1.5">
-								<Label>Severity</Label>
+								<Label>{t("incidents.severity")}</Label>
 								<Select value={sev} onValueChange={setSev}>
 									<SelectTrigger><SelectValue /></SelectTrigger>
 									<SelectContent>
-										<SelectItem value="minor">minor</SelectItem>
-										<SelectItem value="major">major</SelectItem>
-										<SelectItem value="critical">critical</SelectItem>
+										<SelectItem value="minor">{t("incidents.sevMinor")}</SelectItem>
+										<SelectItem value="major">{t("incidents.sevMajor")}</SelectItem>
+										<SelectItem value="critical">{t("incidents.sevCritical")}</SelectItem>
 									</SelectContent>
 								</Select>
 							</div>
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="inc-msg">Note (optional)</Label>
-								<Input id="inc-msg" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="First observed…" />
+								<Label htmlFor="inc-msg">{t("incidents.noteOptional")}</Label>
+								<Input id="inc-msg" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder={t("incidents.noteFirst")} />
 							</div>
 						</div>
 					</div>
 					<DialogFooter>
-						<Button variant="outline" onClick={() => setDlgOpen(false)} disabled={busy}>Cancel</Button>
+						<Button variant="outline" onClick={() => setDlgOpen(false)} disabled={busy}>{t("common.cancel")}</Button>
 						<Button onClick={() => void create()} disabled={busy || !title.trim()}>
-							{busy ? "Creating…" : "Create"}
+							{busy ? t("common.creating") : t("common.create")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

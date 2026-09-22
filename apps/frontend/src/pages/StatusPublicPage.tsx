@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/api";
 import type { PublicStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 // Public status page — clean read-only view; refreshes every 30s.
 // Route: /status/:slug -> GET /api/status-pages/:slug/public.
@@ -9,10 +10,10 @@ import { cn } from "@/lib/utils";
 // status strings arrive as plain `string` — map with functions, not
 // open dictionaries, so the lookup type stays honest.
 function overallBanner(overall?: string) {
-	if (overall === "down") return { label: "Major outage", cls: "bg-down" };
-	if (overall === "maintenance") return { label: "Under maintenance", cls: "bg-text-faint/60" };
-	if (overall === "up") return { label: "All systems operational", cls: "bg-up" };
-	return { label: "Checking…", cls: "bg-text-faint/40" };
+	if (overall === "down") return { label: t("statusPublic.outage"), cls: "bg-down" };
+	if (overall === "maintenance") return { label: t("statusPublic.underMaintenance"), cls: "bg-text-faint/60" };
+	if (overall === "up") return { label: t("statusPublic.operational"), cls: "bg-up" };
+	return { label: t("statusPublic.checking"), cls: "bg-text-faint/40" };
 }
 
 function dotCls(status?: string) {
@@ -38,8 +39,8 @@ export function StatusPublicPage({ slug }: { slug: string }) {
 		return () => clearInterval(t);
 	}, [load]);
 
-	if (missing) return <main className="mx-auto max-w-2xl px-7 py-16 text-center text-[13px] text-text-faint">Status page not found.</main>;
-	if (!st) return <main className="mx-auto max-w-2xl px-7 py-16 text-center text-[13px] text-text-faint">Loading…</main>;
+	if (missing) return <main className="mx-auto max-w-2xl px-7 py-16 text-center text-[13px] text-text-faint">{t("statusPublic.notFound")}</main>;
+	if (!st) return <main className="mx-auto max-w-2xl px-7 py-16 text-center text-[13px] text-text-faint">{t("common.loading")}</main>;
 
 	const banner = overallBanner(st.overall);
 
@@ -56,7 +57,7 @@ export function StatusPublicPage({ slug }: { slug: string }) {
 
 			{(st.monitors ?? []).length > 0 && (
 				<section className="mb-6">
-					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">Services</h2>
+					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("statusPublic.services")}</h2>
 					<div className="overflow-hidden rounded-[10px] border border-border">
 						{(st.monitors ?? []).map((m) => (
 							<div key={m.id} className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 last:border-0">
@@ -72,7 +73,7 @@ export function StatusPublicPage({ slug }: { slug: string }) {
 
 			{(st.systems ?? []).length > 0 && (
 				<section className="mb-6">
-					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">Systems</h2>
+					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("statusPublic.systems")}</h2>
 					<div className="overflow-hidden rounded-[10px] border border-border">
 						{(st.systems ?? []).map((s) => (
 							<div key={s.id} className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 last:border-0">
@@ -87,7 +88,7 @@ export function StatusPublicPage({ slug }: { slug: string }) {
 
 			{(st.maintenance ?? []).length > 0 && (
 				<section className="mb-6">
-					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">Maintenance</h2>
+					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("statusPublic.maintenance")}</h2>
 					<div className="overflow-hidden rounded-[10px] border border-border">
 						{(st.maintenance ?? []).map((w) => (
 							<div key={w.id} className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 last:border-0">
@@ -103,7 +104,7 @@ export function StatusPublicPage({ slug }: { slug: string }) {
 
 			{(st.incidents ?? []).length > 0 && (
 				<section className="mb-6">
-					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">Incidents</h2>
+					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("statusPublic.incidents")}</h2>
 					<div className="flex flex-col gap-2">
 						{(st.incidents ?? []).map((inc) => (
 							<div key={inc.id} className="rounded-[10px] border border-border px-4 py-3">
@@ -122,7 +123,7 @@ export function StatusPublicPage({ slug }: { slug: string }) {
 				</section>
 			)}
 
-			<p className="mt-10 text-center font-mono text-[10px] text-text-faint">powered by dash</p>
+			<p className="mt-10 text-center font-mono text-[10px] text-text-faint">{t("statusPublic.footer")}</p>
 		</main>
 	);
 }

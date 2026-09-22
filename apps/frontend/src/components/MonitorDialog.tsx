@@ -8,6 +8,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { t } from "@/i18n";
 
 const TYPES = ["http", "tcp", "ping", "dns", "keyword", "json", "push"] as const;
 type MonType = (typeof TYPES)[number];
@@ -48,6 +49,9 @@ export function MonitorDialog({
 			intervalS: String(monitor?.intervalS ?? 60),
 			timeoutS: String(monitor?.timeoutS ?? 10),
 			retries: String(monitor?.retries ?? 0),
+			consecFails: String(monitor?.alerts?.consecutiveFailures ?? ""),
+			latencyWarn: String(monitor?.alerts?.latencyWarnMs ?? ""),
+			mute: monitor?.alerts?.mute ? "1" : "",
 			notes: monitor?.notes ?? "",
 		});
 	}, [open, monitor]);
@@ -59,11 +63,11 @@ export function MonitorDialog({
 	const type = (f.type || "http") as MonType;
 
 	async function submit() {
-		if (!f.name?.trim()) return setErr("Name is required"), undefined;
+		if (!f.name?.trim()) return setErr(t("monitors.nameRequired")), undefined;
 		if (type !== "push" && type !== "tcp" && type !== "ping" && type !== "dns" && !f.url?.trim())
-			return setErr("URL is required"), undefined;
+			return setErr(t("monitors.urlRequired")), undefined;
 		if ((type === "tcp" || type === "ping" || type === "dns") && !f.hostname?.trim() && !f.url?.trim())
-			return setErr("Hostname is required"), undefined;
+			return setErr(t("monitors.hostnameRequired")), undefined;
 		setBusy(true);
 		const body: MonitorInput = {
 			name: f.name.trim(),
@@ -81,6 +85,11 @@ export function MonitorDialog({
 			timeoutS: Math.max(1, parseInt(f.timeoutS ?? "10") || 10),
 			retries: Math.max(0, parseInt(f.retries ?? "0") || 0),
 			notes: f.notes ?? "",
+			alerts: {
+				consecutiveFailures: Math.max(1, parseInt(f.consecFails ?? "") || 1),
+				latencyWarnMs: Math.max(0, parseInt(f.latencyWarn ?? "") || 0),
+				mute: f.mute === "1",
+			},
 		};
 		try {
 			if (editing && monitor) {
@@ -91,7 +100,7 @@ export function MonitorDialog({
 			onSaved();
 			onOpenChange(false);
 		} catch {
-			setErr("save failed");
+			setErr(t("monitors.saveFailed"));
 		} finally {
 			setBusy(false);
 		}
@@ -101,18 +110,18 @@ export function MonitorDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-md">
 				<DialogHeader>
-					<DialogTitle>{editing ? "Edit monitor" : "New monitor"}</DialogTitle>
-					<DialogDescription>Uptime check on a schedule.</DialogDescription>
+					<DialogTitle>{editing ? t("monitors.editTitle") : t("monitors.newTitle")}</DialogTitle>
+					<DialogDescription>{t("monitors.desc")}</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-1">
 					<div className="grid grid-cols-[1fr_130px] gap-3">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="mon-name">Name</Label>
+							<Label htmlFor="mon-name">{t("common.name")}</Label>
 							<Input id="mon-name" value={f.name ?? ""} onChange={set("name")} placeholder="Plex" autoFocus />
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label>Type</Label>
+							<Label>{t("common.type")}</Label>
 							<Select value={type} onValueChange={(v) => setF((s) => ({ ...s, type: v }))}>
 								<SelectTrigger><SelectValue /></SelectTrigger>
 								<SelectContent>
@@ -126,11 +135,11 @@ export function MonitorDialog({
 						<>
 							<div className="grid grid-cols-[1fr_110px] gap-3">
 								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="mon-url">URL</Label>
+									<Label htmlFor="mon-url">{t("common.url")}</Label>
 									<Input id="mon-url" value={f.url ?? ""} onChange={set("url")} placeholder="https://plex.local" className="font-mono text-[12px]" />
 								</div>
 								<div className="flex flex-col gap-1.5">
-									<Label>Method</Label>
+									<Label>{t("monitors.method")}</Label>
 									<Select value={f.method || "GET"} onValueChange={(v) => setF((s) => ({ ...s, method: v }))}>
 										<SelectTrigger><SelectValue /></SelectTrigger>
 										<SelectContent>
@@ -141,23 +150,23 @@ export function MonitorDialog({
 							</div>
 							{type === "keyword" && (
 								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="mon-kw">Keyword</Label>
+									<Label htmlFor="mon-kw">{t("monitors.keyword")}</Label>
 									<Input id="mon-kw" value={f.keyword ?? ""} onChange={set("keyword")} placeholder="text that must appear" className="font-mono text-[12px]" />
 									<label className="flex items-center gap-2 text-[12px] text-text-dim">
 										<input type="checkbox" checked={f.keywordInvert === "1"}
 											onChange={(e) => setF((s) => ({ ...s, keywordInvert: e.target.checked ? "1" : "" }))} />
-										Invert (down when found)
+										{t("monitors.keywordInvert")}
 									</label>
 								</div>
 							)}
 							{type === "json" && (
 								<div className="grid grid-cols-2 gap-3">
 									<div className="flex flex-col gap-1.5">
-										<Label htmlFor="mon-jq">JSON path</Label>
+										<Label htmlFor="mon-jq">{t("monitors.jsonPath")}</Label>
 										<Input id="mon-jq" value={f.jsonQuery ?? ""} onChange={set("jsonQuery")} placeholder="data.status" className="font-mono text-[12px]" />
 									</div>
 									<div className="flex flex-col gap-1.5">
-										<Label htmlFor="mon-exp">Expected</Label>
+										<Label htmlFor="mon-exp">{t("monitors.expected")}</Label>
 										<Input id="mon-exp" value={f.expected ?? ""} onChange={set("expected")} placeholder="ok" className="font-mono text-[12px]" />
 									</div>
 								</div>
@@ -168,17 +177,17 @@ export function MonitorDialog({
 					{(type === "tcp" || type === "ping" || type === "dns") && (
 						<div className="grid grid-cols-[1fr_110px] gap-3">
 							<div className="flex flex-col gap-1.5">
-								<Label htmlFor="mon-host">Hostname</Label>
+								<Label htmlFor="mon-host">{t("common.hostname")}</Label>
 								<Input id="mon-host" value={f.hostname ?? ""} onChange={set("hostname")} placeholder="nas.local" className="font-mono text-[12px]" />
 							</div>
 							{type === "tcp" ? (
 								<div className="flex flex-col gap-1.5">
-									<Label htmlFor="mon-port">Port</Label>
+									<Label htmlFor="mon-port">{t("common.port")}</Label>
 									<Input id="mon-port" value={f.port ?? ""} onChange={set("port")} placeholder="443" className="font-mono text-[12px]" />
 								</div>
 							) : type === "dns" ? (
 								<div className="flex flex-col gap-1.5">
-									<Label>Record</Label>
+									<Label>{t("monitors.record")}</Label>
 									<Select value={f.dnsType || "A"} onValueChange={(v) => setF((s) => ({ ...s, dnsType: v }))}>
 										<SelectTrigger><SelectValue /></SelectTrigger>
 										<SelectContent>
@@ -191,36 +200,53 @@ export function MonitorDialog({
 					)}
 					{type === "dns" && (
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="mon-dnsexp">Expected record contains (optional)</Label>
+							<Label htmlFor="mon-dnsexp">{t("monitors.dnsExpected")}</Label>
 							<Input id="mon-dnsexp" value={f.expected ?? ""} onChange={set("expected")} className="font-mono text-[12px]" />
 						</div>
 					)}
 
 					{type === "push" && (
 						<p className="rounded-[8px] border border-border bg-surface px-3 py-2 text-[12px] text-text-dim">
-							After saving, your jobs call the shown push URL on a schedule.
-							If it goes quiet for 2× the interval, the monitor flips down.
+							{t("monitors.pushHint")}
 						</p>
 					)}
 
 					<div className="grid grid-cols-3 gap-3">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="mon-int">Interval (s)</Label>
+							<Label htmlFor="mon-int">{t("monitors.interval")}</Label>
 							<Input id="mon-int" value={f.intervalS ?? "60"} onChange={set("intervalS")} className="font-mono text-[12px]" />
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="mon-to">Timeout (s)</Label>
+							<Label htmlFor="mon-to">{t("monitors.timeout")}</Label>
 							<Input id="mon-to" value={f.timeoutS ?? "10"} onChange={set("timeoutS")} className="font-mono text-[12px]" />
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="mon-re">Retries</Label>
+							<Label htmlFor="mon-re">{t("monitors.retries")}</Label>
 							<Input id="mon-re" value={f.retries ?? "0"} onChange={set("retries")} className="font-mono text-[12px]" />
+						</div>
+					</div>
+
+					<div className="grid grid-cols-3 gap-3">
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="mon-cf">{t("monitors.failsBeforeDown")}</Label>
+							<Input id="mon-cf" value={f.consecFails ?? ""} onChange={set("consecFails")} placeholder="1" className="font-mono text-[12px]" />
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="mon-lw">{t("monitors.latencyWarn")}</Label>
+							<Input id="mon-lw" value={f.latencyWarn ?? ""} onChange={set("latencyWarn")} placeholder="off" className="font-mono text-[12px]" />
+						</div>
+						<div className="flex items-end pb-2">
+							<label className="flex items-center gap-2 text-[12px] text-text-dim">
+								<input type="checkbox" checked={f.mute === "1"}
+									onChange={(e) => setF((s) => ({ ...s, mute: e.target.checked ? "1" : "" }))} />
+								{t("monitors.mute")}
+							</label>
 						</div>
 					</div>
 
 					{monitor?.pushToken ? (
 						<div className="flex flex-col gap-1.5">
-							<Label>Push URL</Label>
+							<Label>{t("monitors.pushUrl")}</Label>
 							<code className="rounded-[8px] border border-border bg-surface px-3 py-2 font-mono text-[11px] text-text-dim">
 								{location.origin}/api/push/{monitor.pushToken}
 							</code>
@@ -232,10 +258,10 @@ export function MonitorDialog({
 
 				<DialogFooter className="items-center">
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-						Cancel
+						{t("common.cancel")}
 					</Button>
 					<Button type="button" onClick={() => void submit()} disabled={busy}>
-						{busy ? "Saving…" : editing ? "Save" : "Add monitor"}
+						{busy ? t("common.saving") : editing ? t("common.save") : t("monitors.addMonitor")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

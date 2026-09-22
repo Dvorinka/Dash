@@ -27,10 +27,88 @@ paths:
               schema:
                 $ref: "#/components/schemas/Health"
 
+  /api/boards:
+    get:
+      operationId: listBoards
+      summary: All boards, ordered
+      responses:
+        "200":
+          description: Board list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Board"
+    post:
+      operationId: createBoard
+      summary: Create a board — slug derived from the name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        "201":
+          description: Created board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+
+  /api/boards/{id}:
+    patch:
+      operationId: updateBoard
+      summary: Rename a board — the slug stays stable
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+      responses:
+        "200":
+          description: Updated board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Board"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteBoard
+      summary: Delete a board and its sections — the last board cannot be deleted
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/sections:
     get:
       operationId: listSections
-      summary: Full board — sections with nested items and urls, ordered
+      summary: Board tree — sections with nested items and urls, ordered
+      parameters:
+        - name: board
+          in: query
+          description: Restrict to one board id; omitted returns all sections
+          schema:
+            type: string
       responses:
         "200":
           description: Ordered board tree
@@ -540,14 +618,70 @@ paths:
                 additionalProperties:
                   $ref: "#/components/schemas/Status"
 
+  /api/domains/{id}/subdomains:
+    get:
+      operationId: listSubdomains
+      summary: Discovered subdomains for a domain
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Subdomain rows, name-sorted
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subdomain"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /api/domains/{id}/subdomains/refresh:
+    post:
+      operationId: refreshSubdomains
+      summary: Force a crt.sh + DNS discovery run, returns the updated list
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Subdomain rows after the sweep
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subdomain"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/notify/test:
     post:
       operationId: notifyTest
-      summary: Send a test notification to the configured webhook
-      description: Requires the `notify_webhook` settings key to hold an http(s) URL.
+      summary: Send a test notification through configured transports
+      description: >-
+        Fires a test event synchronously through every configured notify_*
+        transport, or only the transport named in the body. Returns a
+        transport -> "ok" | "error: ..." map.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transport:
+                  type: string
+                  enum: [webhook, slack, discord, telegram, gotify, ntfy, smtp]
       responses:
         "200":
-          description: Test notification dispatched
+          description: Per-transport delivery results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: object
+                    additionalProperties:
+                      type: string
         "400":
           $ref: "#/components/responses/BadRequest"
 
@@ -1039,6 +1173,83 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
+  /api/auth/session:
+    get:
+      operationId: authSession
+      summary: Auth state — enabled flag, whether setup is needed, and current session
+      responses:
+        "200":
+          description: Session state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+
+  /api/auth/setup:
+    post:
+      operationId: authSetup
+      summary: Create the first local admin — only while no users exist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "201":
+          description: Admin created; session cookie set
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: Setup already completed
+
+  /api/auth/login:
+    post:
+      operationId: authLogin
+      summary: Password login — sets a session cookie; rate-limited per IP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Signed in
+        "401":
+          description: Invalid credentials
+        "429":
+          description: Too many attempts
+
+  /api/auth/logout:
+    post:
+      operationId: authLogout
+      summary: Destroy the current session
+      responses:
+        "204":
+          description: Signed out
+
+  /api/auth/disable:
+    post:
+      operationId: authDisable
+      summary: Turn authentication off — requires an active session
+      responses:
+        "204":
+          description: Disabled
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1074,6 +1285,19 @@ components:
         status:
           type: string
           example: ok
+    AuthSession:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        setup:
+          type: boolean
+          description: True when auth is on but no user exists yet
+        authed:
+          type: boolean
+        username:
+          type: string
+
     Error:
       type: object
       required: [error]
@@ -1172,7 +1396,7 @@ components:
             $ref: "#/components/schemas/UrlInput"
     Section:
       type: object
-      required: [id, name, position, collapsed, items]
+      required: [id, name, position, collapsed, boardId, items]
       properties:
         id:
           type: string
@@ -1182,15 +1406,31 @@ components:
           type: number
         collapsed:
           type: boolean
+        boardId:
+          type: string
         items:
           type: array
           items:
             $ref: "#/components/schemas/Item"
+    Board:
+      type: object
+      required: [id, slug, name, position]
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        position:
+          type: number
     SectionInput:
       type: object
       required: [name]
       properties:
         name:
+          type: string
+        boardId:
           type: string
     SectionPatch:
       type: object
@@ -1285,6 +1525,8 @@ components:
             type: string
         notes:
           type: string
+        alerts:
+          $ref: "#/components/schemas/AlertRules"
         position:
           type: number
         lastCheck:
@@ -1294,6 +1536,22 @@ components:
         createdAt:
           type: string
           format: date-time
+    AlertRules:
+      type: object
+      description: Per-target alert rules; omitted fields keep defaults.
+      properties:
+        consecutiveFailures:
+          type: integer
+          description: Checks must fail N times in a row before status flips down
+        latencyWarnMs:
+          type: integer
+          description: Notify once when an up check's ping crosses this threshold
+        certDays:
+          type: integer
+          description: Domain TLS expiry threshold; overrides alertDaysBefore
+        mute:
+          type: boolean
+          description: Suppress notifications; incidents/status still record
     MonitorInput:
       type: object
       properties:
@@ -1338,6 +1596,8 @@ components:
             type: string
         notes:
           type: string
+        alerts:
+          $ref: "#/components/schemas/AlertRules"
     UptimeStats:
       type: object
       properties:
@@ -1519,6 +1779,8 @@ components:
           type: string
           format: date-time
           nullable: true
+        alerts:
+          $ref: "#/components/schemas/AlertRules"
         position:
           type: number
         createdAt:
@@ -1543,6 +1805,8 @@ components:
             type: string
         notes:
           type: string
+        alerts:
+          $ref: "#/components/schemas/AlertRules"
     DomainView:
       allOf:
         - $ref: "#/components/schemas/Domain"
@@ -1558,6 +1822,21 @@ components:
               type: boolean
             sslExpiring:
               type: boolean
+    Subdomain:
+      type: object
+      properties:
+        name:
+          type: string
+        ips:
+          type: array
+          items:
+            type: string
+        firstSeen:
+          type: string
+          format: date-time
+        lastSeen:
+          type: string
+          format: date-time
     DomainCheck:
       type: object
       properties:
@@ -1615,11 +1894,48 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ContainerStat"
+        smart:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmartDisk"
+        zfs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ZFSPool"
+        gpu:
+          type: array
+          items:
+            $ref: "#/components/schemas/GPUStat"
     ContainerStat:
       type: object
       properties:
         name: { type: string }
         state: { type: string }
+        cpu: { type: number, description: "percent of one core, may exceed 100" }
+        memUsed: { type: number, description: bytes }
+        memLimit: { type: number, description: bytes }
+    SmartDisk:
+      type: object
+      properties:
+        device: { type: string }
+        model: { type: string }
+        passed: { type: boolean, nullable: true }
+        tempC: { type: number }
+    ZFSPool:
+      type: object
+      properties:
+        name: { type: string }
+        health: { type: string }
+        size: { type: number, description: bytes }
+        free: { type: number, description: bytes }
+    GPUStat:
+      type: object
+      properties:
+        name: { type: string }
+        tempC: { type: number }
+        utilPct: { type: number }
+        memUsed: { type: number, description: bytes }
+        memTotal: { type: number, description: bytes }
     System:
       type: object
       required: [id, name, token, status]
@@ -1819,3 +2135,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Section"
+        boards:
+          type: array
+          items:
+            $ref: "#/components/schemas/Board"

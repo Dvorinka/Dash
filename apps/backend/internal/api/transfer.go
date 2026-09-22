@@ -28,6 +28,7 @@ type Export struct {
 	Version  int                        `json:"version"`
 	Settings map[string]json.RawMessage `json:"settings"`
 	Sections []Section                  `json:"sections"`
+	Boards   []Board                    `json:"boards,omitempty"`
 	Monitors []json.RawMessage          `json:"monitors,omitempty"`
 	Domains  []json.RawMessage          `json:"domains,omitempty"`
 	Systems  []json.RawMessage          `json:"systems,omitempty"`
@@ -74,12 +75,21 @@ func (s *Server) exportBoard(c *gin.Context) {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	sections, err := s.board()
+	sections, err := s.board("")
 	if err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	ex := Export{Version: 2, Settings: settings, Sections: sections}
+	if bRows, err := s.db.Query(`SELECT id, slug, name, position FROM boards ORDER BY position`); err == nil {
+		for bRows.Next() {
+			var b Board
+			if bRows.Scan(&b.ID, &b.Slug, &b.Name, &b.Position) == nil {
+				ex.Boards = append(ex.Boards, b)
+			}
+		}
+		bRows.Close()
+	}
 	for _, t := range []struct {
 		name string
 		dst  *[]json.RawMessage
@@ -103,11 +113,11 @@ func (s *Server) importBoard(c *gin.Context) {
 		fail(c, http.StatusBadRequest, "invalid export payload")
 		return
 	}
-	if err := s.replaceBoard(in.Sections, in.Settings); err != nil {
+	if err := s.replaceBoard(in.Sections, in.Boards, in.Settings); err != nil {
 		failImport(c, err)
 		return
 	}
-	sections, err := s.board()
+	sections, err := s.board("")
 	if err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
 		return
@@ -116,8 +126,10 @@ func (s *Server) importBoard(c *gin.Context) {
 }
 
 // replaceBoard swaps all board rows inside one transaction — shared by the
-// Dash export import and the external-config importers.
-func (s *Server) replaceBoard(sections []Section, settings map[string]json.RawMessage) error {
+// Dash export import and the external-config importers. A payload carrying
+// boards replaces the board list too; one without (v1/v2 exports, foreign
+// imports) leaves boards alone and sections land on the default board.
+func (s *Server) replaceBoard(sections []Section, boards []Board, settings map[string]json.RawMessage) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
@@ -129,12 +141,35 @@ func (s *Server) replaceBoard(sections []Section, settings map[string]json.RawMe
 			return err
 		}
 	}
+	if len(boards) > 0 {
+		if _, err := tx.Exec(`DELETE FROM boards`); err != nil {
+			return err
+		}
+		for _, b := range boards {
+			id, slug := b.ID, b.Slug
+			if slug == "" {
+				slug = slugify(b.Name)
+			}
+			if id == "" || slug == "" {
+				return fmt.Errorf("%w: board missing id or slug", errBadInput)
+			}
+			if _, err := tx.Exec(`INSERT INTO boards (id, slug, name, position) VALUES (?, ?, ?, ?)`,
+				id, slug, orDefault(b.Name, slug), b.Position); err != nil {
+				return err
+			}
+		}
+		// The default board must survive import — orphaned sections map to it.
+		if _, err := tx.Exec(`INSERT OR IGNORE INTO boards (id, slug, name, position) VALUES ('b_home','home','Home',0)`); err != nil {
+			return err
+		}
+	}
 	for _, sec := range sections {
 		if sec.ID == "" || sec.Name == "" {
 			return fmt.Errorf("%w: section missing id or name", errBadInput)
 		}
-		if _, err := tx.Exec(`INSERT INTO sections (id, name, position, collapsed) VALUES (?, ?, ?, ?)`,
-			sec.ID, sec.Name, sec.Position, sec.Collapsed); err != nil {
+		if _, err := tx.Exec(`INSERT INTO sections (id, name, position, collapsed, board_id)
+			VALUES (?, ?, ?, ?, (SELECT id FROM boards WHERE id = ?))`,
+			sec.ID, sec.Name, sec.Position, sec.Collapsed, sec.BoardID); err != nil {
 			return err
 		}
 		for _, it := range sec.Items {

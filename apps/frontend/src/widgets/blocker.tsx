@@ -1,5 +1,6 @@
 import type { Item } from "@/types";
 import type { WidgetData } from "@/widgets/index";
+import { t } from "@/i18n";
 
 // Shared DNS-blocker layout: big block-rate, queries + blocked counts.
 // Pi-hole and AdGuard return the same fields from their fetchers.
@@ -23,12 +24,12 @@ function BlockerWidget({ item, data, error }: { item: Item; data: WidgetData | u
 				<span className="font-mono text-[22px] font-medium leading-none tracking-tight tabular-nums">
 					{data ? `${pct.toFixed(1)}%` : "…"}
 				</span>
-				<span className="text-[10.5px] uppercase tracking-[0.1em] text-text-faint">blocked</span>
+				<span className="text-[10.5px] uppercase tracking-[0.1em] text-text-faint">{t("widget.blockedLbl")}</span>
 			</div>
 			<div className="ml-auto flex flex-col items-end gap-1 font-mono text-[10.5px] text-text-faint">
-				<span>{fmt(num(data, "queriesToday"))} queries</span>
-				<span>{fmt(num(data, "blockedToday"))} blocked</span>
-				{typeof data?.avgProcessMs === "number" && <span>{num(data, "avgProcessMs").toFixed(0)} ms avg</span>}
+				<span>{t("widget.queries", { n: fmt(num(data, "queriesToday")) })}</span>
+				<span>{t("widget.blocked", { n: fmt(num(data, "blockedToday")) })}</span>
+				{typeof data?.avgProcessMs === "number" && <span>{t("widget.msAvg", { n: num(data, "avgProcessMs").toFixed(0) })}</span>}
 			</div>
 		</div>
 	);

@@ -27,7 +27,7 @@ const domainCols = `id, name, tld, active, auto_renew, alert_days_before, tags, 
 	ssl_key_size, ssl_sig_algo, ssl_alt_names, host_country, host_country_code,
 	host_region, host_city, host_isp, host_org, host_as, host_lat, host_lon,
 	dns_provider, email_provider, hosting_provider, ca_provider, headers,
-	favicon_url, lookup_error, interval_h, last_checked, position, created_at`
+	favicon_url, lookup_error, interval_h, last_checked, position, alerts, created_at`
 
 // domainRow mirrors the domains table; JSON text columns decode on scan.
 type domainRow struct {
@@ -87,12 +87,13 @@ type domainRow struct {
 	IntervalH        int      `json:"intervalH"`
 	LastChecked      *string  `json:"lastChecked"`
 	Position         float64  `json:"position"`
+	Alerts           json.RawMessage `json:"alerts"`
 	CreatedAt        string   `json:"createdAt"`
 }
 
 func scanDomain(row interface{ Scan(...any) error }) (*domainRow, error) {
 	var d domainRow
-	var tags, statuses, ns, mx, txt, v4, v6, altNames, headers string
+	var tags, statuses, ns, mx, txt, v4, v6, altNames, headers, alerts string
 	var active, autoRenew, privacy, lock int
 	err := row.Scan(&d.ID, &d.Name, &d.TLD, &active, &autoRenew, &d.AlertDaysBefore,
 		&tags, &d.Notes, &d.ExpiryDate, &d.CreationDate, &d.UpdatedDate,
@@ -104,10 +105,11 @@ func scanDomain(row interface{ Scan(...any) error }) (*domainRow, error) {
 		&d.HostRegion, &d.HostCity, &d.HostISP, &d.HostOrg, &d.HostAS, &d.HostLat,
 		&d.HostLon, &d.DNSProvider, &d.EmailProvider, &d.HostingProvider, &d.CAProvider,
 		&headers, &d.FaviconURL, &d.LookupError, &d.IntervalH, &d.LastChecked,
-		&d.Position, &d.CreatedAt)
+		&d.Position, &alerts, &d.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
+	d.Alerts = json.RawMessage(alerts)
 	d.Active = active != 0
 	d.AutoRenew = autoRenew != 0
 	d.PrivacyEnabled = privacy != 0
@@ -200,6 +202,7 @@ type domainInput struct {
 	IntervalH       *int     `json:"intervalH"`
 	Tags            []string `json:"tags"`
 	Notes           *string  `json:"notes"`
+	Alerts          json.RawMessage `json:"alerts"`
 }
 
 func (s *Server) createDomain(c *gin.Context) {
@@ -218,6 +221,13 @@ func (s *Server) createDomain(c *gin.Context) {
 	if in.Tags == nil {
 		tags = []byte("[]")
 	}
+	if in.Alerts != nil {
+		var rules alertRules
+		if err := json.Unmarshal(in.Alerts, &rules); err != nil {
+			fail(c, http.StatusBadRequest, "alerts must be an object")
+			return
+		}
+	}
 	_, err := s.db.Exec(`INSERT INTO domains
 		(id, name, tld, active, auto_renew, alert_days_before, tags, notes, interval_h, position)
 		VALUES (?,?,?,?,?,?,?,?,?,?)`,
@@ -227,6 +237,9 @@ func (s *Server) createDomain(c *gin.Context) {
 	if err != nil {
 		fail(c, http.StatusConflict, "domain already tracked or insert failed")
 		return
+	}
+	if in.Alerts != nil {
+		_, _ = s.db.Exec(`UPDATE domains SET alerts = ? WHERE id = ?`, string(in.Alerts), id)
 	}
 	// First lookup runs inline so the response carries real data.
 	s.refreshDomain(id)
@@ -298,6 +311,14 @@ func (s *Server) patchDomain(c *gin.Context) {
 		tags, _ := json.Marshal(in.Tags)
 		_, _ = s.db.Exec(`UPDATE domains SET tags = ? WHERE id = ?`, string(tags), id)
 	}
+	if in.Alerts != nil {
+		var rules alertRules
+		if err := json.Unmarshal(in.Alerts, &rules); err != nil {
+			fail(c, http.StatusBadRequest, "alerts must be an object")
+			return
+		}
+		_, _ = s.db.Exec(`UPDATE domains SET alerts = ? WHERE id = ?`, string(in.Alerts), id)
+	}
 	d, err := s.loadDomain(id)
 	if err != nil {
 		fail(c, http.StatusInternalServerError, err.Error())
@@ -338,6 +359,10 @@ func (s *Server) refreshDomain(id string) {
 		return
 	}
 	nv := viewOf(next)
+	rules := parseAlertRules(next.Alerts)
+	if rules.Mute {
+		return
+	}
 	switch {
 	case nv.DaysUntilExpiry != nil && *nv.DaysUntilExpiry < 0 && !(prev.DaysUntilExpiry != nil && *prev.DaysUntilExpiry < 0):
 		s.notify("domain.expired", next.Name, fmt.Sprintf("Domain %s has expired", next.Name))
@@ -345,10 +370,19 @@ func (s *Server) refreshDomain(id string) {
 		s.notify("domain.expiring", next.Name,
 			fmt.Sprintf("Domain %s expires in %d days", next.Name, *nv.DaysUntilExpiry))
 	}
-	if nv.SSLExpiring && !prev.SSLExpiring && nv.SSLDaysUntilExpiry != nil {
+	// TLS threshold: alerts.certDays overrides alertDaysBefore.
+	certDays := next.AlertDaysBefore
+	if rules.CertDays > 0 {
+		certDays = rules.CertDays
+	}
+	sslNow := nv.SSLDaysUntilExpiry != nil && *nv.SSLDaysUntilExpiry <= certDays
+	sslPrev := prev.SSLDaysUntilExpiry != nil && *prev.SSLDaysUntilExpiry <= certDays
+	if sslNow && !sslPrev {
 		s.notify("domain.sslExpiring", next.Name,
 			fmt.Sprintf("TLS certificate for %s expires in %d days", next.Name, *nv.SSLDaysUntilExpiry))
 	}
+	// Subdomain discovery rides the refresh schedule, gated to once/day.
+	s.maybeSweepSubdomains(next)
 }
 
 func (s *Server) refreshDomainH(c *gin.Context) {

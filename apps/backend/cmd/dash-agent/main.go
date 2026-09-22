@@ -9,13 +9,11 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"runtime"
@@ -96,11 +94,40 @@ type sample struct {
 	Load15     float64            `json:"load15"`
 	Temps      map[string]float64 `json:"temps,omitempty"`
 	Containers []containerStat    `json:"containers,omitempty"`
+	Smart      []smartDisk        `json:"smart,omitempty"`
+	ZFS        []zfsPool          `json:"zfs,omitempty"`
+	GPU        []gpuStat          `json:"gpu,omitempty"`
 }
 
 type containerStat struct {
-	Name  string `json:"name"`
-	State string `json:"state"`
+	Name     string  `json:"name"`
+	State    string  `json:"state"`
+	CPU      float64 `json:"cpu,omitempty"`
+	MemUsed  float64 `json:"memUsed,omitempty"`
+	MemLimit float64 `json:"memLimit,omitempty"`
+}
+
+// Optional-collector shapes — mirror api.SmartDisk/ZFSPool/GPUStat.
+type smartDisk struct {
+	Device string  `json:"device"`
+	Model  string  `json:"model"`
+	Passed *bool   `json:"passed,omitempty"`
+	TempC  float64 `json:"tempC,omitempty"`
+}
+
+type zfsPool struct {
+	Name   string  `json:"name"`
+	Health string  `json:"health"`
+	Size   float64 `json:"size"`
+	Free   float64 `json:"free"`
+}
+
+type gpuStat struct {
+	Name     string  `json:"name"`
+	TempC    float64 `json:"tempC,omitempty"`
+	UtilPct  float64 `json:"utilPct,omitempty"`
+	MemUsed  float64 `json:"memUsed,omitempty"`
+	MemTotal float64 `json:"memTotal,omitempty"`
 }
 
 type collector struct {
@@ -141,6 +168,9 @@ func (c *collector) sample(interval int) sample {
 	s.UptimeS = readUptime()
 	s.Temps = readTemps()
 	s.Containers = readContainers()
+	s.Smart = readSMART()
+	s.ZFS = readZFS()
+	s.GPU = readGPU()
 	return s
 }
 
@@ -325,38 +355,4 @@ func readTemps() map[string]float64 {
 	return out
 }
 
-// readContainers lists Docker containers via the unix socket when present.
-func readContainers() []containerStat {
-	if _, err := os.Stat("/var/run/docker.sock"); err != nil {
-		return nil
-	}
-	client := &http.Client{
-		Timeout: 3 * time.Second,
-		Transport: &http.Transport{
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				return (&net.Dialer{}).DialContext(ctx, "unix", "/var/run/docker.sock")
-			},
-		},
-	}
-	res, err := client.Get("http://d/containers/json?all=1")
-	if err != nil {
-		return nil
-	}
-	defer res.Body.Close()
-	var raw []struct {
-		Names []string `json:"Names"`
-		State string   `json:"State"`
-	}
-	if json.NewDecoder(res.Body).Decode(&raw) != nil {
-		return nil
-	}
-	out := make([]containerStat, 0, len(raw))
-	for _, r := range raw {
-		name := ""
-		if len(r.Names) > 0 {
-			name = strings.TrimPrefix(r.Names[0], "/")
-		}
-		out = append(out, containerStat{Name: name, State: r.State})
-	}
-	return out
-}
+
