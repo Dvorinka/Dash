@@ -8,6 +8,10 @@ All notable changes to Dash. Format follows
 
 ### Changed
 
+- Settings dialog regrouped into icon-labelled sections (renderer, appearance,
+  wallpaper/CSS, notifications, auth, backup); renderer tiles now show a
+  per-style glyph and the theme picker is a segmented control
+
 - Monitoring charts restyled to the Beszel school: titled chart cards with
   subtitles, soft area fills on a true time-scaled axis, unit-aware Y ticks,
   sorted dotted tooltips, and legend chips on multi-series charts

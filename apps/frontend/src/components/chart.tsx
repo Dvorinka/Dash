@@ -12,7 +12,6 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
-import { cn } from "@/lib/utils";
 import { t } from "@/i18n";
 
 /** One chart row: epoch ms plus named series values. */
