@@ -3,7 +3,16 @@
 Dash ships as a single container image or a single static binary. All state
 lives in one directory: a SQLite database and uploaded icons.
 
-## Docker (recommended)
+## One-line install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Dvorinka/Dash/main/install.sh | sh
+```
+
+Creates `./dash`, pulls the image, and starts on port 3000. Override with
+`DASH_DIR` / `DASH_PORT` environment variables.
+
+## Docker (manual)
 
 ```sh
 docker run -d --name dash \

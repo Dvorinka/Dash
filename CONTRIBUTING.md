@@ -28,8 +28,8 @@ DASH_DEV=1 go run ./cmd/dash   # API on :8080
   and `-- +goose Down`.
 - Board renderers share state, drag-drop, and popover primitives. Never
   reimplement them per renderer.
-- No auth, no YAML-as-source-of-truth, no external database. These are
-  non-goals for v1.
+- Auth is opt-in and local-only: no OIDC/SSO, no multi-user RBAC. No
+  YAML-as-source-of-truth, no external database. These are non-goals.
 - Standard library before dependencies; existing helpers before new ones.
 - User-visible strings go through `t("key")` from `src/i18n` — add the key to
   `en.ts` rather than inlining literals in new UI.

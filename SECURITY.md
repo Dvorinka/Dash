@@ -7,7 +7,7 @@
 | latest release | yes |
 | older releases | no |
 
-Dash is pre-1.0; only the latest release receives fixes.
+Only the latest release receives fixes.
 
 ## Reporting a vulnerability
 
