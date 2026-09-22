@@ -6,6 +6,15 @@ All notable changes to Dash. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Monitoring charts restyled to the Beszel school: titled chart cards with
+  subtitles, soft area fills on a true time-scaled axis, unit-aware Y ticks,
+  sorted dotted tooltips, and legend chips on multi-series charts
+- System detail gains stacked per-container Docker CPU/memory charts,
+  per-sensor temperature lines, load 1/5/15, and GPU usage/VRAM charts —
+  all from data the agent already sends
+
 ## [2.0.0] — 2026-09-22
 
 ### Added

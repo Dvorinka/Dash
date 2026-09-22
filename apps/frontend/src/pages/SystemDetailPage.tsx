@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Copy, Trash2 } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "@/api";
+import { ChartCard, MetricChart, chartColor, type ChartRow, type Series } from "@/components/chart";
 import type { System, SystemStat } from "@/types";
 import { agentCmd, fmtBytes, fmtUptime } from "@/pages/SystemsPage";
 import { Button } from "@/components/ui/button";
@@ -40,16 +40,73 @@ export function SystemDetailPage({ id }: { id: string }) {
 	if (!sys) return <main className="mx-auto max-w-5xl px-7 py-8 text-[13px] text-text-faint">{t("common.loading")}</main>;
 
 	const l = sys.latest;
-	const chart = stats.map((s) => ({
-		t: new Date(s.ts ?? "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-		cpu: s.cpu,
-		memPct: s.memTotal ? ((s.memUsed ?? 0) / s.memTotal) * 100 : undefined,
-		rx: (s.netRx ?? 0) / 1024,
-		tx: (s.netTx ?? 0) / 1024,
-		load: s.load1,
-	}));
-	const axisTick = { fontSize: 10, fill: "var(--text-faint)" };
-	const tipStyle = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 11 };
+	const spanMs = hours * 3600_000;
+
+	// Rows carry fixed keys plus dynamic `c:`/`m:` (containers), `s:` (sensors),
+	// `g:`/`v:` (GPU util/VRAM) keys; series pick them up by name.
+	const rows: ChartRow[] = stats.map((s) => {
+		const r: ChartRow = {
+			t: new Date(s.ts ?? "").getTime(),
+			cpu: s.cpu,
+			mem: s.memUsed,
+			swap: s.swapUsed,
+			disk: s.diskUsed,
+			rx: s.netRx,
+			tx: s.netTx,
+			l1: s.load1,
+			l5: s.load5,
+			l15: s.load15,
+		};
+		for (const c of s.containers ?? []) {
+			if (c.name) {
+				r[`c:${c.name}`] = c.cpu ?? 0;
+				r[`m:${c.name}`] = c.memUsed ?? 0;
+			}
+		}
+		for (const [k, v] of Object.entries(s.temps ?? {})) r[`s:${k}`] = v;
+		for (const g of s.gpu ?? []) {
+			if (g.name) {
+				r[`g:${g.name}`] = g.utilPct;
+				r[`v:${g.name}`] = g.memUsed;
+			}
+		}
+		return r;
+	});
+
+	const names = (ns: (string | undefined)[]) =>
+		[...new Set(ns.filter((n): n is string => n !== undefined))];
+	const containerNames = names(stats.flatMap((s) => (s.containers ?? []).map((c) => c.name)));
+	const tempNames = names(stats.flatMap((s) => Object.keys(s.temps ?? {})));
+	const gpuNames = names(stats.flatMap((s) => (s.gpu ?? []).map((g) => g.name)));
+	// Zero-fill absent containers so stacked areas stay flush over restarts.
+	for (const r of rows) {
+		for (const n of containerNames) {
+			r[`c:${n}`] ??= 0;
+			r[`m:${n}`] ??= 0;
+		}
+	}
+
+	const pct = (v: number) => `${v.toFixed(1)}%`;
+	const cpuSeries: Series[] = [{ key: "cpu", label: "cpu", color: chartColor(0) }];
+	const dockerCpuSeries: Series[] = containerNames.map((n, i) => ({ key: `c:${n}`, label: n, color: chartColor(i), stack: "a" }));
+	const memSeries: Series[] = [
+		{ key: "mem", label: t("systems.chartUsed"), color: chartColor(1) },
+		{ key: "swap", label: "swap", color: chartColor(3) },
+	];
+	const dockerMemSeries: Series[] = containerNames.map((n, i) => ({ key: `m:${n}`, label: n, color: chartColor(i), stack: "a" }));
+	const diskSeries: Series[] = [{ key: "disk", label: t("systems.chartUsed"), color: chartColor(2) }];
+	const netSeries: Series[] = [
+		{ key: "rx", label: t("systems.chartRx"), color: chartColor(4) },
+		{ key: "tx", label: t("systems.chartTx"), color: chartColor(5) },
+	];
+	const loadSeries: Series[] = [
+		{ key: "l1", label: "1 min", color: chartColor(0) },
+		{ key: "l5", label: "5 min", color: chartColor(3) },
+		{ key: "l15", label: "15 min", color: chartColor(5) },
+	];
+	const tempSeries: Series[] = tempNames.map((n, i) => ({ key: `s:${n}`, label: n, color: chartColor(i), line: true }));
+	const gpuSeries: Series[] = gpuNames.map((n, i) => ({ key: `g:${n}`, label: n, color: chartColor(i) }));
+	const vramSeries: Series[] = gpuNames.map((n, i) => ({ key: `v:${n}`, label: n, color: chartColor(i) }));
 
 	return (
 		<main className="mx-auto w-full max-w-5xl px-7 py-8">
@@ -111,55 +168,46 @@ export function SystemDetailPage({ id }: { id: string }) {
 			</div>
 
 			<div className="mb-6 grid grid-cols-2 gap-3 max-[720px]:grid-cols-1">
-				<div className="h-44 rounded-[10px] border border-border bg-surface p-3">
-					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">{t("systems.cpuPct")}</div>
-					<ResponsiveContainer width="100%" height="85%">
-						<AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
-							<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-							<XAxis dataKey="t" tick={axisTick} tickLine={false} axisLine={false} minTickGap={40} />
-							<YAxis tick={axisTick} tickLine={false} axisLine={false} domain={[0, 100]} unit="%" width={48} />
-							<Tooltip contentStyle={tipStyle} labelStyle={{ color: "var(--text-faint)" }} />
-							<Area type="monotone" dataKey="cpu" stroke="var(--up)" fill="var(--up)" fillOpacity={0.12} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-						</AreaChart>
-					</ResponsiveContainer>
-				</div>
-				<div className="h-44 rounded-[10px] border border-border bg-surface p-3">
-					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">{t("systems.memPct")}</div>
-					<ResponsiveContainer width="100%" height="85%">
-						<AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
-							<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-							<XAxis dataKey="t" tick={axisTick} tickLine={false} axisLine={false} minTickGap={40} />
-							<YAxis tick={axisTick} tickLine={false} axisLine={false} domain={[0, 100]} unit="%" width={48} />
-							<Tooltip contentStyle={tipStyle} labelStyle={{ color: "var(--text-faint)" }} />
-							<Area type="monotone" dataKey="memPct" stroke="var(--up)" fill="var(--up)" fillOpacity={0.12} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-						</AreaChart>
-					</ResponsiveContainer>
-				</div>
-				<div className="h-44 rounded-[10px] border border-border bg-surface p-3">
-					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">{t("systems.netKbs")}</div>
-					<ResponsiveContainer width="100%" height="85%">
-						<LineChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
-							<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-							<XAxis dataKey="t" tick={axisTick} tickLine={false} axisLine={false} minTickGap={40} />
-							<YAxis tick={axisTick} tickLine={false} axisLine={false} width={58} />
-							<Tooltip contentStyle={tipStyle} labelStyle={{ color: "var(--text-faint)" }} />
-							<Line type="monotone" dataKey="rx" name="rx" stroke="var(--up)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-							<Line type="monotone" dataKey="tx" name="tx" stroke="var(--text-faint)" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-						</LineChart>
-					</ResponsiveContainer>
-				</div>
-				<div className="h-44 rounded-[10px] border border-border bg-surface p-3">
-					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">{t("systems.load1m")}</div>
-					<ResponsiveContainer width="100%" height="85%">
-						<AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
-							<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-							<XAxis dataKey="t" tick={axisTick} tickLine={false} axisLine={false} minTickGap={40} />
-							<YAxis tick={axisTick} tickLine={false} axisLine={false} width={48} />
-							<Tooltip contentStyle={tipStyle} labelStyle={{ color: "var(--text-faint)" }} />
-							<Area type="monotone" dataKey="load" stroke="var(--up)" fill="var(--up)" fillOpacity={0.12} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-						</AreaChart>
-					</ResponsiveContainer>
-				</div>
+				<ChartCard title={t("systems.chartCpu")} hint={t("systems.chartCpuHint")}>
+					<MetricChart rows={rows} series={cpuSeries} fmt={pct} domain={[0, 100]} spanMs={spanMs} />
+				</ChartCard>
+				{dockerCpuSeries.length > 0 && (
+					<ChartCard title={t("systems.chartDockerCpu")} hint={t("systems.chartDockerCpuHint")} series={dockerCpuSeries}>
+						<MetricChart rows={rows} series={dockerCpuSeries} fmt={pct} spanMs={spanMs} />
+					</ChartCard>
+				)}
+				<ChartCard title={t("systems.chartMem")} hint={t("systems.chartMemHint")} series={memSeries}>
+					<MetricChart rows={rows} series={memSeries} fmt={fmtBytes} spanMs={spanMs} />
+				</ChartCard>
+				{dockerMemSeries.length > 0 && (
+					<ChartCard title={t("systems.chartDockerMem")} hint={t("systems.chartDockerMemHint")} series={dockerMemSeries}>
+						<MetricChart rows={rows} series={dockerMemSeries} fmt={fmtBytes} spanMs={spanMs} />
+					</ChartCard>
+				)}
+				<ChartCard title={t("systems.chartDisk")} hint={t("systems.chartDiskHint")}>
+					<MetricChart rows={rows} series={diskSeries} fmt={fmtBytes} domain={l?.diskTotal ? [0, l.diskTotal] : undefined} spanMs={spanMs} />
+				</ChartCard>
+				<ChartCard title={t("systems.chartNet")} hint={t("systems.chartNetHint")} series={netSeries}>
+					<MetricChart rows={rows} series={netSeries} fmt={(v) => `${fmtBytes(v)}/s`} spanMs={spanMs} />
+				</ChartCard>
+				<ChartCard title={t("systems.chartLoad")} hint={t("systems.chartLoadHint")} series={loadSeries}>
+					<MetricChart rows={rows} series={loadSeries} fmt={(v) => v.toFixed(2)} spanMs={spanMs} />
+				</ChartCard>
+				{tempSeries.length > 0 && (
+					<ChartCard title={t("systems.chartTemp")} hint={t("systems.chartTempHint")} series={tempSeries}>
+						<MetricChart rows={rows} series={tempSeries} fmt={(v) => `${v.toFixed(0)}°C`} spanMs={spanMs} />
+					</ChartCard>
+				)}
+				{gpuSeries.length > 0 && (
+					<ChartCard title={t("systems.chartGpu")} hint={t("systems.chartGpuHint")} series={gpuSeries}>
+						<MetricChart rows={rows} series={gpuSeries} fmt={pct} domain={[0, 100]} spanMs={spanMs} />
+					</ChartCard>
+				)}
+				{vramSeries.length > 0 && (
+					<ChartCard title={t("systems.chartVram")} hint={t("systems.chartVramHint")} series={vramSeries}>
+						<MetricChart rows={rows} series={vramSeries} fmt={fmtBytes} spanMs={spanMs} />
+					</ChartCard>
+				)}
 			</div>
 
 			<div className="grid grid-cols-2 gap-3 max-[720px]:grid-cols-1">

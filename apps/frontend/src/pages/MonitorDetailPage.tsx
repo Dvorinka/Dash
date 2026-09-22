@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Pause, Play, RefreshCw, Trash2 } from "lucide-react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "@/api";
+import { ChartCard, MetricChart, chartColor, type ChartRow } from "@/components/chart";
 import type { Heartbeat, MonitorView } from "@/types";
 import { MonitorDialog } from "@/components/MonitorDialog";
 import { Button } from "@/components/ui/button";
@@ -32,10 +32,9 @@ export function MonitorDetailPage({ id }: { id: string }) {
 
 	if (!m) return <main className="mx-auto max-w-5xl px-7 py-8 text-[13px] text-text-faint">{t("common.loading")}</main>;
 
-	const chart = hbs.map((h) => ({
-		t: new Date(h.checkedAt ?? "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+	const rows: ChartRow[] = hbs.map((h) => ({
+		t: new Date(h.checkedAt ?? "").getTime(),
 		ping: h.pingMs,
-		up: h.status === "up",
 	}));
 
 	return (
@@ -94,31 +93,30 @@ export function MonitorDetailPage({ id }: { id: string }) {
 				<UptimeBar hbs={hbs} hours={hours} />
 			</div>
 
-			<div className="mb-2 flex items-center justify-between">
-				<h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("monitors.responseTime")}</h2>
-				<div className="flex gap-1">
-					{[24, 168, 720].map((h) => (
-						<button key={h} type="button" onClick={() => setHours(h)}
-							className={cn("rounded-[6px] px-2 py-1 font-mono text-[10.5px]",
-								hours === h ? "bg-surface-hover text-text" : "text-text-faint hover:text-text")}>
-							{h === 24 ? "24h" : h === 168 ? "7d" : "30d"}
-						</button>
-					))}
-				</div>
-			</div>
-			<div className="mb-6 h-56 rounded-[10px] border border-border bg-surface p-3">
-				<ResponsiveContainer width="100%" height="100%">
-					<AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
-						<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-						<XAxis dataKey="t" tick={{ fontSize: 10, fill: "var(--text-faint)" }} tickLine={false} axisLine={false} minTickGap={40} />
-						<YAxis tick={{ fontSize: 10, fill: "var(--text-faint)" }} tickLine={false} axisLine={false} unit=" ms" width={62} />
-						<Tooltip
-							contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 11 }}
-							labelStyle={{ color: "var(--text-faint)" }}
-						/>
-						<Area type="monotone" dataKey="ping" stroke="var(--up)" fill="var(--up)" fillOpacity={0.12} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-					</AreaChart>
-				</ResponsiveContainer>
+			<div className="mb-6">
+				<ChartCard
+					title={t("monitors.responseTime")}
+					height={208}
+					series={[{ key: "ping", label: "ms", color: chartColor(0) }]}
+					actions={
+						<div className="flex gap-1">
+							{[24, 168, 720].map((h) => (
+								<button key={h} type="button" onClick={() => setHours(h)}
+									className={cn("rounded-[6px] px-2 py-1 font-mono text-[10.5px]",
+										hours === h ? "bg-surface-hover text-text" : "text-text-faint hover:text-text")}>
+									{h === 24 ? "24h" : h === 168 ? "7d" : "30d"}
+								</button>
+							))}
+						</div>
+					}
+				>
+					<MetricChart
+						rows={rows}
+						series={[{ key: "ping", label: "ms", color: chartColor(0) }]}
+						fmt={(v) => `${Math.round(v)} ms`}
+						spanMs={hours * 3600_000}
+					/>
+				</ChartCard>
 			</div>
 
 			<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("monitors.recentChecks")}</h2>

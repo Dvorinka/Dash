@@ -15,11 +15,14 @@ import { t } from "@/i18n";
 const TB = 2 ** 40;
 const GB = 2 ** 30;
 const MB = 2 ** 20;
+const KB = 2 ** 10;
 
 export function fmtBytes(b: number) {
 	if (b >= TB) return `${(b / TB).toFixed(1)} TB`;
 	if (b >= GB) return `${(b / GB).toFixed(1)} GB`;
-	return `${(b / MB).toFixed(0)} MB`;
+	if (b >= MB) return `${(b / MB).toFixed(1)} MB`;
+	if (b >= KB) return `${(b / KB).toFixed(0)} KB`;
+	return `${Math.round(b)} B`;
 }
 
 export function fmtUptime(s: number) {
