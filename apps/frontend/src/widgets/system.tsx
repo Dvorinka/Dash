@@ -1,6 +1,7 @@
 import type { WidgetData } from "@/widgets";
 import type { Item } from "@/types";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 // Board tile for a monitored system: status dot + cpu/mem/disk mini bars.
 // config.systemId binds it; data comes from the system fetcher.
@@ -47,7 +48,7 @@ export function SystemWidget({ item, data, error }: {
 				{typeof data?.name === "string" ? data.name : item.name}
 			</span>
 			{error ? (
-				<span className="shrink-0 font-mono text-[10.5px] text-text-faint">err</span>
+				<span className="shrink-0 font-mono text-[10.5px] text-text-faint">{t("widget.err")}</span>
 			) : (
 				<span className="flex shrink-0 items-center gap-2">
 					{bar(cpu, "cpu")}

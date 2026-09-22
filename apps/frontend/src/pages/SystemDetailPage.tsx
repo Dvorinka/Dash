@@ -7,6 +7,7 @@ import type { System, SystemStat } from "@/types";
 import { agentCmd, fmtBytes, fmtUptime } from "@/pages/SystemsPage";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 export function SystemDetailPage({ id }: { id: string }) {
 	const [sys, setSys] = useState<System | null>(null);
@@ -32,11 +33,11 @@ export function SystemDetailPage({ id }: { id: string }) {
 
 	if (notFound) return (
 		<main className="mx-auto max-w-5xl px-7 py-8 text-[13px] text-text-faint">
-			<Link href="/systems" className="inline-flex items-center gap-1.5 hover:text-text"><ArrowLeft size={12} /> Systems</Link>
-			<p className="mt-4">System not found.</p>
+			<Link href="/systems" className="inline-flex items-center gap-1.5 hover:text-text"><ArrowLeft size={12} /> {t("nav.systems")}</Link>
+			<p className="mt-4">{t("systems.notFound")}</p>
 		</main>
 	);
-	if (!sys) return <main className="mx-auto max-w-5xl px-7 py-8 text-[13px] text-text-faint">Loading…</main>;
+	if (!sys) return <main className="mx-auto max-w-5xl px-7 py-8 text-[13px] text-text-faint">{t("common.loading")}</main>;
 
 	const l = sys.latest;
 	const chart = stats.map((s) => ({
@@ -53,7 +54,7 @@ export function SystemDetailPage({ id }: { id: string }) {
 	return (
 		<main className="mx-auto w-full max-w-5xl px-7 py-8">
 			<Link href="/systems" className="mb-4 inline-flex items-center gap-1.5 text-[12px] text-text-faint hover:text-text">
-				<ArrowLeft size={12} /> Systems
+				<ArrowLeft size={12} /> {t("nav.systems")}
 			</Link>
 
 			<div className="mb-6 flex items-start justify-between">
@@ -66,14 +67,14 @@ export function SystemDetailPage({ id }: { id: string }) {
 					</div>
 					<p className="mt-1 font-mono text-[11.5px] text-text-faint">
 						{sys.host ? `${sys.host} · ` : ""}{sys.os}/{sys.arch}
-						{sys.cpuModel ? ` · ${sys.cpuModel}` : ""}{sys.cores ? ` · ${sys.cores} cores` : ""}
-						{sys.lastSeenAt ? ` · seen ${new Date(sys.lastSeenAt).toLocaleTimeString()}` : " · never seen"}
+						{sys.cpuModel ? ` · ${sys.cpuModel}` : ""}{sys.cores ? ` · ${t("systems.cores", { n: sys.cores })}` : ""}
+						{sys.lastSeenAt ? ` · ${t("systems.seenAt", { time: new Date(sys.lastSeenAt).toLocaleTimeString() })}` :  ` · ${t("systems.neverSeen")}`}
 					</p>
 				</div>
 				<div className="flex gap-2">
-					<Button variant="outline" size="sm" aria-label="Delete"
+					<Button variant="outline" size="sm" aria-label={t("common.delete")}
 						onClick={() => {
-							if (confirm(`Delete system "${sys.name}"?`)) {
+							if (confirm(t("systems.deleteConfirm", { name: sys.name ?? "" }))) {
 								void api.DELETE("/api/systems/{id}", { params: { path: { id } } }).then(() => { location.href = "/systems"; });
 							}
 						}}>
@@ -84,10 +85,10 @@ export function SystemDetailPage({ id }: { id: string }) {
 
 			<div className="mb-6 grid grid-cols-4 gap-3 max-[720px]:grid-cols-2">
 				{[
-					["CPU", l?.cpu !== undefined ? `${l.cpu.toFixed(1)}%` : "—"],
-					["Memory", l?.memTotal ? `${fmtBytes(l.memUsed ?? 0)} / ${fmtBytes(l.memTotal)}` : "—"],
-					["Disk /", l?.diskTotal ? `${fmtBytes(l.diskUsed ?? 0)} / ${fmtBytes(l.diskTotal)}` : "—"],
-					["Uptime", l?.uptimeS ? fmtUptime(l.uptimeS) : "—"],
+					[t("systems.cpu"), l?.cpu !== undefined ? `${l.cpu.toFixed(1)}%` : "—"],
+					[t("systems.mem"), l?.memTotal ? `${fmtBytes(l.memUsed ?? 0)} / ${fmtBytes(l.memTotal)}` : "—"],
+					[t("systems.disk") + " /", l?.diskTotal ? `${fmtBytes(l.diskUsed ?? 0)} / ${fmtBytes(l.diskTotal)}` : "—"],
+					[t("systems.uptime"), l?.uptimeS ? fmtUptime(l.uptimeS) : "—"],
 				].map(([k, v]) => (
 					<div key={k} className="rounded-[10px] border border-border bg-surface px-4 py-3">
 						<div className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">{k}</div>
@@ -97,7 +98,7 @@ export function SystemDetailPage({ id }: { id: string }) {
 			</div>
 
 			<div className="mb-2 flex items-center justify-between">
-				<h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">Usage</h2>
+				<h2 className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("systems.usage")}</h2>
 				<div className="flex gap-1">
 					{[1, 6, 24, 168].map((h) => (
 						<button key={h} type="button" onClick={() => setHours(h)}
@@ -111,7 +112,7 @@ export function SystemDetailPage({ id }: { id: string }) {
 
 			<div className="mb-6 grid grid-cols-2 gap-3 max-[720px]:grid-cols-1">
 				<div className="h-44 rounded-[10px] border border-border bg-surface p-3">
-					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">CPU %</div>
+					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">{t("systems.cpuPct")}</div>
 					<ResponsiveContainer width="100%" height="85%">
 						<AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
 							<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -123,7 +124,7 @@ export function SystemDetailPage({ id }: { id: string }) {
 					</ResponsiveContainer>
 				</div>
 				<div className="h-44 rounded-[10px] border border-border bg-surface p-3">
-					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">Memory %</div>
+					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">{t("systems.memPct")}</div>
 					<ResponsiveContainer width="100%" height="85%">
 						<AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
 							<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -135,7 +136,7 @@ export function SystemDetailPage({ id }: { id: string }) {
 					</ResponsiveContainer>
 				</div>
 				<div className="h-44 rounded-[10px] border border-border bg-surface p-3">
-					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">Network KB/s</div>
+					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">{t("systems.netKbs")}</div>
 					<ResponsiveContainer width="100%" height="85%">
 						<LineChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -18 }}>
 							<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -148,7 +149,7 @@ export function SystemDetailPage({ id }: { id: string }) {
 					</ResponsiveContainer>
 				</div>
 				<div className="h-44 rounded-[10px] border border-border bg-surface p-3">
-					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">Load 1m</div>
+					<div className="mb-1 font-mono text-[9.5px] uppercase tracking-[0.1em] text-text-faint">{t("systems.load1m")}</div>
 					<ResponsiveContainer width="100%" height="85%">
 						<AreaChart data={chart} margin={{ top: 4, right: 4, bottom: 0, left: -22 }}>
 							<CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
@@ -165,7 +166,7 @@ export function SystemDetailPage({ id }: { id: string }) {
 				{l?.temps && Object.keys(l.temps).length > 0 && (
 					<div className="rounded-[10px] border border-border">
 						<h2 className="border-b border-border bg-surface px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
-							Temperatures
+							{t("systems.temperatures")}
 						</h2>
 						<table className="w-full text-[12px]">
 							<tbody>
@@ -182,13 +183,23 @@ export function SystemDetailPage({ id }: { id: string }) {
 				{l?.containers && l.containers.length > 0 && (
 					<div className="rounded-[10px] border border-border">
 						<h2 className="border-b border-border bg-surface px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
-							Containers
+							{t("systems.containers")}
 						</h2>
 						<table className="w-full text-[12px]">
 							<tbody>
 								{l.containers.map((ctr) => (
 									<tr key={ctr.name} className="border-b border-border/60 last:border-0">
 										<td className="px-4 py-2 font-mono text-[11px] text-text-dim">{ctr.name}</td>
+										<td className="px-4 py-2 text-right font-mono text-[11px] text-text-faint">
+											{ctr.state === "running" && (ctr.cpu || ctr.memUsed) ? (
+												<>
+													{(ctr.cpu ?? 0).toFixed(1)}%
+													{" · "}
+													{fmtBytes(ctr.memUsed ?? 0)}
+													{ctr.memLimit ? ` / ${fmtBytes(ctr.memLimit)}` : ""}
+												</>
+											) : null}
+										</td>
 										<td className="px-4 py-2 text-right">
 											<span className={cn("font-mono text-[10.5px] uppercase",
 												ctr.state === "running" ? "text-up" : "text-text-faint")}>
@@ -201,15 +212,92 @@ export function SystemDetailPage({ id }: { id: string }) {
 						</table>
 					</div>
 				)}
+
+				{l?.smart && l.smart.length > 0 && (
+					<div className="rounded-[10px] border border-border">
+						<h2 className="border-b border-border bg-surface px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
+							{t("systems.drivesSmart")}
+						</h2>
+						<table className="w-full text-[12px]">
+							<tbody>
+								{l.smart.map((d) => (
+									<tr key={d.device} className="border-b border-border/60 last:border-0">
+										<td className="px-4 py-2 font-mono text-[11px] text-text-dim">{d.device}</td>
+										<td className="px-4 py-2 text-[11px] text-text-dim">{d.model}</td>
+										<td className="px-4 py-2 text-right font-mono text-[11px]">
+											{d.tempC ? `${d.tempC.toFixed(0)}°C` : ""}
+										</td>
+										<td className="px-4 py-2 text-right">
+											<span className={cn("font-mono text-[10.5px] uppercase",
+												d.passed === false ? "text-destructive" : "text-up")}>
+												{d.passed === false ? t("systems.failing") : d.passed ? "ok" : "—"}
+											</span>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
+
+				{l?.zfs && l.zfs.length > 0 && (
+					<div className="rounded-[10px] border border-border">
+						<h2 className="border-b border-border bg-surface px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
+							{t("systems.zfs")}
+						</h2>
+						<table className="w-full text-[12px]">
+							<tbody>
+								{l.zfs.map((p) => (
+									<tr key={p.name} className="border-b border-border/60 last:border-0">
+										<td className="px-4 py-2 font-mono text-[11px] text-text-dim">{p.name}</td>
+										<td className="px-4 py-2 font-mono text-[11px] text-text-dim">
+											{p.size ? `${fmtBytes((p.size ?? 0) - (p.free ?? 0))} / ${fmtBytes(p.size)}` : ""}
+										</td>
+										<td className="px-4 py-2 text-right">
+											<span className={cn("font-mono text-[10.5px] uppercase",
+												p.health === "ONLINE" ? "text-up" : "text-destructive")}>
+												{p.health}
+											</span>
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
+
+				{l?.gpu && l.gpu.length > 0 && (
+					<div className="rounded-[10px] border border-border">
+						<h2 className="border-b border-border bg-surface px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
+							GPU
+						</h2>
+						<table className="w-full text-[12px]">
+							<tbody>
+								{l.gpu.map((g) => (
+									<tr key={g.name} className="border-b border-border/60 last:border-0">
+										<td className="px-4 py-2 font-mono text-[11px] text-text-dim">{g.name}</td>
+										<td className="px-4 py-2 text-right font-mono text-[11px] text-text-dim">
+											{[
+												g.utilPct ? `${g.utilPct.toFixed(0)}%` : "",
+												g.tempC ? `${g.tempC.toFixed(0)}°C` : "",
+												g.memTotal ? `${fmtBytes(g.memUsed ?? 0)} / ${fmtBytes(g.memTotal)}` : "",
+											].filter(Boolean).join(" · ")}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
 			</div>
 
 			<div className="mt-6 rounded-[10px] border border-border bg-surface px-4 py-3">
-				<div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">Agent command</div>
+				<div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">{t("systems.agentCmd")}</div>
 				<div className="flex items-center gap-2">
 					<code className="flex-1 overflow-x-auto whitespace-nowrap font-mono text-[11px] text-text-dim">
 						{agentCmd(sys)}
 					</code>
-					<Button variant="outline" size="icon" aria-label="Copy"
+					<Button variant="outline" size="icon" aria-label={t("systems.copy")}
 						onClick={() => void navigator.clipboard.writeText(agentCmd(sys))}>
 						<Copy size={12} />
 					</Button>

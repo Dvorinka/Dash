@@ -6,11 +6,12 @@ import type { DomainView } from "@/types";
 import { DomainDialog } from "@/components/DomainDialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 function daysLabel(days: number | null | undefined, warn?: boolean) {
 	if (days === null || days === undefined) return "—";
 	const cls = warn || days < 0 ? "text-down" : days <= 30 ? "text-amber-500" : "text-text-dim";
-	return <span className={cn("font-mono text-[11px]", cls)}>{days < 0 ? "expired" : `${days}d`}</span>;
+	return <span className={cn("font-mono text-[11px]", cls)}>{days < 0 ? t("domains.expired") : `${days}d`}</span>;
 }
 
 export function DomainsPage() {
@@ -38,19 +39,19 @@ export function DomainsPage() {
 		<main className="mx-auto w-full max-w-5xl px-7 py-8">
 			<div className="mb-5 flex items-center justify-between">
 				<div>
-					<h1 className="text-[15px] font-semibold tracking-tight">Domains</h1>
-					<p className="text-[12px] text-text-faint">WHOIS, DNS, and certificate watch.</p>
+					<h1 className="text-[15px] font-semibold tracking-tight">{t("domains.title")}</h1>
+					<p className="text-[12px] text-text-faint">{t("domains.subtitle")}</p>
 				</div>
 				<Button onClick={() => { setEditing(undefined); setDlgOpen(true); }}>
-					<Plus size={13} strokeWidth={2.2} /> Track domain
+					<Plus size={13} strokeWidth={2.2} /> {t("domains.new")}
 				</Button>
 			</div>
 
 			{loaded && domains.length === 0 ? (
 				<div className="rounded-[10px] border border-dashed border-border px-6 py-14 text-center">
-					<p className="text-[13px] text-text-dim">No domains tracked yet.</p>
+					<p className="text-[13px] text-text-dim">{t("domains.empty")}</p>
 					<p className="mt-1 text-[11.5px] text-text-faint">
-						Expiry, registrar, DNS records, SSL certificates, and provider detection.
+						{t("domains.emptyHint")}
 					</p>
 				</div>
 			) : (
@@ -58,11 +59,11 @@ export function DomainsPage() {
 					<table className="w-full text-[13px]">
 						<thead>
 							<tr className="border-b border-border bg-surface text-left font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
-								<th className="px-4 py-2.5 font-medium">Domain</th>
-								<th className="px-4 py-2.5 font-medium">Registrar</th>
-								<th className="px-4 py-2.5 font-medium">Expires</th>
-								<th className="px-4 py-2.5 font-medium">SSL</th>
-								<th className="px-4 py-2.5 font-medium">Providers</th>
+								<th className="px-4 py-2.5 font-medium">{t("domains.domain")}</th>
+								<th className="px-4 py-2.5 font-medium">{t("domains.registrar")}</th>
+								<th className="px-4 py-2.5 font-medium">{t("domains.expires")}</th>
+								<th className="px-4 py-2.5 font-medium">{t("domains.ssl")}</th>
+								<th className="px-4 py-2.5 font-medium">{t("domains.providers")}</th>
 								<th className="px-4 py-2.5" />
 							</tr>
 						</thead>
@@ -76,7 +77,7 @@ export function DomainsPage() {
 											) : null}
 											<Link href={`/domains/${d.id}`} className="hover:underline">{d.name}</Link>
 											{d.lookupError ? (
-												<span className="font-mono text-[10px] text-down" title={d.lookupError}>lookup error</span>
+												<span className="font-mono text-[10px] text-down" title={d.lookupError}>{t("domains.lookupError")}</span>
 											) : null}
 										</span>
 									</td>
@@ -88,7 +89,7 @@ export function DomainsPage() {
 									</td>
 									<td className="px-4 py-3">
 										<div className="flex items-center justify-end gap-1">
-											<Button variant="outline" size="icon" aria-label="Refresh now" disabled={refreshing === d.id}
+											<Button variant="outline" size="icon" aria-label={t("domains.refreshNow")} disabled={refreshing === d.id}
 												onClick={() => {
 													if (!d.id) return;
 													setRefreshing(d.id);
@@ -97,20 +98,19 @@ export function DomainsPage() {
 												}}>
 												<RefreshCw size={12} className={cn(refreshing === d.id && "animate-spin")} />
 											</Button>
-											<Button variant="outline" size="icon" aria-label={d.active ? "Pause" : "Resume"}
+											<Button variant="outline" size="icon" aria-label={d.active ? t("monitors.pause") : t("monitors.resume")}
 												onClick={() => void act(d.id, () => api.PATCH("/api/domains/{id}", { params: { path: { id: d.id! } }, body: { active: !d.active } }))}>
 												{d.active ? <Pause size={12} /> : <Play size={12} />}
 											</Button>
-											<Button variant="outline" size="icon" aria-label="Delete"
+											<Button variant="outline" size="icon" aria-label={t("common.delete")}
 												onClick={() => {
-													if (confirm(`Stop tracking "${d.name}"?`)) {
+													if (confirm(t("domains.deleteConfirm", { name: d.name ?? "" }))) {
 														void act(d.id, () => api.DELETE("/api/domains/{id}", { params: { path: { id: d.id! } } }));
 													}
 												}}>
 												<Trash2 size={12} />
 											</Button>
-											<Button variant="outline" size="sm" onClick={() => { setEditing(d); setDlgOpen(true); }}>
-												Edit
+											<Button variant="outline" size="sm" onClick={() => { setEditing(d); setDlgOpen(true); }}>{t("common.edit")}
 											</Button>
 										</div>
 									</td>

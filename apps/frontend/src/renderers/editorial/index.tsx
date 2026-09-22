@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 import { useItemDnd, useSectionDnd } from "@/board/dnd";
 import { useBoard } from "@/board/store";
 import { IconImg, ItemAnchor, hostOf } from "@/board/primitives";
@@ -37,10 +38,10 @@ function BoardView({ children }: BoardViewProps) {
 	}).format(now);
 
 	const cells: [string, string, string][] = [
-		["Local time", time, date.split(",")[0] ?? ""],
+		[t("renderer.localTime"), time, date.split(",")[0] ?? ""],
 		["Services", String(services.length), `${board.sections.length} sections`],
 		["Up", String(up), "responding"],
-		["Down", String(down), down === 0 ? "all green" : "offline"],
+		[t("renderer.down"), String(down), down === 0 ? t("renderer.allGreen") : t("renderer.offline")],
 		["Widgets", String(widgets.length), "registered"],
 	];
 
@@ -77,7 +78,7 @@ function SectionView({ section, index, onToggle, onDelete, children }: SectionVi
 			<div className="group/sec mb-0.5 flex cursor-pointer select-none items-baseline gap-3.5 border-b border-border-strong pb-2.5">
 				<button
 					type="button"
-					aria-label="Drag section"
+					aria-label={t("renderer.dragSection")}
 					className="cursor-grab self-center text-text-faint opacity-0 transition-opacity group-hover/sec:opacity-100 active:cursor-grabbing"
 					{...dnd.attributes}
 					{...dnd.listeners}
@@ -96,7 +97,7 @@ function SectionView({ section, index, onToggle, onDelete, children }: SectionVi
 						{section.name}
 					</h2>
 					<span className="font-mono text-[11px] text-text-faint">
-						{section.items.length} {section.items.length === 1 ? "entry" : "entries"}
+						{section.items.length} {t(section.items.length === 1 ? "renderer.entry" : "renderer.entries")}
 					</span>
 					<ChevronDown
 						size={14}
@@ -105,7 +106,7 @@ function SectionView({ section, index, onToggle, onDelete, children }: SectionVi
 				</button>
 				<button
 					type="button"
-					aria-label="Delete section"
+					aria-label={t("renderer.deleteSection")}
 					onClick={onDelete}
 					className="self-center text-text-faint opacity-0 transition-opacity hover:text-destructive group-hover/sec:opacity-100"
 				>

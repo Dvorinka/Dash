@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { components } from "@dash/api-client";
+import { t } from "@/i18n";
 
 type WidgetType = components["schemas"]["WidgetType"];
 
@@ -66,10 +67,10 @@ export function WidgetDialog({
 	const meta = types.find((t) => t.type === type);
 
 	async function submit() {
-		if (!type) return setErr("Pick a widget type"), undefined;
-		if (!name.trim()) return setErr("Name is required"), undefined;
+		if (!type) return setErr(t("widget.pickType")), undefined;
+		if (!name.trim()) return setErr(t("service.nameRequired")), undefined;
 		if (meta?.fields.some((f) => f.required && !values[f.key]?.trim())) {
-			return setErr("Fill in the required fields"), undefined;
+			return setErr(t("widget.requiredFields")), undefined;
 		}
 		setBusy(true);
 		try {
@@ -83,7 +84,7 @@ export function WidgetDialog({
 			} else {
 				let sid = sectionId;
 				if (!sid) {
-					const sec = await board.addSection("Widgets");
+					const sec = await board.addSection(t("widget.defaultSection"));
 					if (!sec) throw new Error("could not create section");
 					sid = sec.id;
 				}
@@ -91,7 +92,7 @@ export function WidgetDialog({
 			}
 			onOpenChange(false);
 		} catch (e) {
-			setErr(e instanceof Error ? e.message : "save failed");
+			setErr(e instanceof Error ? e.message : t("service.saveFailed"));
 		} finally {
 			setBusy(false);
 		}
@@ -101,21 +102,21 @@ export function WidgetDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>{editing ? "Edit widget" : "Add widget"}</DialogTitle>
+					<DialogTitle>{editing ? t("widget.editTitle") : t("widget.newTitle")}</DialogTitle>
 					<DialogDescription>
-						{editing ? "Update widget settings." : "Pick a type and point it at your service."}
+						{editing ? t("widget.editDesc") : t("widget.newDesc")}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
 					<div className="grid grid-cols-[1fr_150px] gap-3">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="wdg-name">Name</Label>
+							<Label htmlFor="wdg-name">{t("common.name")}</Label>
 							<Input id="wdg-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Pi-hole" autoFocus />
 						</div>
 						{!editing && board.sections.length > 0 && (
 							<div className="flex flex-col gap-1.5">
-								<Label>Section</Label>
+								<Label>{t("widget.section")}</Label>
 								<Select value={sectionId} onValueChange={setSectionId}>
 									<SelectTrigger><SelectValue /></SelectTrigger>
 									<SelectContent>
@@ -129,9 +130,9 @@ export function WidgetDialog({
 					</div>
 
 					<div className="flex flex-col gap-1.5">
-						<Label>Type</Label>
+						<Label>{t("common.type")}</Label>
 						<Select value={type} onValueChange={setType}>
-							<SelectTrigger><SelectValue placeholder="Pick one…" /></SelectTrigger>
+							<SelectTrigger><SelectValue placeholder={t("widget.pickOne")} /></SelectTrigger>
 							<SelectContent>
 								{types.map((t) => (
 									<SelectItem key={t.type} value={t.type}>{t.name}</SelectItem>
@@ -146,14 +147,14 @@ export function WidgetDialog({
 					{meta?.fields.map((f) => (
 						<div key={f.key} className="flex flex-col gap-1.5">
 							<Label htmlFor={`wdg-${f.key}`}>
-								{f.label}{f.required ? "" : " (optional)"}
+								{f.label}{f.required ? "" : ` (${t("common.optional")})`}
 							</Label>
 							{f.key === "monitorId" || f.key === "domainId" || f.key === "systemId" ? (
 								<Select
 									value={values[f.key] ?? ""}
 									onValueChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
 								>
-									<SelectTrigger><SelectValue placeholder="Pick one…" /></SelectTrigger>
+									<SelectTrigger><SelectValue placeholder={t("widget.pickOne")} /></SelectTrigger>
 									<SelectContent>
 										{(f.key === "monitorId" ? monitors : f.key === "domainId" ? domains : systems).map((m) => (
 											<SelectItem key={m.id} value={m.id ?? ""}>{m.name}</SelectItem>
@@ -178,10 +179,10 @@ export function WidgetDialog({
 
 				<DialogFooter className="items-center">
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-						Cancel
+						{t("common.cancel")}
 					</Button>
 					<Button type="button" onClick={() => void submit()} disabled={busy}>
-						{busy ? "Saving…" : editing ? "Save" : "Add widget"}
+						{busy ? t("common.saving") : editing ? t("common.save") : t("header.addWidget")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

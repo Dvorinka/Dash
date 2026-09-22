@@ -1,6 +1,7 @@
 import type { WidgetData } from "@/widgets";
 import type { Item } from "@/types";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 // Board tile for a tracked domain: favicon, name, expiry countdown.
 export function DomainWidget({ item, data, error }: {
@@ -29,7 +30,7 @@ export function DomainWidget({ item, data, error }: {
 				"shrink-0 font-mono text-[10.5px]",
 				error ? "text-down" : expiring || (days !== undefined && days < 0) ? "text-down" : "text-text-faint",
 			)}>
-				{error ? "err" : days === undefined ? "…" : days < 0 ? "expired" : `${days}d`}
+				{error ? t("widget.err") : days === undefined ? "…" : days < 0 ? t("domains.expired") : `${days}d`}
 				{sslDays !== undefined && sslDays <= 30 ? ` · ssl ${sslDays}d` : ""}
 			</span>
 		</a>

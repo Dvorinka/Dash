@@ -1,6 +1,7 @@
 import type { WidgetData } from "@/widgets";
 import type { Item } from "@/types";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 // Board tile for an uptime monitor: status dot, uptime %, avg ping.
 // config.monitorId binds it; data comes from the monitor fetcher.
@@ -30,7 +31,7 @@ export function MonitorWidget({ item, data, error }: {
 				{typeof data?.name === "string" ? data.name : item.name}
 			</span>
 			<span className="shrink-0 font-mono text-[10.5px] text-text-faint">
-				{error ? "err" : uptime !== undefined ? `${uptime.toFixed(1)}%` : "…"}
+				{error ? t("widget.err") : uptime !== undefined ? `${uptime.toFixed(1)}%` : "…"}
 				{ping ? ` · ${Math.round(ping)}ms` : ""}
 			</span>
 		</a>

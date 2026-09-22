@@ -1,5 +1,6 @@
 import { ChevronDown, GripVertical, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 import { useItemDnd, useSectionDnd } from "@/board/dnd";
 import { IconImg, ItemAnchor, StatusChip, hostOf } from "@/board/primitives";
 import { WidgetContent } from "@/widgets";
@@ -28,7 +29,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 			<div className="group/sec flex cursor-pointer select-none items-center gap-3 px-0.5 py-1">
 				<button
 					type="button"
-					aria-label="Drag section"
+					aria-label={t("renderer.dragSection")}
 					className="cursor-grab text-text-faint opacity-0 transition-opacity group-hover/sec:opacity-100 active:cursor-grabbing"
 					{...dnd.attributes}
 					{...dnd.listeners}
@@ -54,7 +55,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 				</button>
 				<button
 					type="button"
-					aria-label="Delete section"
+					aria-label={t("renderer.deleteSection")}
 					onClick={onDelete}
 					className="text-text-faint opacity-0 transition-opacity hover:text-destructive group-hover/sec:opacity-100"
 				>

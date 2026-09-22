@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { t } from "@/i18n";
 
 // dashboard-icons CDN serves png/<slug>.png — slugify the service name for
 // the one-click suggestion under the icon field.
@@ -58,9 +59,9 @@ export function ServiceDialog({
 
 	async function submit() {
 		const cleanUrls = urls.filter((u) => u.url.trim() !== "");
-		if (!name.trim()) return setErr("Name is required"), undefined;
+		if (!name.trim()) return setErr(t("service.nameRequired")), undefined;
 		if (cleanUrls.some((u) => !/^https?:\/\/.+/.test(u.url))) {
-			return setErr("URLs must start with http:// or https://"), undefined;
+			return setErr(t("service.urlRequired")), undefined;
 		}
 		setBusy(true);
 		try {
@@ -72,7 +73,7 @@ export function ServiceDialog({
 				let sid = sectionId;
 				if (!sid) {
 					// First service on an empty board — create the home section.
-					const sec = await board.addSection("Services");
+					const sec = await board.addSection(t("statusPages.services"));
 					if (!sec) throw new Error("could not create section");
 					sid = sec.id;
 				}
@@ -93,7 +94,7 @@ export function ServiceDialog({
 			}
 			onOpenChange(false);
 		} catch (e) {
-			setErr(e instanceof Error ? e.message : "save failed");
+			setErr(e instanceof Error ? e.message : t("service.saveFailed"));
 		} finally {
 			setBusy(false);
 		}
@@ -111,21 +112,21 @@ export function ServiceDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>{editing ? "Edit service" : "Add service"}</DialogTitle>
+					<DialogTitle>{editing ? t("service.editTitle") : t("service.newTitle")}</DialogTitle>
 					<DialogDescription>
-						{editing ? "Update name, icon, or launch URLs." : "Name it, give it an icon, add one or more URLs."}
+						{editing ? t("service.editDesc") : t("service.newDesc")}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
 					<div className="grid grid-cols-[1fr_150px] gap-3">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="svc-name">Name</Label>
+							<Label htmlFor="svc-name">{t("common.name")}</Label>
 							<Input id="svc-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Pi-hole" autoFocus />
 						</div>
 						{!editing && board.sections.length > 0 && (
 							<div className="flex flex-col gap-1.5">
-								<Label>Section</Label>
+								<Label>{t("widget.section")}</Label>
 								<Select value={sectionId} onValueChange={setSectionId}>
 									<SelectTrigger><SelectValue /></SelectTrigger>
 									<SelectContent>
@@ -139,7 +140,7 @@ export function ServiceDialog({
 					</div>
 
 					<div className="flex flex-col gap-1.5">
-						<Label>URLs</Label>
+						<Label>{t("service.urls")}</Label>
 						{urls.map((u, i) => (
 							<div key={i} className="flex gap-2">
 								<Input
@@ -151,13 +152,13 @@ export function ServiceDialog({
 								<Input
 									value={u.label ?? ""}
 									onChange={(e) => setUrl(i, { label: e.target.value })}
-									placeholder="label"
+									placeholder={t("service.labelPlaceholder")}
 									className="w-[110px] shrink-0"
 									list="url-labels"
 								/>
 								<Button
 									type="button" variant="ghost" size="icon"
-									aria-label="Remove URL"
+									aria-label={t("service.removeUrl")}
 									disabled={urls.length <= 1}
 									onClick={() => setUrls((us) => us.filter((_, j) => j !== i))}
 								>
@@ -173,16 +174,16 @@ export function ServiceDialog({
 							className="mt-1 w-fit"
 							onClick={() => setUrls((us) => [...us, { url: "", label: "" }])}
 						>
-							<Plus size={12} /> Add URL
+							<Plus size={12} /> {t("service.addUrl")}
 						</Button>
 					</div>
 
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="svc-icon">Icon URL</Label>
+						<Label htmlFor="svc-icon">{t("service.icon")}</Label>
 						<div className="flex items-center gap-2">
 							<IconPreview url={icon} />
 							<Input id="svc-icon" value={icon} onChange={(e) => setIcon(e.target.value)} placeholder="https://…/icon.png" className="font-mono text-[12px]" />
-							<Button type="button" variant="outline" size="icon" aria-label="Upload icon file" onClick={() => fileRef.current?.click()}>
+							<Button type="button" variant="outline" size="icon" aria-label={t("service.upload")} onClick={() => fileRef.current?.click()}>
 								<Upload size={13} />
 							</Button>
 							<input
@@ -196,10 +197,10 @@ export function ServiceDialog({
 								onClick={() => setIcon(`${DI_BASE}/${diSlug(name)}.png`)}
 								className="w-fit rounded border border-border px-1.5 py-0.5 font-mono text-[10.5px] text-text-faint transition-colors hover:border-border-strong hover:text-text"
 							>
-								suggest: {diSlug(name)}.png
+								{t("service.suggest", { slug: diSlug(name) })}
 							</button>
 						) : null}
-						<p className="text-[11px] text-text-faint">URL or uploaded file; blank shows a letter tile.</p>
+						<p className="text-[11px] text-text-faint">{t("service.iconHint")}</p>
 					</div>
 
 					{!editing && (
@@ -209,7 +210,7 @@ export function ServiceDialog({
 								checked={alsoMonitor}
 								onChange={(e) => setAlsoMonitor(e.target.checked)}
 							/>
-							Also create an uptime monitor for the first URL
+							{t("service.alsoMonitor")}
 						</label>
 					)}
 
@@ -219,14 +220,14 @@ export function ServiceDialog({
 				<DialogFooter className="items-center">
 					{editing ? (
 						<Button type="button" variant="destructive" size="sm" className="mr-auto" onClick={() => void remove()} disabled={busy}>
-							<Trash2 size={12} /> Delete
+							<Trash2 size={12} /> {t("common.delete")}
 						</Button>
 					) : null}
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-						Cancel
+						{t("common.cancel")}
 					</Button>
 					<Button type="button" onClick={() => void submit()} disabled={busy}>
-						{busy ? "Saving…" : editing ? "Save" : "Add service"}
+						{busy ? t("common.saving") : editing ? t("common.save") : t("service.addService")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

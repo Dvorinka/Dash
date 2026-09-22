@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { t } from "@/i18n";
 
 // Add/edit a tracked domain. The first WHOIS/DNS/TLS lookup runs on create —
 // expect a few seconds of spinner.
@@ -26,6 +27,8 @@ export function DomainDialog({
 	const [intervalH, setIntervalH] = useState("24");
 	const [alertDays, setAlertDays] = useState("30");
 	const [autoRenew, setAutoRenew] = useState(false);
+	const [certDays, setCertDays] = useState("");
+	const [mute, setMute] = useState(false);
 	const [notes, setNotes] = useState("");
 	const [busy, setBusy] = useState(false);
 	const [err, setErr] = useState("");
@@ -37,11 +40,13 @@ export function DomainDialog({
 		setIntervalH(String(domain?.intervalH ?? 24));
 		setAlertDays(String(domain?.alertDaysBefore ?? 30));
 		setAutoRenew(domain?.autoRenew ?? false);
+		setCertDays(domain?.alerts?.certDays ? String(domain.alerts.certDays) : "");
+		setMute(domain?.alerts?.mute ?? false);
 		setNotes(domain?.notes ?? "");
 	}, [open, domain]);
 
 	async function submit() {
-		if (!name.trim()) return setErr("Domain is required"), undefined;
+		if (!name.trim()) return setErr(t("domains.nameRequired")), undefined;
 		setBusy(true);
 		const body: DomainInput = {
 			name: name.trim(),
@@ -49,6 +54,10 @@ export function DomainDialog({
 			alertDaysBefore: Math.max(0, parseInt(alertDays) || 30),
 			autoRenew,
 			notes,
+			alerts: {
+				certDays: Math.max(0, parseInt(certDays) || 0),
+				mute,
+			},
 		};
 		try {
 			if (editing && domain) {
@@ -60,7 +69,7 @@ export function DomainDialog({
 			onSaved();
 			onOpenChange(false);
 		} catch (e) {
-			setErr(e instanceof Error ? e.message : "save failed");
+			setErr(e instanceof Error ? e.message : t("domains.saveFailed"));
 		} finally {
 			setBusy(false);
 		}
@@ -70,37 +79,51 @@ export function DomainDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-md">
 				<DialogHeader>
-					<DialogTitle>{editing ? "Edit domain" : "Track a domain"}</DialogTitle>
+					<DialogTitle>{editing ? t("domains.editTitle") : t("domains.addTitle")}</DialogTitle>
 					<DialogDescription>
-						WHOIS, DNS, TLS certificate, and host info — refreshed on your interval.
+						{t("domains.addDesc")}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="dom-name">Domain</Label>
+						<Label htmlFor="dom-name">{t("domains.domain")}</Label>
 						<Input id="dom-name" value={name} onChange={(e) => setName(e.target.value)}
-							placeholder="example.com" className="font-mono text-[12px]" autoFocus />
+							placeholder={t("domains.namePlaceholder")} className="font-mono text-[12px]" autoFocus />
 					</div>
 
 					<div className="grid grid-cols-2 gap-3">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="dom-int">Refresh every (hours)</Label>
+							<Label htmlFor="dom-int">{t("domains.refreshEvery")}</Label>
 							<Input id="dom-int" value={intervalH} onChange={(e) => setIntervalH(e.target.value)} className="font-mono text-[12px]" />
 						</div>
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="dom-alert">Alert days before expiry</Label>
+							<Label htmlFor="dom-alert">{t("domains.alertDays")}</Label>
 							<Input id="dom-alert" value={alertDays} onChange={(e) => setAlertDays(e.target.value)} className="font-mono text-[12px]" />
+						</div>
+					</div>
+
+					<div className="grid grid-cols-2 gap-3">
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="dom-cert">{t("domains.certDaysLbl")}</Label>
+							<Input id="dom-cert" value={certDays} onChange={(e) => setCertDays(e.target.value)}
+								placeholder={t("domains.certDaysPlaceholder")} className="font-mono text-[12px]" />
+						</div>
+						<div className="flex items-end pb-2">
+							<label className="flex items-center gap-2 text-[12px] text-text-dim">
+								<input type="checkbox" checked={mute} onChange={(e) => setMute(e.target.checked)} />
+								{t("monitors.mute")}
+							</label>
 						</div>
 					</div>
 
 					<label className="flex items-center gap-2 text-[12.5px] text-text-dim">
 						<input type="checkbox" checked={autoRenew} onChange={(e) => setAutoRenew(e.target.checked)} />
-						Auto-renew enabled at the registrar
+						{t("domains.autoRenewLbl")}
 					</label>
 
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="dom-notes">Notes (optional)</Label>
+						<Label htmlFor="dom-notes">{t("domains.notesOptional")}</Label>
 						<Input id="dom-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
 					</div>
 
@@ -109,10 +132,10 @@ export function DomainDialog({
 
 				<DialogFooter className="items-center">
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
-						Cancel
+						{t("common.cancel")}
 					</Button>
 					<Button type="button" onClick={() => void submit()} disabled={busy}>
-						{busy ? "Looking up…" : editing ? "Save" : "Track domain"}
+						{busy ? t("domains.lookingUp") : editing ? t("common.save") : t("domains.new")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

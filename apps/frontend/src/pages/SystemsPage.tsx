@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { t } from "@/i18n";
 
 const TB = 2 ** 40;
 const GB = 2 ** 30;
@@ -79,7 +80,7 @@ export function SystemsPage() {
 	}
 
 	async function remove(id: string | undefined, n: string | undefined) {
-		if (!id || !confirm(`Delete system "${n}"?`)) return;
+		if (!id || !confirm(t("systems.deleteConfirm", { name: n ?? "" }))) return;
 		await api.DELETE("/api/systems/{id}", { params: { path: { id } } });
 		await load();
 	}
@@ -88,19 +89,19 @@ export function SystemsPage() {
 		<main className="mx-auto w-full max-w-5xl px-7 py-8">
 			<div className="mb-5 flex items-center justify-between">
 				<div>
-					<h1 className="text-[15px] font-semibold tracking-tight">Systems</h1>
-					<p className="text-[12px] text-text-faint">Servers and PCs reporting via dash-agent.</p>
+					<h1 className="text-[15px] font-semibold tracking-tight">{t("systems.title")}</h1>
+					<p className="text-[12px] text-text-faint">{t("systems.subtitle")}</p>
 				</div>
 				<Button onClick={() => { setCreated(null); setDlgOpen(true); }}>
-					<Plus size={13} strokeWidth={2.2} /> New system
+					<Plus size={13} strokeWidth={2.2} /> {t("systems.new")}
 				</Button>
 			</div>
 
 			{loaded && systems.length === 0 ? (
 				<div className="rounded-[10px] border border-dashed border-border px-6 py-14 text-center">
-					<p className="text-[13px] text-text-dim">No systems yet.</p>
+					<p className="text-[13px] text-text-dim">{t("systems.empty")}</p>
 					<p className="mt-1 text-[11.5px] text-text-faint">
-						Add one, then run <code className="font-mono">dash-agent</code> on the host with the issued token.
+						{t("systems.emptyHintPre")} <code className="font-mono">dash-agent</code> {t("systems.emptyHintPost")}
 					</p>
 				</div>
 			) : (
@@ -122,18 +123,18 @@ export function SystemsPage() {
 									<Link href={`/systems/${sys.id}`} className="min-w-0 flex-1 truncate text-[13px] font-medium hover:underline">
 										{sys.name}
 									</Link>
-									<Button variant="outline" size="icon" aria-label="Delete"
+									<Button variant="outline" size="icon" aria-label={t("common.delete")}
 										onClick={() => void remove(sys.id, sys.name)}>
 										<Trash2 size={11} />
 									</Button>
 								</div>
 								{sys.host ? (
 									<p className="mb-2.5 truncate font-mono text-[10.5px] text-text-faint">
-										{sys.host} · {sys.cpuModel || `${sys.cores} cores`}
+										{sys.host} · {sys.cpuModel || t("systems.cores", { n: sys.cores ?? 0 })}
 										{l?.uptimeS ? ` · up ${fmtUptime(l.uptimeS)}` : ""}
 									</p>
 								) : (
-									<p className="mb-2.5 font-mono text-[10.5px] text-text-faint">waiting for agent…</p>
+									<p className="mb-2.5 font-mono text-[10.5px] text-text-faint">{t("systems.waiting")}</p>
 								)}
 								<div className="flex flex-col gap-1.5">
 									{rows.map(([label, pct, txt]) => (
@@ -153,43 +154,43 @@ export function SystemsPage() {
 			<Dialog open={dlgOpen} onOpenChange={setDlgOpen}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>New system</DialogTitle>
-						<DialogDescription>Name the host, then run dash-agent on it with the issued token.</DialogDescription>
+						<DialogTitle>{t("systems.newTitle")}</DialogTitle>
+						<DialogDescription>{t("systems.newDesc")}</DialogDescription>
 					</DialogHeader>
 					{created ? (
 						<div className="flex flex-col gap-3">
 							<p className="text-[12px] text-text-dim">
-								Agent command for <span className="font-medium text-text">{created.name}</span>:
+								{t("systems.agentCmdFor")} <span className="font-medium text-text">{created.name}</span>:
 							</p>
 							<div className="flex items-center gap-2">
 								<code className="flex-1 overflow-x-auto whitespace-nowrap rounded-[7px] border border-border bg-bg px-3 py-2 font-mono text-[11px]">
 									{agentCmd(created)}
 								</code>
-								<Button variant="outline" size="icon" aria-label="Copy"
+								<Button variant="outline" size="icon" aria-label={t("systems.copy")}
 									onClick={() => void navigator.clipboard.writeText(agentCmd(created))}>
 									<Copy size={12} />
 								</Button>
 							</div>
 							<p className="text-[11px] text-text-faint">
-								The token identifies this system — keep it out of public repos.
+								{t("systems.tokenWarning")}
 							</p>
 						</div>
 					) : (
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="sys-name">Name</Label>
+							<Label htmlFor="sys-name">{t("common.name")}</Label>
 							<Input id="sys-name" value={name} onChange={(e) => setName(e.target.value)}
-								placeholder="nas" autoFocus
+								placeholder={t("systems.namePlaceholder")} autoFocus
 								onKeyDown={(e) => { if (e.key === "Enter") void create(); }} />
 						</div>
 					)}
 					<DialogFooter>
 						{created ? (
-							<Button onClick={() => setDlgOpen(false)}>Done</Button>
+							<Button onClick={() => setDlgOpen(false)}>{t("systems.done")}</Button>
 						) : (
 							<>
-								<Button variant="outline" onClick={() => setDlgOpen(false)} disabled={busy}>Cancel</Button>
+								<Button variant="outline" onClick={() => setDlgOpen(false)} disabled={busy}>{t("common.cancel")}</Button>
 								<Button onClick={() => void create()} disabled={busy || !name.trim()}>
-									{busy ? "Creating…" : "Create"}
+									{busy ? t("common.creating") : t("common.create")}
 								</Button>
 							</>
 						)}

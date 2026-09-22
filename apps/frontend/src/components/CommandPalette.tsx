@@ -7,13 +7,14 @@ import { rendererLabels, rendererList } from "@/renderers";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { Item } from "@/types";
+import { t } from "@/i18n";
 
 // ⌘K palette — flat filtered list over actions + service endpoints.
 // No cmdk dep: an input, a list, and an active-index is the whole mechanic.
 
 interface Command {
 	id: string;
-	group: "Actions" | "Services";
+	group: "actions" | "services";
 	icon?: Item;
 	glyph?: typeof LayoutGrid;
 	label: string;
@@ -42,28 +43,28 @@ export function CommandPalette({
 
 	const commands = useMemo<Command[]>(() => {
 		const cmds: Command[] = [
-			{ id: "nav-board", group: "Actions", glyph: LayoutGrid, label: "Go to Board", run: () => navigate("/") },
-			{ id: "nav-monitors", group: "Actions", glyph: Activity, label: "Go to Monitors", run: () => navigate("/monitors") },
-			{ id: "nav-domains", group: "Actions", glyph: Globe, label: "Go to Domains", run: () => navigate("/domains") },
-			{ id: "nav-systems", group: "Actions", glyph: Server, label: "Go to Systems", run: () => navigate("/systems") },
-			{ id: "nav-incidents", group: "Actions", glyph: AlertTriangle, label: "Go to Incidents", run: () => navigate("/incidents") },
-			{ id: "nav-status", group: "Actions", glyph: Megaphone, label: "Go to Status pages", run: () => navigate("/status") },
-			{ id: "add-service", group: "Actions", glyph: Plus, label: "Add service", hint: "new", run: onAddService },
-			{ id: "add-widget", group: "Actions", glyph: Plus, label: "Add widget", hint: "new", run: onAddWidget },
-			{ id: "settings", group: "Actions", glyph: Settings, label: "Open settings", run: onSettings },
+			{ id: "nav-board", group: "actions", glyph: LayoutGrid, label: t("palette.goTo", { page: t("nav.board") }), run: () => navigate("/") },
+			{ id: "nav-monitors", group: "actions", glyph: Activity, label: t("palette.goTo", { page: t("nav.monitors") }), run: () => navigate("/monitors") },
+			{ id: "nav-domains", group: "actions", glyph: Globe, label: t("palette.goTo", { page: t("nav.domains") }), run: () => navigate("/domains") },
+			{ id: "nav-systems", group: "actions", glyph: Server, label: t("palette.goTo", { page: t("nav.systems") }), run: () => navigate("/systems") },
+			{ id: "nav-incidents", group: "actions", glyph: AlertTriangle, label: t("palette.goTo", { page: t("nav.incidents") }), run: () => navigate("/incidents") },
+			{ id: "nav-status", group: "actions", glyph: Megaphone, label: t("palette.goTo", { page: t("statusPages.title") }), run: () => navigate("/status") },
+			{ id: "add-service", group: "actions", glyph: Plus, label: t("header.addService"), hint: t("palette.hintNew"), run: onAddService },
+			{ id: "add-widget", group: "actions", glyph: Plus, label: t("header.addWidget"), hint: t("palette.hintNew"), run: onAddWidget },
+			{ id: "settings", group: "actions", glyph: Settings, label: t("palette.openSettings"), run: onSettings },
 			{
-				id: "theme", group: "Actions", glyph: board.theme === "dark" ? Sun : Moon,
-				label: `Switch to ${board.theme === "dark" ? "light" : "dark"} theme`,
+				id: "theme", group: "actions", glyph: board.theme === "dark" ? Sun : Moon,
+				label: t("palette.themeSwitch", { theme: board.theme === "dark" ? t("settings.light") : t("settings.dark") }),
 				run: () => void board.setSetting("theme", board.theme === "dark" ? "light" : "dark"),
 			},
 			...rendererList.map((r): Command => ({
-				id: `renderer-${r}`, group: "Actions", glyph: LayoutGrid,
-				label: `Renderer: ${rendererLabels[r]}`,
-				hint: board.renderer === r ? "active" : undefined,
+				id: `renderer-${r}`, group: "actions", glyph: LayoutGrid,
+				label: t("palette.renderer", { name: rendererLabels[r] }),
+				hint: board.renderer === r ? t("palette.hintActive") : undefined,
 				run: () => void board.setSetting("renderer", r),
 			})),
 			{
-				id: "export", group: "Actions", glyph: Download, label: "Export board JSON",
+				id: "export", group: "actions", glyph: Download, label: t("palette.exportJson"),
 				run: () => { window.open("/api/export", "_blank", "noopener"); },
 			},
 		];
@@ -72,7 +73,7 @@ export function CommandPalette({
 				if (it.kind === "widget") continue;
 				for (const u of it.urls) {
 					cmds.push({
-						id: `svc-${u.id}`, group: "Services", icon: it,
+						id: `svc-${u.id}`, group: "services", icon: it,
 						label: u.label ? `${it.name} — ${u.label}` : it.name,
 						hint: hostOf(u.url),
 						run: () => window.open(u.url, "_blank", "noopener"),
@@ -105,7 +106,7 @@ export function CommandPalette({
 		c.run();
 	}
 
-	const groups: { name: string; items: { c: Command; i: number }[] }[] = [];
+	const groups: { name: Command["group"]; items: { c: Command; i: number }[] }[] = [];
 	filtered.forEach((c, i) => {
 		const g = groups.find((g) => g.name === c.group);
 		if (g) g.items.push({ c, i });
@@ -115,7 +116,7 @@ export function CommandPalette({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="top-[18%] max-w-[520px] translate-y-0 gap-0 overflow-hidden p-0" showCloseButton={false}>
-				<DialogTitle className="sr-only">Command palette</DialogTitle>
+				<DialogTitle className="sr-only">{t("palette.title")}</DialogTitle>
 				<div className="flex items-center gap-2.5 border-b border-border px-4">
 					<input
 						autoFocus
@@ -126,18 +127,18 @@ export function CommandPalette({
 							else if (e.key === "ArrowUp") { e.preventDefault(); setActive(clamped - 1); }
 							else if (e.key === "Enter") { e.preventDefault(); pick(clamped); }
 						}}
-						placeholder="Search services and actions…"
+						placeholder={t("palette.placeholder")}
 						className="h-12 w-full bg-transparent text-[14px] outline-none placeholder:text-text-faint focus-visible:outline-none"
 					/>
 					<kbd className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] text-text-faint">esc</kbd>
 				</div>
 				<div ref={listRef} className="max-h-[340px] overflow-y-auto p-1.5">
 					{filtered.length === 0 ? (
-						<p className="px-3 py-6 text-center text-[12.5px] text-text-faint">No matches.</p>
+						<p className="px-3 py-6 text-center text-[12.5px] text-text-faint">{t("palette.noResults")}</p>
 					) : groups.map((g) => (
 						<div key={g.name}>
 							<div className="px-2.5 pb-1 pt-2 font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">
-								{g.name}
+								{t(`palette.${g.name}`)}
 							</div>
 							{g.items.map(({ c, i }) => (
 								<button

@@ -6,6 +6,7 @@ import { renderers } from "@/renderers";
 import type { Item } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { t } from "@/i18n";
 
 // Board is the renderer-agnostic glue: state + dnd + sort contexts wired once,
 // the active renderer supplies the chrome.
@@ -31,7 +32,7 @@ export function Board({ onEditItem }: { onEditItem: (item: Item) => void }) {
 	if (board.sections.length === 0) {
 		return (
 			<main className="mx-auto flex max-w-[1140px] flex-col items-center gap-4 px-7 pb-24 pt-24">
-				<p className="text-[13px] text-text-faint">No sections yet.</p>
+				<p className="text-[13px] text-text-faint">{t("board.empty")}</p>
 				<AddSectionRow
 					open={addingSection} setOpen={setAddingSection}
 					name={sectionName} setName={setSectionName} onSubmit={submitSection}
@@ -52,7 +53,7 @@ export function Board({ onEditItem }: { onEditItem: (item: Item) => void }) {
 								index={si}
 								onToggle={() => void board.patchSection(sec.id, { collapsed: !sec.collapsed })}
 								onDelete={() => {
-									if (window.confirm(`Delete section "${sec.name}" and its ${sec.items.length} items?`)) {
+									if (window.confirm(t("board.deleteSectionConfirm", { name: sec.name ?? "", count: sec.items.length }))) {
 										void board.deleteSection(sec.id);
 									}
 								}}
@@ -100,7 +101,7 @@ function AddSectionRow({
 	if (!open) {
 		return (
 			<Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
-				<Plus size={12} /> Add section
+				<Plus size={12} /> {t("board.addSection")}
 			</Button>
 		);
 	}
@@ -110,12 +111,12 @@ function AddSectionRow({
 				autoFocus
 				value={name}
 				onChange={(e) => setName(e.target.value)}
-				placeholder="Section name"
+				placeholder={t("board.sectionNamePlaceholder")}
 				className="w-[200px]"
 				onBlur={() => !name.trim() && setOpen(false)}
 				onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
 			/>
-			<Button type="submit" size="sm">Add</Button>
+			<Button type="submit" size="sm">{t("common.add")}</Button>
 		</form>
 	);
 }
