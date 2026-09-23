@@ -1,20 +1,89 @@
 name: release
 
+# Releases are cut automatically from main: after the ci workflow passes on a
+# main push, the version job bumps semver from conventional commit subjects
+# (BREAKING/! -> major, feat -> minor, otherwise patch), pushes the tag, and
+# the build jobs release it. Manual tags are not used; workflow_dispatch
+# re-runs the same flow on demand.
 on:
-  push:
-    tags: ["v*"]
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
   packages: write
 
+# Two merges racing would compute the same tag; serialize instead.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      semver: ${{ steps.v.outputs.semver }}
+      major_minor: ${{ steps.v.outputs.major_minor }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - id: v
+        run: |
+          set -euo pipefail
+          latest="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
+          if [ -z "$latest" ]; then
+            version="v0.1.0"; bump="minor"
+          else
+            subjects="$(git log "$latest"..HEAD --format=%s)"
+            if grep -qiE 'BREAKING[ -]CHANGE|^[a-z]+(\([^)]*\))?!:' <<< "$subjects"; then
+              bump="major"
+            elif grep -qE '^feat(\([^)]*\))?:' <<< "$subjects"; then
+              bump="minor"
+            else
+              bump="patch"
+            fi
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            case "$bump" in
+              major) major=$((major+1)); minor=0; patch=0 ;;
+              minor) minor=$((minor+1)); patch=0 ;;
+              *)     patch=$((patch+1)) ;;
+            esac
+            version="v${major}.${minor}.${patch}"
+          fi
+          semver="${version#v}"
+          IFS=. read -r mj mn _ <<< "$semver"
+          {
+            echo "version=$version"
+            echo "semver=$semver"
+            echo "major_minor=$mj.$mn"
+          } >> "$GITHUB_OUTPUT"
+          echo "latest=${latest:-none} bump=$bump -> $version"
+
+      - name: Push tag
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$VERSION"
+          git push origin "$VERSION"
+
   binaries:
+    needs: version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # goreleaser needs full history for tag + changelog
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -40,11 +109,15 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GORELEASER_CURRENT_TAG: ${{ needs.version.outputs.version }}
 
   docker:
+    needs: version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: docker/setup-buildx-action@v3
 
@@ -59,8 +132,8 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ needs.version.outputs.semver }}
+            type=raw,value=${{ needs.version.outputs.major_minor }}
             type=raw,value=latest
 
       - uses: docker/build-push-action@v6

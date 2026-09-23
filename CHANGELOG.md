@@ -6,6 +6,8 @@ All notable changes to Dash. Format follows
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-09-23
+
 ### Added
 
 - Domain detail now identifies vendors per record: A/AAAA/CNAME/NS/MX/TXT
@@ -124,7 +126,8 @@ All notable changes to Dash. Format follows
 - Single Go binary serving the embedded React UI; SQLite via goose migrations;
   Docker image on distroless
 
-[Unreleased]: https://github.com/Dvorinka/Dash/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Dvorinka/Dash/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/Dvorinka/Dash/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Dvorinka/Dash/compare/v0.7.0...v2.0.0
 [0.7.0]: https://github.com/Dvorinka/Dash/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Dvorinka/Dash/compare/v0.5.0...v0.6.0
