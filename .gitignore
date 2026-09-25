@@ -27,3 +27,4 @@ dist/
 # local tooling artifacts
 .playwright-mcp/
 .playwright-cli/
+.vercel
