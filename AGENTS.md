@@ -9,6 +9,8 @@ Optional auth (off by default), no YAML. See `ROADMAP.md` (canonical) and
 - `apps/frontend` — React 18 + Vite + TS strict + Tailwind v4 + shadcn/ui
 - `apps/backend` — Go + Gin + zap, CGO-free, SQLite via `modernc.org/sqlite`
 - `packages/api-client` — generated TS client; `openapi.yaml` at repo root is the contract
+- `landing/` — Next.js 15 marketing site (own package.json, not a workspace);
+  Vercel project `dash`, root dir `landing`, git-connected to this repo
 - `infra/` — Dockerfile (multi-stage, one image)
 - `tools/oxlint/anti-slop` — vendored lint plugin (do not extend casually)
 - `data/` — runtime SQLite + uploaded icons (gitignored)
