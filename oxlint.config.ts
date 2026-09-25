@@ -6,6 +6,7 @@ export default defineConfig({
 		".claude/**",
 		"tools/oxlint/anti-slop/**",
 		"packages/api-client/src/schema.d.ts",
+		"landing/next-env.d.ts",
 		"**/dist/**",
 		"**/node_modules/**",
 	],

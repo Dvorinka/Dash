@@ -28,3 +28,4 @@ dist/
 .playwright-mcp/
 .playwright-cli/
 .vercel
+.env*
