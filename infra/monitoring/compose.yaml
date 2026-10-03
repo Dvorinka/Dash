@@ -1,0 +1,65 @@
+# External monitoring stack — independent of the Dash container.
+# Run on any host (a small Debian LXC on Proxmox works well):
+#   cp pve.yml.example pve.yml   # fill in your PVE API token
+#   docker compose up -d
+# All state lives in named volumes.
+name: dash-monitoring
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle        # POST /-/reload applies config changes
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      # LAN convenience for Dash iframe widgets: read-only anonymous access.
+      # Anyone on your network can VIEW dashboards without logging in.
+      # Delete these three lines to require sign-in instead.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ALLOW_EMBEDDING: "true"   # required for iframe embeds
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+  pve-exporter:
+    image: prompve/prometheus-pve-exporter:latest
+    container_name: pve-exporter
+    restart: unless-stopped
+    command: ["--config.file", "/etc/pve.yml"]
+    volumes:
+      - ./pve.yml:/etc/pve.yml:ro
+    ports:
+      - "9221:9221"
+
+  beszel-hub:
+    image: henrygd/beszel:latest
+    container_name: beszel
+    restart: unless-stopped
+    volumes:
+      - beszel-data:/beszel_data
+    ports:
+      - "8090:8090"
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  beszel-data:

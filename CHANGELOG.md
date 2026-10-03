@@ -6,6 +6,14 @@ All notable changes to Dash. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- External monitoring stack `infra/monitoring/` (Prometheus + Grafana +
+  prometheus-pve-exporter + Beszel hub) with a `docs/monitoring.md` guide:
+  Beszel agents cover the physical hosts, pve-exporter covers all LXCs/VMs
+  via the PVE API, and existing JSON-path/embed widgets plus monitors
+  consume the data — no app code required
+
 ## [2.1.0] — 2026-09-23
 
 ### Added

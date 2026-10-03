@@ -15,6 +15,7 @@ data/*
 # env / secrets
 .env
 .env.*
+infra/monitoring/pve.yml
 
 # misc
 .DS_Store
