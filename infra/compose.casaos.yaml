@@ -1,0 +1,57 @@
+# CasaOS-ready compose. Import via Apps -> Custom Install -> Import from file.
+#
+# Do NOT paste the repo's docker-compose.yml into CasaOS: it copies imported
+# files to /tmp/casaos-compose-app-* and runs them there, so a relative
+# "./data" bind resolves under /tmp — install fails with "bind source path
+# does not exist", and even if created the data dies on reboot. This file
+# binds /DATA/AppData/dash instead — CasaOS's persistent app-data root,
+# browsable in the Files app.
+name: dash
+
+services:
+  dash:
+    image: ghcr.io/dvorinka/dash:latest
+    container_name: dash
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Short-form bind auto-creates the host dir; long-form "type: bind" does
+      # not unless bind.create_host_path is set.
+      - /DATA/AppData/dash:/data
+    x-casaos:
+      envs:
+        - container: TZ
+          description:
+            en_us: "Timezone, e.g. Europe/Prague"
+      ports:
+        - container: "3000"
+          description:
+            en_us: "Web UI and API"
+      volumes:
+        - container: /data
+          description:
+            en_us: "All Dash state: SQLite database and uploaded icons"
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: dash
+  author: Dvorinka
+  category: Dashboard
+  developer: Dvorinka
+  description:
+    en_us: "Self-hosted homelab dashboard: services, uptime monitors, domain watch, system metrics. Single container, all state in /data."
+  icon: https://raw.githubusercontent.com/Dvorinka/Dash/main/dash.svg
+  tagline:
+    en_us: "Homelab dashboard in a single container"
+  thumbnail: ""
+  title:
+    en_us: Dash
+  scheme: http
+  port_map: "3000"
+  index: /
+  store_app_id: dash

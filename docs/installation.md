@@ -43,6 +43,19 @@ To build the image locally instead of pulling:
 docker compose up --build
 ```
 
+## CasaOS
+
+Do not paste `docker-compose.yml` into CasaOS's custom install. CasaOS copies
+imported compose files to `/tmp/casaos-compose-app-*` and runs them there, so
+the relative `./data` bind resolves under `/tmp` — install fails with
+`bind source path does not exist`, and anything written would be wiped on
+reboot anyway.
+
+Use `infra/compose.casaos.yaml` instead (Apps → Custom Install → Import). It
+mounts `/DATA/AppData/dash` on the host — persistent across reboots and
+browsable in the CasaOS Files app — and carries the `x-casaos` metadata the
+app tile uses.
+
 ## Binary
 
 Release archives contain a static `dash` binary (no CGO, no dependencies).
