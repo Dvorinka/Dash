@@ -9,5 +9,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
+      # CasaOS: use infra/compose.casaos.yaml — CasaOS runs compose from /tmp,
+      # so this relative path fails there and would not survive a reboot.
       - ./data:/data
     restart: unless-stopped

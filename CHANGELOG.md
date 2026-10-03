@@ -13,6 +13,10 @@ All notable changes to Dash. Format follows
   Beszel agents cover the physical hosts, pve-exporter covers all LXCs/VMs
   via the PVE API, and existing JSON-path/embed widgets plus monitors
   consume the data — no app code required
+- CasaOS deployment file `infra/compose.casaos.yaml` with app-store
+  (`x-casaos`) metadata and a persistent `/DATA/AppData/dash` bind mount;
+  the repo compose's relative `./data` fails under CasaOS, which runs
+  compose from `/tmp` and loses it on reboot
 
 ## [2.1.0] — 2026-09-23
 
