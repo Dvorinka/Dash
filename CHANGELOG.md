@@ -6,6 +6,13 @@ All notable changes to Dash. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- CasaOS deployment file `infra/compose.casaos.yaml` with app-store
+  (`x-casaos`) metadata and a persistent `/DATA/AppData/dash` bind mount;
+  the repo compose's relative `./data` fails under CasaOS, which runs
+  compose from `/tmp` and loses it on reboot
+
 ## [2.1.0] — 2026-09-23
 
 ### Added
