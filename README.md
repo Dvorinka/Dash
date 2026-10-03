@@ -117,6 +117,7 @@ in [docs/installation.md](docs/installation.md#dash-agent-system-monitoring).
 
 - [docs/installation.md](docs/installation.md) — Docker, binary, agent, reverse proxy, upgrades
 - [docs/configuration.md](docs/configuration.md) — env vars, notifications, auth, boards, operations
+- [docs/monitoring.md](docs/monitoring.md) — external monitoring stack (Beszel + Prometheus/Grafana) and how Dash consumes it
 - [docs/widgets.md](docs/widgets.md) — widget development guide
 - `openapi.yaml` — API contract (generated TS client in `packages/api-client`)
 - [ROADMAP.md](ROADMAP.md) — design decisions and release history

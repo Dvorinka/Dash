@@ -1,0 +1,31 @@
+# Prometheus scrape config for the Dash-adjacent monitoring stack.
+# Adjust the host addresses to your LAN before starting.
+
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  # Proxmox cluster: node + every LXC/VM via the PVE API.
+  # No agents inside guests — pve-exporter asks the API on :8006.
+  - job_name: pve
+    metrics_path: /pve
+    params:
+      module: [default]
+      cluster: ["1"]
+      node: ["1"]
+    static_configs:
+      - targets: ["PVE_HOST:8006"]   # <- your Proxmox host
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: pve-exporter:9221
+
+  # Dash itself — it exposes Prometheus-format metrics already.
+  - job_name: dash
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ["DASH_HOST:3000"]   # <- wherever Dash runs (CasaOS box, etc.)

@@ -8,6 +8,11 @@ All notable changes to Dash. Format follows
 
 ### Added
 
+- External monitoring stack `infra/monitoring/` (Prometheus + Grafana +
+  prometheus-pve-exporter + Beszel hub) with a `docs/monitoring.md` guide:
+  Beszel agents cover the physical hosts, pve-exporter covers all LXCs/VMs
+  via the PVE API, and existing JSON-path/embed widgets plus monitors
+  consume the data — no app code required
 - CasaOS deployment file `infra/compose.casaos.yaml` with app-store
   (`x-casaos`) metadata and a persistent `/DATA/AppData/dash` bind mount;
   the repo compose's relative `./data` fails under CasaOS, which runs

@@ -1,0 +1,13 @@
+# prometheus-pve-exporter config — copy to pve.yml and fill in.
+# pve.yml contains a credential: keep it out of git.
+#
+# Recommended setup on the Proxmox host:
+#   pveum user add dashmon@pve --comment "read-only monitoring"
+#   pveum aclmod / -user dashmon@pve -role PVEAuditor
+#   Datacenter -> Permissions -> API Tokens -> add token "dash" for dashmon@pve,
+#   uncheck "Privilege Separation" (the token inherits the user's PVEAuditor role)
+default:
+  user: dashmon@pve
+  token_name: dash
+  token_value: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  verify_ssl: false        # PVE ships self-signed certs on LAN
