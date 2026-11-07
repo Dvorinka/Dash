@@ -150,6 +150,12 @@ export const en = {
 	"widget.blockedLbl": "blocked",
 	"widget.photosLbl": "photos",
 	"widget.embedHint": "Set a URL in the widget config.",
+	"widget.queue": "{n} queued",
+	"widget.pending": "{n} pending",
+	"widget.indexers": "{n} indexers",
+	"widget.releases": "{n} releases",
+	"widget.issues": "{n} issues",
+	"widget.update": "update available",
 
 	"renderer.localTime": "Local time",
 	"renderer.down": "Down",

@@ -8,6 +8,12 @@ All notable changes to Dash. Format follows
 
 ### Added
 
+- Service widgets for the *arr ecosystem, modelled on dashbrr's integration
+  layer: Sonarr, Radarr, Lidarr, Readarr, Whisparr, Prowlarr (`X-Api-Key`,
+  `/api/<v1|v3>/*`), Autobrr (`X-Api-Token`), Bazarr (`X-API-KEY`, `{data}`
+  envelopes), and Overseerr/Jellyseerr (`/api/v1/*`). Each tile shows status,
+  version, queue/indexer/request counts, update availability, and health
+  warnings via one shared `ServiceWidget` view
 - External monitoring stack `infra/monitoring/` (Prometheus + Grafana +
   prometheus-pve-exporter + Beszel hub) with a `docs/monitoring.md` guide:
   Beszel agents cover the physical hosts, pve-exporter covers all LXCs/VMs
