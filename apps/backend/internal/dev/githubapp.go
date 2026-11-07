@@ -112,24 +112,37 @@ func (g GitHub) AppInstallations(ctx context.Context, host, appID, pemKey string
 	if err != nil {
 		return nil, err
 	}
-	var resp struct {
-		Installations []struct {
-			ID      int64 `json:"id"`
-			Account struct {
-				Login string `json:"login"`
-			} `json:"account"`
-			RepositorySelection string `json:"repository_selection"`
-		} `json:"installations"`
+	type installation struct {
+		ID      int64 `json:"id"`
+		Account struct {
+			Login string `json:"login"`
+		} `json:"account"`
+		RepositorySelection string `json:"repository_selection"`
 	}
-	if err := ghDo(ctx, http.MethodGet, g.apiBase(host)+"/app/installations", jwt, nil, &resp); err != nil {
+	var raw json.RawMessage
+	if err := ghDo(ctx, http.MethodGet, g.apiBase(host)+"/app/installations", jwt, nil, &raw); err != nil {
 		return nil, err
+	}
+	var items []installation
+	if len(raw) > 0 && raw[0] == '[' {
+		if err := json.Unmarshal(raw, &items); err != nil {
+			return nil, err
+		}
+	} else {
+		var wrap struct {
+			Installations []installation `json:"installations"`
+		}
+		if err := json.Unmarshal(raw, &wrap); err != nil {
+			return nil, err
+		}
+		items = wrap.Installations
 	}
 	out := make([]struct {
 		ID         int64  `json:"id"`
 		Account    string `json:"account"`
 		Repository string `json:"repository_selection"`
-	}, 0, len(resp.Installations))
-	for _, i := range resp.Installations {
+	}, 0, len(items))
+	for _, i := range items {
 		out = append(out, struct {
 			ID         int64  `json:"id"`
 			Account    string `json:"account"`
