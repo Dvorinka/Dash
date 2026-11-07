@@ -307,6 +307,80 @@ func (GitLab) CommentPR(ctx context.Context, p Project, token string, number int
 		token, map[string]any{"body": body}, nil)
 }
 
+func (GitLab) Comments(ctx context.Context, p Project, token string, kind string, number int) ([]ItemComment, error) {
+	coll := "issues"
+	if kind == "pr" {
+		coll = "merge_requests"
+	}
+	var raw []struct {
+		Author struct {
+			Username string `json:"username"`
+		} `json:"author"`
+		Body      string `json:"body"`
+		System    bool   `json:"system"`
+		CreatedAt string `json:"created_at"`
+	}
+	err := glDo(ctx, http.MethodGet,
+		fmt.Sprintf("%s/projects/%s/%s/%d/notes?per_page=100&sort=asc",
+			GitLab{}.apiBase(p.Host), projectID(p.Path), coll, number), token, nil, &raw)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ItemComment, 0, len(raw))
+	for _, n := range raw {
+		if n.System {
+			continue
+		}
+		out = append(out, ItemComment{
+			Author: n.Author.Username, Body: n.Body,
+			CreatedAt: *ParseTime(n.CreatedAt),
+		})
+	}
+	return out, nil
+}
+
+func (GitLab) PRFiles(ctx context.Context, p Project, token string, number int) ([]DiffFile, error) {
+	var raw []struct {
+		OldPath string `json:"old_path"`
+		NewPath string `json:"new_path"`
+		Diff    string `json:"diff"`
+		NewFile bool   `json:"new_file"`
+		Renamed bool   `json:"renamed_file"`
+		Deleted bool   `json:"deleted_file"`
+	}
+	err := glDo(ctx, http.MethodGet,
+		fmt.Sprintf("%s/projects/%s/merge_requests/%d/diffs?per_page=100",
+			GitLab{}.apiBase(p.Host), projectID(p.Path), number), token, nil, &raw)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DiffFile, 0, len(raw))
+	for _, f := range raw {
+		status := "modified"
+		switch {
+		case f.NewFile:
+			status = "added"
+		case f.Deleted:
+			status = "removed"
+		case f.Renamed:
+			status = "renamed"
+		}
+		adds, dels := 0, 0
+		for _, line := range strings.Split(f.Diff, "\n") {
+			if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
+				adds++
+			} else if strings.HasPrefix(line, "-") && !strings.HasPrefix(line, "---") {
+				dels++
+			}
+		}
+		out = append(out, DiffFile{
+			Filename: f.NewPath, Status: status,
+			Additions: adds, Deletions: dels, Patch: f.Diff,
+		})
+	}
+	return out, nil
+}
+
 func (GitLab) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {
 	var raw []struct {
 		PathWithNamespace string `json:"path_with_namespace"`

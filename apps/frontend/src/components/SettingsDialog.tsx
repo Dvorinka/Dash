@@ -86,7 +86,8 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 			setNotifyMsg("");
 			const dev: Record<string, string> = {};
 			for (const k of ["dev.githubToken", "dev.gitlabToken", "dev.giteaToken",
-				"dev.githubAppId", "dev.githubAppPrivateKey", "dev.syncIntervalSec"]) {
+				"dev.githubAppId", "dev.githubAppPrivateKey", "dev.syncIntervalSec",
+				"dev.githubWebhookSecret", "dev.gitlabWebhookSecret"]) {
 				const v = data?.[k];
 				if (typeof v === "string") dev[k] = v;
 			}
@@ -102,6 +103,8 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 		{ k: "dev.githubAppId", l: "settings.devAppId" },
 		{ k: "dev.githubAppPrivateKey", l: "settings.devAppKey", secret: true, area: true },
 		{ k: "dev.syncIntervalSec", l: "settings.devSyncInterval" },
+		{ k: "dev.githubWebhookSecret", l: "settings.devGhHook", secret: true },
+		{ k: "dev.gitlabWebhookSecret", l: "settings.devGlHook", secret: true },
 	];
 
 	async function saveDev() {

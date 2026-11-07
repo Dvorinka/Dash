@@ -715,6 +715,46 @@ func (s *Server) devSyncAll(c *gin.Context) {
 	c.Status(http.StatusAccepted)
 }
 
+// devComments lists comments on an issue or PR (kind: "issue" | "pr").
+func (s *Server) devComments(c *gin.Context, kind string) {
+	a, ok := s.devActionFor(c)
+	if !ok {
+		return
+	}
+	n, err := strconv.Atoi(c.Param("number"))
+	if err != nil {
+		fail(c, http.StatusBadRequest, "bad number")
+		return
+	}
+	comments, err := a.Provider.Comments(c.Request.Context(), a.Project, a.Token, kind, n)
+	if err != nil {
+		fail(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, comments)
+}
+
+func (s *Server) devIssueComments(c *gin.Context) { s.devComments(c, "issue") }
+func (s *Server) devPRComments(c *gin.Context)    { s.devComments(c, "pr") }
+
+func (s *Server) devPRFiles(c *gin.Context) {
+	a, ok := s.devActionFor(c)
+	if !ok {
+		return
+	}
+	n, err := strconv.Atoi(c.Param("number"))
+	if err != nil {
+		fail(c, http.StatusBadRequest, "bad number")
+		return
+	}
+	files, err := a.Provider.PRFiles(c.Request.Context(), a.Project, a.Token, n)
+	if err != nil {
+		fail(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, files)
+}
+
 // devDiscover lists repos a token/app can access (auto-detect).
 func (s *Server) devDiscover(c *gin.Context) {
 	var in struct {

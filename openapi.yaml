@@ -1574,6 +1574,89 @@ paths:
         "502":
           $ref: "#/components/responses/BadRequest"
 
+  /api/dev/projects/{id}/issues/{number}/comments:
+    get:
+      operationId: listDevIssueComments
+      summary: Comments on an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevItemComment"
+
+  /api/dev/projects/{id}/pullrequests/{number}/comments:
+    get:
+      operationId: listDevPRComments
+      summary: Comments on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevItemComment"
+
+  /api/dev/projects/{id}/pullrequests/{number}/files:
+    get:
+      operationId: listDevPRFiles
+      summary: Changed files with patches for a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevDiffFile"
+
+  /api/dev/hooks/github:
+    post:
+      operationId: devHookGitHub
+      summary: GitHub webhook receiver (HMAC-verified, public)
+      responses:
+        "200":
+          description: Accepted
+        "401":
+          description: Bad signature
+
+  /api/dev/hooks/gitlab:
+    post:
+      operationId: devHookGitLab
+      summary: GitLab webhook receiver (token-verified, public)
+      responses:
+        "200":
+          description: Accepted
+        "401":
+          description: Bad token
+
   /api/dev/sync:
     post:
       operationId: syncAllDevProjects
@@ -2678,6 +2761,21 @@ components:
       required: [body]
       properties:
         body: { type: string }
+    DevItemComment:
+      type: object
+      properties:
+        author: { type: string }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+        url: { type: string }
+    DevDiffFile:
+      type: object
+      properties:
+        filename: { type: string }
+        status: { type: string }
+        additions: { type: integer }
+        deletions: { type: integer }
+        patch: { type: string }
     DevOverview:
       type: object
       properties:

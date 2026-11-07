@@ -330,6 +330,57 @@ func (GitHub) CommentPR(ctx context.Context, p Project, token string, number int
 	return GitHub{}.CommentIssue(ctx, p, token, number, body)
 }
 
+// Comments lists issue/PR conversation comments — GitHub serves both
+// from the issues comments endpoint.
+func (GitHub) Comments(ctx context.Context, p Project, token string, kind string, number int) ([]ItemComment, error) {
+	var raw []struct {
+		User struct {
+			Login string `json:"login"`
+		} `json:"user"`
+		Body      string `json:"body"`
+		CreatedAt string `json:"created_at"`
+		HTMLURL   string `json:"html_url"`
+	}
+	err := ghDo(ctx, http.MethodGet,
+		fmt.Sprintf("%s/repos/%s/issues/%d/comments?per_page=100",
+			GitHub{}.apiBase(p.Host), p.Path, number), token, nil, &raw)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ItemComment, 0, len(raw))
+	for _, c := range raw {
+		out = append(out, ItemComment{
+			Author: c.User.Login, Body: c.Body, URL: c.HTMLURL,
+			CreatedAt: *ParseTime(c.CreatedAt),
+		})
+	}
+	return out, nil
+}
+
+func (GitHub) PRFiles(ctx context.Context, p Project, token string, number int) ([]DiffFile, error) {
+	var raw []struct {
+		Filename  string `json:"filename"`
+		Status    string `json:"status"`
+		Additions int    `json:"additions"`
+		Deletions int    `json:"deletions"`
+		Patch     string `json:"patch"`
+	}
+	err := ghDo(ctx, http.MethodGet,
+		fmt.Sprintf("%s/repos/%s/pulls/%d/files?per_page=100",
+			GitHub{}.apiBase(p.Host), p.Path, number), token, nil, &raw)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DiffFile, 0, len(raw))
+	for _, f := range raw {
+		out = append(out, DiffFile{
+			Filename: f.Filename, Status: f.Status,
+			Additions: f.Additions, Deletions: f.Deletions, Patch: f.Patch,
+		})
+	}
+	return out, nil
+}
+
 func (GitHub) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {
 	var raw []struct {
 		FullName string `json:"full_name"`

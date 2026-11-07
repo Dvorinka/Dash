@@ -29,6 +29,15 @@ All notable changes to Dash. Format follows
   (`x-casaos`) metadata and a persistent `/DATA/AppData/dash` bind mount;
   the repo compose's relative `./data` fails under CasaOS, which runs
   compose from `/tmp` and loses it on reboot
+- Developer dashboard (`/dev`): GitHub, GitLab and Gitea/Forgejo projects
+  with manual add and token/app-based discovery, a GitHub-style
+  contribution heatmap (GraphQL `contributionsCollection` on GitHub),
+  synced issue/PR/MR lists, and management actions — merge, close, reopen
+  and comment — plus expandable threads with comment history and PR diff
+  files. GitHub App auth (JWT → installation token) and provider webhooks
+  (`/api/dev/hooks/github`, `/api/dev/hooks/gitlab`) trigger instant
+  resyncs; global provider tokens and webhook secrets live in Settings →
+  Developer
 
 ## [2.1.0] — 2026-09-23
 

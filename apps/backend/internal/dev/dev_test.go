@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -216,4 +217,51 @@ func TestGiteaProvider(t *testing.T) {
 	}
 	_ = lastMethod
 	_ = lastPath
+}
+
+func TestGitHubCommentsAndFiles(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v3/repos/o/r/issues/11/comments", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"user":{"login":"alice"},"body":"hi","created_at":"2026-01-02T00:00:00Z","html_url":"u"}]`))
+	})
+	mux.HandleFunc("/api/v3/repos/o/r/pulls/21/files", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"filename":"a.go","status":"modified","additions":3,"deletions":1,"patch":"@@ -1 +1 @@\n-old\n+new"}]`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	p := Project{Provider: "github", Host: srv.URL, Path: "o/r"}
+
+	cs, err := (GitHub{}).Comments(context.Background(), p, "t", "issue", 11)
+	if err != nil || len(cs) != 1 || cs[0].Author != "alice" || cs[0].Body != "hi" {
+		t.Fatalf("bad comments: %v %+v", err, cs)
+	}
+	fs, err := (GitHub{}).PRFiles(context.Background(), p, "t", 21)
+	if err != nil || len(fs) != 1 || fs[0].Filename != "a.go" || fs[0].Additions != 3 || !strings.Contains(fs[0].Patch, "+new") {
+		t.Fatalf("bad files: %v %+v", err, fs)
+	}
+}
+
+func TestGitLabCommentsAndFiles(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v4/projects/g%2Fp/merge_requests/9/notes", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[
+			{"author":{"username":"zed"},"body":"real","system":false,"created_at":"2026-01-02T00:00:00.000Z"},
+			{"author":{"username":"bot"},"body":"sys","system":true,"created_at":"2026-01-02T00:00:00.000Z"}
+		]`))
+	})
+	mux.HandleFunc("/api/v4/projects/g%2Fp/merge_requests/9/diffs", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"old_path":"a","new_path":"b.go","new_file":true,"diff":"@@\n+one\n+two\n-three\n"}]`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	p := Project{Provider: "gitlab", Host: srv.URL, Path: "g/p"}
+
+	cs, err := (GitLab{}).Comments(context.Background(), p, "t", "pr", 9)
+	if err != nil || len(cs) != 1 || cs[0].Author != "zed" {
+		t.Fatalf("bad comments: %v %+v", err, cs)
+	}
+	fs, err := (GitLab{}).PRFiles(context.Background(), p, "t", 9)
+	if err != nil || len(fs) != 1 || fs[0].Filename != "b.go" || fs[0].Status != "added" || fs[0].Additions != 2 || fs[0].Deletions != 1 {
+		t.Fatalf("bad files: %v %+v", err, fs)
+	}
 }

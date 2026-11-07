@@ -282,6 +282,55 @@ func (Gitea) CommentPR(ctx context.Context, p Project, token string, number int,
 	return Gitea{}.CommentIssue(ctx, p, token, number, body)
 }
 
+func (Gitea) Comments(ctx context.Context, p Project, token string, kind string, number int) ([]ItemComment, error) {
+	var raw []struct {
+		User struct {
+			Login string `json:"login"`
+		} `json:"user"`
+		Body      string `json:"body"`
+		CreatedAt string `json:"created_at"`
+		HTMLURL   string `json:"html_url"`
+	}
+	err := gtDo(ctx, http.MethodGet,
+		fmt.Sprintf("%s/repos/%s/issues/%d/comments",
+			Gitea{}.apiBase(p.Host), p.Path, number), token, nil, &raw)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ItemComment, 0, len(raw))
+	for _, c := range raw {
+		out = append(out, ItemComment{
+			Author: c.User.Login, Body: c.Body, URL: c.HTMLURL,
+			CreatedAt: *ParseTime(c.CreatedAt),
+		})
+	}
+	return out, nil
+}
+
+func (Gitea) PRFiles(ctx context.Context, p Project, token string, number int) ([]DiffFile, error) {
+	var raw []struct {
+		Filename  string `json:"filename"`
+		Status    string `json:"status"`
+		Additions int    `json:"additions"`
+		Deletions int    `json:"deletions"`
+		Patch     string `json:"patch"`
+	}
+	err := gtDo(ctx, http.MethodGet,
+		fmt.Sprintf("%s/repos/%s/pulls/%d/files",
+			Gitea{}.apiBase(p.Host), p.Path, number), token, nil, &raw)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]DiffFile, 0, len(raw))
+	for _, f := range raw {
+		out = append(out, DiffFile{
+			Filename: f.Filename, Status: f.Status,
+			Additions: f.Additions, Deletions: f.Deletions, Patch: f.Patch,
+		})
+	}
+	return out, nil
+}
+
 func (Gitea) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {
 	var raw []struct {
 		FullName string `json:"full_name"`

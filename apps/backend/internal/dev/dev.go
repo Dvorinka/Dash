@@ -87,6 +87,23 @@ type DayCount struct {
 	Count int    `json:"count"`
 }
 
+// ItemComment is one comment on an issue or PR/MR.
+type ItemComment struct {
+	Author    string    `json:"author"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"createdAt"`
+	URL       string    `json:"url"`
+}
+
+// DiffFile is one changed file in a PR/MR.
+type DiffFile struct {
+	Filename  string `json:"filename"`
+	Status    string `json:"status"` // added | modified | removed | renamed
+	Additions int    `json:"additions"`
+	Deletions int    `json:"deletions"`
+	Patch     string `json:"patch"`
+}
+
 // RepoRef is a discoverable repository returned by Discover.
 type RepoRef struct {
 	Path    string `json:"path"` // owner/repo or group/project
@@ -119,6 +136,10 @@ type Provider interface {
 	CommentIssue(ctx context.Context, p Project, token string, number int, body string) error
 	// CommentPR posts a comment on a PR/MR.
 	CommentPR(ctx context.Context, p Project, token string, number int, body string) error
+	// Comments lists comments; kind is "issue" or "pr".
+	Comments(ctx context.Context, p Project, token string, kind string, number int) ([]ItemComment, error)
+	// PRFiles lists the changed files (with patches where available).
+	PRFiles(ctx context.Context, p Project, token string, number int) ([]DiffFile, error)
 	// Discover lists repos the token can see (auto-detect).
 	Discover(ctx context.Context, host, token string) ([]RepoRef, error)
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, ExternalLink, GitMerge, GitPullRequest, MessageSquare, RefreshCw, RotateCcw, Tag } from "lucide-react";
 import { api } from "@/api";
-import type { DevProject, DevIssue, DevPR, DevDayCount } from "@/types";
+import type { DevProject, DevIssue, DevPR, DevDayCount, DevItemComment, DevDiffFile } from "@/types";
 import { Heatmap } from "@/components/Heatmap";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,8 +45,7 @@ export function DevProjectPage({ id }: { id: string }) {
 	const [issues, setIssues] = useState<DevIssue[]>([]);
 	const [days, setDays] = useState<DevDayCount[]>([]);
 	const [loaded, setLoaded] = useState(false);
-	const [commentFor, setCommentFor] = useState<{ kind: "issue" | "pr"; number: number } | null>(null);
-	const [commentBody, setCommentBody] = useState("");
+	const [openItem, setOpenItem] = useState<{ kind: "issue" | "pr"; number: number } | null>(null);
 
 	const loadMeta = useCallback(async () => {
 		const { data } = await api.GET("/api/dev/projects/{id}", { params: { path: { id } } });
@@ -79,33 +78,108 @@ export function DevProjectPage({ id }: { id: string }) {
 		await loadMeta();
 	}
 
-	function comment() {
-		const body = commentBody.trim();
-		if (!commentFor || !body) return;
-		const { kind, number } = commentFor;
-		const path = kind === "pr"
-			? "/api/dev/projects/{id}/pullrequests/{number}/comment" as const
-			: "/api/dev/projects/{id}/issues/{number}/comment" as const;
-		void act(() => api.POST(path, { params: { path: { id, number } }, body: { body } }));
-		setCommentFor(null);
-		setCommentBody("");
+	function toggleItem(kind: "issue" | "pr", number: number) {
+		setOpenItem((o) => (o?.kind === kind && o.number === number ? null : { kind, number }));
 	}
 
-	function CommentForm({ kind, number }: { kind: "issue" | "pr"; number: number }) {
-		const open = commentFor?.kind === kind && commentFor.number === number;
-		if (!open) return null;
+	// ItemDetail renders the expanded panel: body, comment thread, diff
+	// files (PRs only) and a comment box.
+	function ItemDetail({ kind, number, body }: { kind: "issue" | "pr"; number: number; body: string | undefined }) {
+		const [comments, setComments] = useState<DevItemComment[] | undefined>();
+		const [files, setFiles] = useState<DevDiffFile[] | undefined>();
+		const [draft, setDraft] = useState("");
+		const [busy, setBusy] = useState(false);
+
+		const refreshComments = useCallback(async () => {
+			if (kind === "pr") {
+				const { data } = await api.GET("/api/dev/projects/{id}/pullrequests/{number}/comments",
+					{ params: { path: { id, number } } });
+				setComments(data ?? []);
+			} else {
+				const { data } = await api.GET("/api/dev/projects/{id}/issues/{number}/comments",
+					{ params: { path: { id, number } } });
+				setComments(data ?? []);
+			}
+		}, [id, kind, number]);
+
+		useEffect(() => { void refreshComments(); }, [refreshComments]);
+		useEffect(() => {
+			if (kind !== "pr") return;
+			void api.GET("/api/dev/projects/{id}/pullrequests/{number}/files",
+				{ params: { path: { id, number } } }).then(({ data }) => setFiles(data ?? []));
+		}, [id, kind, number]);
+
+		async function send() {
+			const text = draft.trim();
+			if (!text || busy) return;
+			setBusy(true);
+			if (kind === "pr") {
+				await api.POST("/api/dev/projects/{id}/pullrequests/{number}/comment",
+					{ params: { path: { id, number } }, body: { body: text } });
+			} else {
+				await api.POST("/api/dev/projects/{id}/issues/{number}/comment",
+					{ params: { path: { id, number } }, body: { body: text } });
+			}
+			setDraft("");
+			setBusy(false);
+			await refreshComments();
+			await loadList();
+		}
+
 		return (
-			<div className="mt-2 flex gap-2">
-				<textarea
-					value={commentBody}
-					onChange={(e) => setCommentBody(e.target.value)}
-					placeholder={t("dev.commentPh")}
-					rows={2}
-					className="min-w-0 flex-1 resize-y rounded-[7px] border border-border bg-bg px-2.5 py-1.5 text-[12px] outline-none focus:border-border-strong"
-				/>
-				<Button size="sm" className="h-8 self-end" onClick={comment}>
-					{t("dev.commentSend")}
-				</Button>
+			<div className="mt-2.5 rounded-[8px] border border-border/70 bg-bg/60 p-3">
+				{body && <p className="mb-3 whitespace-pre-wrap text-[12px] leading-relaxed text-text-dim">{body}</p>}
+				{comments === undefined ? (
+					<p className="text-[11px] text-text-faint">…</p>
+				) : comments.length === 0 ? (
+					<p className="mb-2 text-[11px] text-text-faint">{t("dev.noComments")}</p>
+				) : (
+					<div className="mb-3 space-y-2.5">
+						{comments.map((cm, i) => (
+							<div key={i} className="text-[12px]">
+								<div className="flex items-baseline gap-2 font-mono text-[10px] text-text-faint">
+									<span className="text-text-dim">{cm.author}</span>
+									<span>{timeAgo(cm.createdAt)}</span>
+									{cm.url && (
+										<a href={cm.url} target="_blank" rel="noreferrer" className="hover:text-text">
+											<ExternalLink size={9} />
+										</a>
+									)}
+								</div>
+								<p className="mt-0.5 whitespace-pre-wrap text-text-dim">{cm.body}</p>
+							</div>
+						))}
+					</div>
+				)}
+				{files !== undefined && files.length > 0 && (
+					<div className="mb-3 space-y-2">
+						{files.map((f) => (
+							<details key={f.filename} className="rounded-[6px] border border-border/60">
+								<summary className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 font-mono text-[11px]">
+									<span className="min-w-0 flex-1 truncate">{f.filename}</span>
+									<span className="text-text-faint">{f.status}</span>
+									<span className="text-up">+{f.additions}</span>
+									<span className="text-down">−{f.deletions}</span>
+								</summary>
+								{f.patch && (
+									<pre className="overflow-x-auto border-t border-border/60 px-2.5 py-2 font-mono text-[10.5px] leading-relaxed text-text-dim">{f.patch}</pre>
+								)}
+							</details>
+						))}
+					</div>
+				)}
+				<div className="flex gap-2">
+					<textarea
+						value={draft}
+						onChange={(e) => setDraft(e.target.value)}
+						placeholder={t("dev.commentPh")}
+						rows={2}
+						className="min-w-0 flex-1 resize-y rounded-[7px] border border-border bg-bg px-2.5 py-1.5 text-[12px] outline-none focus:border-border-strong"
+					/>
+					<Button size="sm" className="h-8 self-end" onClick={() => void send()} disabled={busy || !draft.trim()}>
+						{t("dev.commentSend")}
+					</Button>
+				</div>
 			</div>
 		);
 	}
@@ -182,9 +256,13 @@ export function DevProjectPage({ id }: { id: string }) {
 						<div key={pr.number ?? 0} className="border-b border-border/60 px-4 py-3 last:border-0 hover:bg-surface-hover/50">
 							<div className="flex items-center gap-2.5">
 								<StateChip state={pr.state ?? ""} />
-								<a href={pr.url ?? "#"} target="_blank" rel="noreferrer"
-									className="min-w-0 flex-1 truncate text-[13px] font-medium hover:underline">
+								<button type="button" onClick={() => toggleItem("pr", pr.number ?? 0)}
+									className="min-w-0 flex-1 truncate text-left text-[13px] font-medium hover:underline">
 									{pr.title}
+								</button>
+								<a href={pr.url ?? "#"} target="_blank" rel="noreferrer"
+									className="shrink-0 text-text-faint hover:text-text" aria-label="open on provider">
+									<ExternalLink size={11} />
 								</a>
 								{pr.draft && <span className="font-mono text-[9.5px] uppercase text-text-faint">draft</span>}
 								{pr.reviewDecision && pr.reviewDecision !== "" && (
@@ -232,12 +310,14 @@ export function DevProjectPage({ id }: { id: string }) {
 										</Button>
 									)}
 									<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
-										onClick={() => { setCommentFor({ kind: "pr", number: pr.number ?? 0 }); setCommentBody(""); }}>
+										onClick={() => toggleItem("pr", pr.number ?? 0)}>
 										<MessageSquare size={10} /> {t("dev.comment")}
 									</Button>
 								</span>
 							</div>
-							<CommentForm kind="pr" number={pr.number ?? 0} />
+							{openItem?.kind === "pr" && openItem.number === (pr.number ?? 0) && (
+								<ItemDetail kind="pr" number={pr.number ?? 0} body={pr.body} />
+							)}
 						</div>
 					))}
 				</div>
@@ -250,9 +330,13 @@ export function DevProjectPage({ id }: { id: string }) {
 						<div key={i.number ?? 0} className="border-b border-border/60 px-4 py-3 last:border-0 hover:bg-surface-hover/50">
 							<div className="flex items-center gap-2.5">
 								<StateChip state={i.state ?? ""} />
-								<a href={i.url ?? "#"} target="_blank" rel="noreferrer"
-									className="min-w-0 flex-1 truncate text-[13px] font-medium hover:underline">
+								<button type="button" onClick={() => toggleItem("issue", i.number ?? 0)}
+									className="min-w-0 flex-1 truncate text-left text-[13px] font-medium hover:underline">
 									{i.title}
+								</button>
+								<a href={i.url ?? "#"} target="_blank" rel="noreferrer"
+									className="shrink-0 text-text-faint hover:text-text" aria-label="open on provider">
+									<ExternalLink size={11} />
 								</a>
 								{i.labels?.map((l) => (
 									<span key={l} className="rounded-[5px] bg-surface-hover px-1.5 py-0.5 font-mono text-[9.5px] text-text-faint">{l}</span>
@@ -287,12 +371,14 @@ export function DevProjectPage({ id }: { id: string }) {
 										</Button>
 									)}
 									<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
-										onClick={() => { setCommentFor({ kind: "issue", number: i.number ?? 0 }); setCommentBody(""); }}>
+										onClick={() => toggleItem("issue", i.number ?? 0)}>
 										<MessageSquare size={10} /> {t("dev.comment")}
 									</Button>
 								</span>
 							</div>
-							<CommentForm kind="issue" number={i.number ?? 0} />
+							{openItem?.kind === "issue" && openItem.number === (i.number ?? 0) && (
+								<ItemDetail kind="issue" number={i.number ?? 0} body={i.body} />
+							)}
 						</div>
 					))}
 				</div>

@@ -480,6 +480,7 @@ export const en = {
 	"dev.comment": "Comment",
 	"dev.commentPh": "Write a comment…",
 	"dev.commentSend": "Send",
+	"dev.noComments": "No comments yet.",
 	"dev.syncAll": "Sync all",
 	"dev.appInstalled": "GitHub App installed (installation {id}). Projects without their own token will use it.",
 	"dev.emptyHint": "Add a GitHub, GitLab or Gitea repository to track its issues, PRs and commits.",
@@ -492,6 +493,8 @@ export const en = {
 	"settings.devAppKey": "GitHub App private key (PEM)",
 	"settings.devAppKeyHint": "Paste the .pem contents from the GitHub App settings.",
 	"settings.devSyncInterval": "Sync interval (seconds, min 30)",
+	"settings.devGhHook": "GitHub webhook secret",
+	"settings.devGlHook": "GitLab webhook token",
 } as const;
 
 export type Key = keyof typeof en;
