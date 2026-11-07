@@ -180,6 +180,9 @@ type ghPR struct {
 	RequestedReviewers []struct {
 		Login string `json:"login"`
 	} `json:"requested_reviewers"`
+	Labels []struct {
+		Name string `json:"name"`
+	} `json:"labels"`
 	CreatedAt string  `json:"created_at"`
 	UpdatedAt string  `json:"updated_at"`
 	MergedAt  *string `json:"merged_at"`
@@ -221,9 +224,13 @@ func (GitHub) PullRequests(ctx context.Context, p Project, token string) ([]Pull
 		for _, r := range pr.RequestedReviewers {
 			reviewers = append(reviewers, r.Login)
 		}
+		labels := make([]string, 0, len(pr.Labels))
+		for _, l := range pr.Labels {
+			labels = append(labels, l.Name)
+		}
 		out = append(out, PullRequest{
 			Number: pr.Number, Title: pr.Title, State: state, Draft: pr.Draft,
-			Author: pr.User.Login, Assignees: assignees, Reviewers: reviewers,
+			Author: pr.User.Login, Assignees: assignees, Reviewers: reviewers, Labels: labels,
 			SourceBranch: pr.Head.Ref, TargetBranch: pr.Base.Ref,
 			Additions: pr.Additions, Deletions: pr.Deletions, ChangedFiles: pr.ChangedFiles,
 			Mergeable: prMergeable(pr.Mergeable, pr.MergeableSt),
@@ -423,6 +430,14 @@ func (GitHub) SetReviewer(ctx context.Context, p Project, token string, number i
 	return ghDo(ctx, method,
 		fmt.Sprintf("%s/repos/%s/pulls/%d/requested_reviewers", GitHub{}.apiBase(p.Host), p.Path, number),
 		token, map[string]any{"reviewers": []string{username}}, nil)
+}
+
+// SetLabels replaces the issue/PR label set — pull requests share the
+// issues labels endpoint, so kind is unused.
+func (GitHub) SetLabels(ctx context.Context, p Project, token string, _ string, number int, labels []string) error {
+	return ghDo(ctx, http.MethodPut,
+		fmt.Sprintf("%s/repos/%s/issues/%d/labels", GitHub{}.apiBase(p.Host), p.Path, number),
+		token, map[string]any{"labels": labels}, nil)
 }
 
 func (GitHub) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {

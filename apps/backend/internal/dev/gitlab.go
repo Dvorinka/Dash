@@ -188,11 +188,12 @@ type glMR struct {
 		ID       int    `json:"id"`
 		Username string `json:"username"`
 	} `json:"reviewers"`
-	ChangesCount string `json:"changes_count"`
-	UserNotesCnt int    `json:"user_notes_count"`
-	WebURL       string `json:"web_url"`
-	Description  string `json:"description"`
-	MergeStatus  string `json:"merge_status"` // can_be_merged | cannot_be_merged | …
+	Labels       []string `json:"labels"`
+	ChangesCount string   `json:"changes_count"`
+	UserNotesCnt int      `json:"user_notes_count"`
+	WebURL       string   `json:"web_url"`
+	Description  string   `json:"description"`
+	MergeStatus  string   `json:"merge_status"` // can_be_merged | cannot_be_merged | …
 	DetailedMR   struct {
 		Draft       bool   `json:"draft"`
 		MergeStatus string `json:"merge_status"`
@@ -243,7 +244,7 @@ func (GitLab) PullRequests(ctx context.Context, p Project, token string) ([]Pull
 		}
 		out = append(out, PullRequest{
 			Number: m.IID, Title: m.Title, State: state, Draft: m.Draft || m.DetailedMR.Draft,
-			Author: m.Author.Username, Assignees: assignees, Reviewers: reviewers,
+			Author: m.Author.Username, Assignees: assignees, Reviewers: reviewers, Labels: m.Labels,
 			SourceBranch: m.SourceBranch, TargetBranch: m.TargetBranch,
 			ChangedFiles: changes,
 			Mergeable:    glMergeable(ms),
@@ -499,6 +500,18 @@ func (GitLab) SetReviewer(ctx context.Context, p Project, token string, number i
 	return glDo(ctx, http.MethodPut,
 		fmt.Sprintf("%s/projects/%s/merge_requests/%d", GitLab{}.apiBase(p.Host), projectID(p.Path), number),
 		token, map[string]any{"reviewer_ids": glToggleID(ids, uid, request)}, nil)
+}
+
+// SetLabels replaces the label set — GitLab takes a comma-separated
+// string; empty clears all labels.
+func (GitLab) SetLabels(ctx context.Context, p Project, token string, kind string, number int, labels []string) error {
+	coll := "issues"
+	if kind == "pr" {
+		coll = "merge_requests"
+	}
+	return glDo(ctx, http.MethodPut,
+		fmt.Sprintf("%s/projects/%s/%s/%d", GitLab{}.apiBase(p.Host), projectID(p.Path), coll, number),
+		token, map[string]any{"labels": strings.Join(labels, ",")}, nil)
 }
 
 func (GitLab) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {

@@ -366,3 +366,69 @@ func TestGiteaSetAssignee(t *testing.T) {
 		t.Fatal("gitea reviewers should error")
 	}
 }
+
+func TestSetLabels(t *testing.T) {
+	// GitHub: PUT issues/{n}/labels replaces the set (PRs share it).
+	var ghBody map[string]any
+	ghMux := http.NewServeMux()
+	ghMux.HandleFunc("/api/v3/repos/o/r/issues/11/labels", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("github labels method: %s", r.Method)
+		}
+		_ = json.NewDecoder(r.Body).Decode(&ghBody)
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`[]`))
+	})
+	ghSrv := httptest.NewServer(ghMux)
+	defer ghSrv.Close()
+	ghP := Project{Provider: "github", Host: ghSrv.URL, Path: "o/r"}
+	if err := (GitHub{}).SetLabels(context.Background(), ghP, "t", "pr", 11, []string{"bug", "ui"}); err != nil {
+		t.Fatal(err)
+	}
+	lbs := ghBody["labels"].([]any)
+	if len(lbs) != 2 || lbs[0] != "bug" || lbs[1] != "ui" {
+		t.Fatalf("bad github labels: %v", ghBody)
+	}
+
+	// GitLab: PUT issues|merge_requests/{iid} with comma-joined labels.
+	var glPath, glBody string
+	glMux := http.NewServeMux()
+	glMux.HandleFunc("/api/v4/projects/g%2Fp/merge_requests/5", func(w http.ResponseWriter, r *http.Request) {
+		glPath = r.URL.EscapedPath()
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		glBody, _ = body["labels"].(string)
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	glSrv := httptest.NewServer(glMux)
+	defer glSrv.Close()
+	glP := Project{Provider: "gitlab", Host: glSrv.URL, Path: "g/p"}
+	if err := (GitLab{}).SetLabels(context.Background(), glP, "t", "pr", 5, []string{"bug", "ui"}); err != nil {
+		t.Fatal(err)
+	}
+	if glPath != "/api/v4/projects/g%2Fp/merge_requests/5" || glBody != "bug,ui" {
+		t.Fatalf("bad gitlab labels call: %s %q", glPath, glBody)
+	}
+
+	// Gitea: PATCH issues/{n} with labels array.
+	var gtBody map[string]any
+	gtMux := http.NewServeMux()
+	gtMux.HandleFunc("/api/v1/repos/o/g/issues/3", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Errorf("gitea labels method: %s", r.Method)
+		}
+		_ = json.NewDecoder(r.Body).Decode(&gtBody)
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	gtSrv := httptest.NewServer(gtMux)
+	defer gtSrv.Close()
+	gtP := Project{Provider: "gitea", Host: gtSrv.URL, Path: "o/g"}
+	if err := (Gitea{}).SetLabels(context.Background(), gtP, "t", "issue", 3, []string{"bug"}); err != nil {
+		t.Fatal(err)
+	}
+	if gtBody["labels"].([]any)[0] != "bug" {
+		t.Fatalf("bad gitea labels: %v", gtBody)
+	}
+}

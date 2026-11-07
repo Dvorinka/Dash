@@ -1712,6 +1712,56 @@ paths:
         "502":
           $ref: "#/components/responses/BadRequest"
 
+  /api/dev/projects/{id}/issues/{number}/labels:
+    post:
+      operationId: setDevIssueLabels
+      summary: Replace the label set on an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevLabelsInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/labels:
+    post:
+      operationId: setDevPRLabels
+      summary: Replace the label set on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevLabelsInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
   /api/dev/hooks/github:
     post:
       operationId: devHookGitHub
@@ -2800,6 +2850,7 @@ components:
         author: { type: string }
         assignees: { type: array, items: { type: string } }
         reviewers: { type: array, items: { type: string } }
+        labels: { type: array, items: { type: string } }
         sourceBranch: { type: string }
         targetBranch: { type: string }
         additions: { type: integer }
@@ -2845,6 +2896,11 @@ components:
       properties:
         username: { type: string }
         on: { type: boolean }
+    DevLabelsInput:
+      type: object
+      required: [labels]
+      properties:
+        labels: { type: array, items: { type: string } }
     DevItemComment:
       type: object
       properties:

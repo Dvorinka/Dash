@@ -160,6 +160,8 @@ func (s *Server) routes() *gin.Engine {
 	v1.POST("/dev/projects/:id/issues/:number/assignees", s.devIssueAssignee)
 	v1.POST("/dev/projects/:id/pullrequests/:number/assignees", s.devPRAssignee)
 	v1.POST("/dev/projects/:id/pullrequests/:number/reviewers", s.devReviewer)
+	v1.POST("/dev/projects/:id/issues/:number/labels", s.devIssueLabels)
+	v1.POST("/dev/projects/:id/pullrequests/:number/labels", s.devPRLabels)
 	v1.POST("/dev/hooks/github", s.devHookGitHub)
 	v1.POST("/dev/hooks/gitlab", s.devHookGitLab)
 	v1.POST("/dev/sync", s.devSyncAll)

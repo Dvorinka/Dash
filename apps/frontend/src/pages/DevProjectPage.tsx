@@ -84,13 +84,15 @@ export function DevProjectPage({ id }: { id: string }) {
 
 	// ItemDetail renders the expanded panel: body, people (assignees /
 	// reviewers), comment thread, diff files (PRs only) and a comment box.
-	function ItemDetail({ kind, number, body, assignees, reviewers }:
+	function ItemDetail({ kind, number, body, assignees, reviewers, labels }:
 		{ kind: "issue" | "pr"; number: number; body: string | undefined;
-		  assignees: string[] | undefined; reviewers: string[] | undefined }) {
+		  assignees: string[] | undefined; reviewers: string[] | undefined;
+		  labels: string[] | undefined }) {
 		const [comments, setComments] = useState<DevItemComment[] | undefined>();
 		const [files, setFiles] = useState<DevDiffFile[] | undefined>();
 		const [draft, setDraft] = useState("");
 		const [person, setPerson] = useState("");
+		const [labelText, setLabelText] = useState("");
 		const [busy, setBusy] = useState(false);
 
 		const refreshComments = useCallback(async () => {
@@ -126,6 +128,26 @@ export function DevProjectPage({ id }: { id: string }) {
 			}
 			setBusy(false);
 			await loadList();
+		}
+
+		async function applyLabels(next: string[]) {
+			if (busy) return;
+			setBusy(true);
+			const path = kind === "pr"
+				? "/api/dev/projects/{id}/pullrequests/{number}/labels" as const
+				: "/api/dev/projects/{id}/issues/{number}/labels" as const;
+			await api.POST(path, { params: { path: { id, number } }, body: { labels: next } });
+			setBusy(false);
+			setLabelText("");
+			await loadList();
+		}
+
+		function addLabels() {
+			const names = labelText.split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
+			if (!names.length) return;
+			const cur = new Set(labels ?? []);
+			names.forEach((n) => cur.add(n));
+			void applyLabels([...cur]);
 		}
 
 		async function send() {
@@ -179,6 +201,27 @@ export function DevProjectPage({ id }: { id: string }) {
 							{t("dev.requestReview")}
 						</Button>
 					)}
+				</div>
+				<div className="mb-3 flex flex-wrap items-center gap-1.5">
+					{(labels ?? []).map((l) => (
+						<button key={l} type="button"
+							onClick={() => void applyLabels((labels ?? []).filter((x) => x !== l))}
+							className="rounded-[5px] bg-surface-hover px-1.5 py-0.5 font-mono text-[10px] text-text-dim hover:text-down"
+							title={t("dev.removeLabel")}>
+							{l} ×
+						</button>
+					))}
+					<input
+						value={labelText}
+						onChange={(e) => setLabelText(e.target.value)}
+						onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLabels(); } }}
+						placeholder={t("dev.labelsPh")}
+						className="h-6 w-36 rounded-[6px] border border-border bg-bg px-2 font-mono text-[10.5px] outline-none focus:border-border-strong"
+					/>
+					<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+						disabled={busy || !labelText.trim()} onClick={addLabels}>
+						{t("dev.setLabels")}
+					</Button>
 				</div>
 				{comments === undefined ? (
 					<p className="text-[11px] text-text-faint">…</p>
@@ -319,6 +362,9 @@ export function DevProjectPage({ id }: { id: string }) {
 								{pr.reviewDecision && pr.reviewDecision !== "" && (
 									<span className="font-mono text-[9.5px] uppercase text-text-faint">{pr.reviewDecision.replaceAll("_", " ")}</span>
 								)}
+								{pr.labels?.map((l) => (
+									<span key={l} className="rounded-[5px] bg-surface-hover px-1.5 py-0.5 font-mono text-[9.5px] text-text-faint">{l}</span>
+								))}
 							</div>
 							<div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 font-mono text-[10.5px] text-text-faint">
 								<span>#{pr.number}</span>
@@ -368,7 +414,7 @@ export function DevProjectPage({ id }: { id: string }) {
 							</div>
 							{openItem?.kind === "pr" && openItem.number === (pr.number ?? 0) && (
 								<ItemDetail kind="pr" number={pr.number ?? 0} body={pr.body}
-									assignees={pr.assignees} reviewers={pr.reviewers} />
+									assignees={pr.assignees} reviewers={pr.reviewers} labels={pr.labels} />
 							)}
 						</div>
 					))}
@@ -430,7 +476,7 @@ export function DevProjectPage({ id }: { id: string }) {
 							</div>
 							{openItem?.kind === "issue" && openItem.number === (i.number ?? 0) && (
 								<ItemDetail kind="issue" number={i.number ?? 0} body={i.body}
-									assignees={i.assignees} reviewers={undefined} />
+									assignees={i.assignees} reviewers={undefined} labels={i.labels} />
 							)}
 						</div>
 					))}

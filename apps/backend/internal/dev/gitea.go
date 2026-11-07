@@ -154,6 +154,9 @@ type gtPR struct {
 	Assignees []struct {
 		Login string `json:"login"`
 	} `json:"assignees"`
+	Labels []struct {
+		Name string `json:"name"`
+	} `json:"labels"`
 	Head struct {
 		Ref string `json:"ref"`
 	} `json:"head"`
@@ -199,9 +202,13 @@ func (Gitea) PullRequests(ctx context.Context, p Project, token string) ([]PullR
 		for _, a := range pr.Assignees {
 			assignees = append(assignees, a.Login)
 		}
+		labels := make([]string, 0, len(pr.Labels))
+		for _, l := range pr.Labels {
+			labels = append(labels, l.Name)
+		}
 		out = append(out, PullRequest{
 			Number: pr.Index, Title: pr.Title, State: state, Draft: pr.Draft,
-			Author: pr.User.Login, Assignees: assignees,
+			Author: pr.User.Login, Assignees: assignees, Labels: labels,
 			SourceBranch: pr.Head.Ref, TargetBranch: pr.Base.Ref,
 			Additions: pr.Additions, Deletions: pr.Deletions, ChangedFiles: pr.ChangedFiles,
 			Mergeable: mergeable,
@@ -383,6 +390,14 @@ func (Gitea) SetAssignee(ctx context.Context, p Project, token string, kind stri
 // SetReviewer — Gitea/Forgejo has no requested-reviewers concept.
 func (Gitea) SetReviewer(context.Context, Project, string, int, string, bool) error {
 	return fmt.Errorf("reviewers are not supported on gitea/forgejo")
+}
+
+// SetLabels PATCHes the issue's label list — Gitea replaces the whole
+// set. PRs share issue indexes.
+func (Gitea) SetLabels(ctx context.Context, p Project, token string, _ string, number int, labels []string) error {
+	return gtDo(ctx, http.MethodPatch,
+		fmt.Sprintf("%s/repos/%s/issues/%d", Gitea{}.apiBase(p.Host), p.Path, number),
+		token, map[string]any{"labels": labels}, nil)
 }
 
 func (Gitea) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {

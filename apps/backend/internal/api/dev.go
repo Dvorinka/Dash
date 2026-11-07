@@ -348,8 +348,9 @@ func (s *Server) upsertPRs(projectID string, prs []dev.PullRequest) {
 		}
 		assignees, _ := json.Marshal(pr.Assignees)
 		reviewers, _ := json.Marshal(pr.Reviewers)
+		labels, _ := json.Marshal(pr.Labels)
 		_, err := s.db.Exec(`INSERT INTO dev_prs
-			(project_id, number, title, state, draft, author, assignees, reviewers,
+			(project_id, number, title, state, draft, author, assignees, reviewers, labels,
 			 source_branch, target_branch,
 			 additions, deletions, changed_files, mergeable, review_decision, url, body,
 			 comments, created_at, updated_at, merged_at, closed_at)
@@ -357,7 +358,7 @@ func (s *Server) upsertPRs(projectID string, prs []dev.PullRequest) {
 			ON CONFLICT(project_id, number) DO UPDATE SET
 			  title=excluded.title, state=excluded.state, draft=excluded.draft,
 			  author=excluded.author, assignees=excluded.assignees,
-			  reviewers=excluded.reviewers,
+			  reviewers=excluded.reviewers, labels=excluded.labels,
 			  source_branch=excluded.source_branch,
 			  target_branch=excluded.target_branch, additions=excluded.additions,
 			  deletions=excluded.deletions, changed_files=excluded.changed_files,
@@ -366,7 +367,7 @@ func (s *Server) upsertPRs(projectID string, prs []dev.PullRequest) {
 			  updated_at=excluded.updated_at, merged_at=excluded.merged_at,
 			  closed_at=excluded.closed_at`,
 			projectID, pr.Number, pr.Title, pr.State, draft, pr.Author,
-			string(assignees), string(reviewers),
+			string(assignees), string(reviewers), string(labels),
 			pr.SourceBranch, pr.TargetBranch, pr.Additions, pr.Deletions, pr.ChangedFiles,
 			pr.Mergeable, pr.ReviewDecision, pr.URL, pr.Body, pr.Comments,
 			pr.CreatedAt.UTC().Format(time.RFC3339), pr.UpdatedAt.UTC().Format(time.RFC3339),
@@ -434,7 +435,7 @@ func (s *Server) listDevPRs(c *gin.Context) {
 	if v, err := strconv.Atoi(c.DefaultQuery("limit", "200")); err == nil && v > 0 && v <= 500 {
 		limit = v
 	}
-	q := `SELECT number, title, state, draft, author, assignees, reviewers,
+	q := `SELECT number, title, state, draft, author, assignees, reviewers, labels,
 		source_branch, target_branch,
 		additions, deletions, changed_files, mergeable, review_decision, url, body,
 		comments, created_at, updated_at, merged_at, closed_at
@@ -455,20 +456,21 @@ func (s *Server) listDevPRs(c *gin.Context) {
 	out := []gin.H{}
 	for rows.Next() {
 		var number, draft, additions, deletions, changed, comments int
-		var title, state, author, assignees, reviewers, src, dst, mergeable, review, url, body string
+		var title, state, author, assignees, reviewers, labels, src, dst, mergeable, review, url, body string
 		var created, updated, merged, closed sql.NullString
-		if err := rows.Scan(&number, &title, &state, &draft, &author, &assignees, &reviewers, &src, &dst,
+		if err := rows.Scan(&number, &title, &state, &draft, &author, &assignees, &reviewers, &labels, &src, &dst,
 			&additions, &deletions, &changed, &mergeable, &review, &url, &body,
 			&comments, &created, &updated, &merged, &closed); err != nil {
 			fail(c, http.StatusInternalServerError, err.Error())
 			return
 		}
-		var people, revs []string
+		var people, revs, lbs []string
 		_ = json.Unmarshal([]byte(assignees), &people)
 		_ = json.Unmarshal([]byte(reviewers), &revs)
+		_ = json.Unmarshal([]byte(labels), &lbs)
 		out = append(out, gin.H{
 			"number": number, "title": title, "state": state, "draft": draft != 0,
-			"author": author, "assignees": people, "reviewers": revs,
+			"author": author, "assignees": people, "reviewers": revs, "labels": lbs,
 			"sourceBranch": src, "targetBranch": dst,
 			"additions": additions, "deletions": deletions, "changedFiles": changed,
 			"mergeable": mergeable, "reviewDecision": review, "url": url, "body": body,
@@ -829,6 +831,38 @@ func (s *Server) devReviewer(c *gin.Context) {
 	go s.syncDevProject(context.Background(), a.Project.ID)
 	c.Status(http.StatusNoContent)
 }
+
+// devLabels replaces the label set on an issue or PR/MR.
+func (s *Server) devLabels(c *gin.Context, kind string) {
+	a, ok := s.devActionFor(c)
+	if !ok {
+		return
+	}
+	n, err := strconv.Atoi(c.Param("number"))
+	if err != nil {
+		fail(c, http.StatusBadRequest, "bad number")
+		return
+	}
+	var in struct {
+		Labels []string `json:"labels"`
+	}
+	if err := c.ShouldBindJSON(&in); err != nil {
+		fail(c, http.StatusBadRequest, "labels required")
+		return
+	}
+	if in.Labels == nil {
+		in.Labels = []string{}
+	}
+	if err := a.Provider.SetLabels(c.Request.Context(), a.Project, a.Token, kind, n, in.Labels); err != nil {
+		fail(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	go s.syncDevProject(context.Background(), a.Project.ID)
+	c.Status(http.StatusNoContent)
+}
+
+func (s *Server) devIssueLabels(c *gin.Context) { s.devLabels(c, "issue") }
+func (s *Server) devPRLabels(c *gin.Context)    { s.devLabels(c, "pr") }
 
 // devDiscover lists repos a token/app can access (auto-detect).
 func (s *Server) devDiscover(c *gin.Context) {

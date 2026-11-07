@@ -68,6 +68,7 @@ type PullRequest struct {
 	Author         string     `json:"author"`
 	Assignees      []string   `json:"assignees"`
 	Reviewers      []string   `json:"reviewers"` // requested reviewers
+	Labels         []string   `json:"labels"`
 	SourceBranch   string     `json:"sourceBranch"`
 	TargetBranch   string     `json:"targetBranch"`
 	Additions      int        `json:"additions"`
@@ -147,6 +148,8 @@ type Provider interface {
 	SetAssignee(ctx context.Context, p Project, token string, kind string, number int, username string, assign bool) error
 	// SetReviewer requests (request=true) or removes a PR/MR reviewer.
 	SetReviewer(ctx context.Context, p Project, token string, number int, username string, request bool) error
+	// SetLabels replaces the label set on an issue or PR/MR.
+	SetLabels(ctx context.Context, p Project, token string, kind string, number int, labels []string) error
 	// Discover lists repos the token can see (auto-detect).
 	Discover(ctx context.Context, host, token string) ([]RepoRef, error)
 }
