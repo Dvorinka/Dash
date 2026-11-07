@@ -109,8 +109,16 @@ type Provider interface {
 	MergePR(ctx context.Context, p Project, token string, number int, method string) error
 	// ClosePR closes an open PR/MR without merging.
 	ClosePR(ctx context.Context, p Project, token string, number int) error
+	// ReopenPR reopens a closed (unmerged) PR/MR.
+	ReopenPR(ctx context.Context, p Project, token string, number int) error
 	// CloseIssue closes an issue.
 	CloseIssue(ctx context.Context, p Project, token string, number int) error
+	// ReopenIssue reopens a closed issue.
+	ReopenIssue(ctx context.Context, p Project, token string, number int) error
+	// CommentIssue posts a comment on an issue (PR comments use CommentPR).
+	CommentIssue(ctx context.Context, p Project, token string, number int, body string) error
+	// CommentPR posts a comment on a PR/MR.
+	CommentPR(ctx context.Context, p Project, token string, number int, body string) error
 	// Discover lists repos the token can see (auto-detect).
 	Discover(ctx context.Context, host, token string) ([]RepoRef, error)
 }
@@ -122,6 +130,8 @@ func For(provider string) (Provider, error) {
 		return GitHub{}, nil
 	case "gitlab":
 		return GitLab{}, nil
+	case "gitea", "forgejo":
+		return Gitea{}, nil
 	default:
 		return nil, fmt.Errorf("unknown provider %q", provider)
 	}

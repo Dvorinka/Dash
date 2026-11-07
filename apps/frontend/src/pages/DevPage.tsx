@@ -19,7 +19,9 @@ function ProviderBadge({ provider }: { provider: string }) {
 	return (
 		<span className={cn(
 			"rounded-[5px] px-1.5 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em]",
-			provider === "github" ? "bg-up/15 text-up" : "bg-accent/15 text-accent",
+			provider === "github" ? "bg-up/15 text-up"
+				: provider === "gitlab" ? "bg-accent/15 text-accent"
+				: "bg-down/15 text-down",
 		)}>
 			{provider}
 		</span>
@@ -31,6 +33,7 @@ export function DevPage() {
 	const [overview, setOverview] = useState<DevOverview | undefined>();
 	const [loaded, setLoaded] = useState(false);
 	const [dlgOpen, setDlgOpen] = useState(false);
+	const [notice, setNotice] = useState("");
 
 	const load = useCallback(async () => {
 		const [p, o] = await Promise.all([
@@ -48,9 +51,25 @@ export function DevPage() {
 		return () => clearInterval(t);
 	}, [load]);
 
+	// GitHub App setup redirect lands here with ?installation_id=&setup_action=.
+	useEffect(() => {
+		const q = new URLSearchParams(window.location.search);
+		const inst = q.get("installation_id");
+		if (!inst) return;
+		void api.PUT("/api/settings", { body: { "dev.githubAppInstallationId": inst } }).then(() => {
+			setNotice(t("dev.appInstalled", { id: inst }));
+			window.history.replaceState({}, "", "/dev");
+		});
+	}, []);
+
 	async function sync(id: string) {
 		await api.POST("/api/dev/projects/{id}/sync", { params: { path: { id } } });
 		setTimeout(() => void load(), 2500);
+	}
+
+	async function syncAll() {
+		await api.POST("/api/dev/sync");
+		setTimeout(() => void load(), 3000);
 	}
 
 	return (
@@ -60,10 +79,21 @@ export function DevPage() {
 					<h1 className="text-[15px] font-semibold tracking-tight">{t("dev.title")}</h1>
 					<p className="text-[12px] text-text-faint">{t("dev.desc")}</p>
 				</div>
-				<Button onClick={() => setDlgOpen(true)}>
-					<Plus size={13} strokeWidth={2.2} /> {t("dev.addProject")}
-				</Button>
+				<div className="flex gap-2">
+					{projects.length > 0 && (
+						<Button variant="outline" onClick={() => void syncAll()}>
+							<RefreshCw size={13} /> {t("dev.syncAll")}
+						</Button>
+					)}
+					<Button onClick={() => setDlgOpen(true)}>
+						<Plus size={13} strokeWidth={2.2} /> {t("dev.addProject")}
+					</Button>
+				</div>
 			</div>
+
+			{notice && (
+				<p className="mb-4 rounded-[8px] border border-up/30 bg-up/10 px-3 py-2 text-[12px] text-up">{notice}</p>
+			)}
 
 			{overview && (
 				<div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -164,7 +194,7 @@ function AddProjectDialog({ open, onOpenChange, onAdded }: {
 	onOpenChange: (o: boolean) => void;
 	onAdded: () => void;
 }) {
-	const [provider, setProvider] = useState<"github" | "gitlab">("github");
+	const [provider, setProvider] = useState<"github" | "gitlab" | "gitea">("github");
 	const [host, setHost] = useState("");
 	const [token, setToken] = useState("");
 	const [path, setPath] = useState("");
@@ -225,18 +255,19 @@ function AddProjectDialog({ open, onOpenChange, onAdded }: {
 					<div className="grid grid-cols-2 gap-3">
 						<div className="grid gap-1.5">
 							<Label>{t("dev.provider")}</Label>
-							<Select value={provider} onValueChange={(v) => setProvider(v === "gitlab" ? "gitlab" : "github")}>
+							<Select value={provider} onValueChange={(v) => setProvider(v === "gitlab" || v === "gitea" ? v : "github")}>
 								<SelectTrigger><SelectValue /></SelectTrigger>
 								<SelectContent>
 									<SelectItem value="github">GitHub</SelectItem>
 									<SelectItem value="gitlab">GitLab</SelectItem>
+									<SelectItem value="gitea">Gitea / Forgejo</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
 						<div className="grid gap-1.5">
 							<Label>{t("dev.host")}</Label>
 							<Input value={host} onChange={(e) => setHost(e.target.value)}
-								placeholder={provider === "github" ? "github.com" : "gitlab.com"} />
+								placeholder={provider === "github" ? "github.com" : provider === "gitlab" ? "gitlab.com" : "gitea.example.com"} />
 						</div>
 					</div>
 					<div className="grid gap-1.5">

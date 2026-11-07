@@ -283,6 +283,30 @@ func (GitLab) CloseIssue(ctx context.Context, p Project, token string, number in
 		token, map[string]any{"state_event": "close"}, nil)
 }
 
+func (GitLab) ReopenPR(ctx context.Context, p Project, token string, number int) error {
+	return glDo(ctx, http.MethodPut,
+		fmt.Sprintf("%s/projects/%s/merge_requests/%d", GitLab{}.apiBase(p.Host), projectID(p.Path), number),
+		token, map[string]any{"state_event": "reopen"}, nil)
+}
+
+func (GitLab) ReopenIssue(ctx context.Context, p Project, token string, number int) error {
+	return glDo(ctx, http.MethodPut,
+		fmt.Sprintf("%s/projects/%s/issues/%d", GitLab{}.apiBase(p.Host), projectID(p.Path), number),
+		token, map[string]any{"state_event": "reopen"}, nil)
+}
+
+func (GitLab) CommentIssue(ctx context.Context, p Project, token string, number int, body string) error {
+	return glDo(ctx, http.MethodPost,
+		fmt.Sprintf("%s/projects/%s/issues/%d/notes", GitLab{}.apiBase(p.Host), projectID(p.Path), number),
+		token, map[string]any{"body": body}, nil)
+}
+
+func (GitLab) CommentPR(ctx context.Context, p Project, token string, number int, body string) error {
+	return glDo(ctx, http.MethodPost,
+		fmt.Sprintf("%s/projects/%s/merge_requests/%d/notes", GitLab{}.apiBase(p.Host), projectID(p.Path), number),
+		token, map[string]any{"body": body}, nil)
+}
+
 func (GitLab) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {
 	var raw []struct {
 		PathWithNamespace string `json:"path_with_namespace"`

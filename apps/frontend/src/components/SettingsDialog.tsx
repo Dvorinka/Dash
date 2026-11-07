@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, Download, HardDrive, Image, LayoutGrid, Lock, Moon, Palette, Sun, Upload, type LucideIcon } from "lucide-react";
+import { Bell, Download, GitBranch, HardDrive, Image, LayoutGrid, Lock, Moon, Palette, Sun, Upload, type LucideIcon } from "lucide-react";
 import { useBoard } from "@/board/store";
 import { api } from "@/api";
 import { rendererDescriptions, rendererIcons, rendererLabels, rendererList } from "@/renderers";
 import { cn } from "@/lib/utils";
-import { LOCALES, t } from "@/i18n";
+import { LOCALES, t, type Key } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
@@ -65,6 +65,8 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 	const [notifyCfg, setNotifyCfg] = useState<Record<string, Record<string, string>>>({});
 	const [notifyMsg, setNotifyMsg] = useState("");
 	const [auth, setAuth] = useState<{ enabled?: boolean; authed?: boolean; username?: string }>({});
+	const [devCfg, setDevCfg] = useState<Record<string, string>>({});
+	const [devMsg, setDevMsg] = useState("");
 
 	useEffect(() => {
 		if (!open) return;
@@ -82,8 +84,33 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 			}
 			setNotifyCfg(cfg);
 			setNotifyMsg("");
+			const dev: Record<string, string> = {};
+			for (const k of ["dev.githubToken", "dev.gitlabToken", "dev.giteaToken",
+				"dev.githubAppId", "dev.githubAppPrivateKey", "dev.syncIntervalSec"]) {
+				const v = data?.[k];
+				if (typeof v === "string") dev[k] = v;
+			}
+			setDevCfg(dev);
+			setDevMsg("");
 		});
 	}, [open]);
+
+	const DEV_FIELDS: { k: string; l: Key; secret?: boolean; area?: boolean }[] = [
+		{ k: "dev.githubToken", l: "settings.devGithubToken", secret: true },
+		{ k: "dev.gitlabToken", l: "settings.devGitlabToken", secret: true },
+		{ k: "dev.giteaToken", l: "settings.devGiteaToken", secret: true },
+		{ k: "dev.githubAppId", l: "settings.devAppId" },
+		{ k: "dev.githubAppPrivateKey", l: "settings.devAppKey", secret: true, area: true },
+		{ k: "dev.syncIntervalSec", l: "settings.devSyncInterval" },
+	];
+
+	async function saveDev() {
+		setDevMsg("");
+		const body: Record<string, string> = {};
+		for (const f of DEV_FIELDS) body[f.k] = devCfg[f.k] ?? "";
+		await api.PUT("/api/settings", { body });
+		setDevMsg(t("settings.saved"));
+	}
 
 	const fields = TRANSPORTS[transport].fields;
 	const cfg = notifyCfg[transport] ?? {};
@@ -312,6 +339,37 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
 							{t("settings.notifyFanout")}
 						</p>
 						{notifyMsg ? <p className="text-[11px] text-text-faint">{notifyMsg}</p> : null}
+					</Group>
+
+					<Group icon={GitBranch} title={t("settings.dev")}>
+						<p className="text-[11px] text-text-faint">{t("settings.devDesc")}</p>
+						{DEV_FIELDS.map((f) => (
+							<div key={f.k} className="flex flex-col gap-1">
+								<Label htmlFor={`dev-${f.k}`} className="text-[11px] text-text-faint">{t(f.l)}</Label>
+								{f.area ? (
+									<textarea
+										id={`dev-${f.k}`}
+										value={devCfg[f.k] ?? ""}
+										onChange={(e) => setDevCfg((s) => ({ ...s, [f.k]: e.target.value }))}
+										placeholder={t("settings.devAppKeyHint")}
+										rows={3}
+										className="w-full resize-y rounded-[7px] border border-border bg-bg px-2.5 py-2 font-mono text-[11px] outline-none focus:border-border-strong"
+									/>
+								) : (
+									<Input
+										id={`dev-${f.k}`}
+										type={f.secret ? "password" : "text"}
+										value={devCfg[f.k] ?? ""}
+										onChange={(e) => setDevCfg((s) => ({ ...s, [f.k]: e.target.value }))}
+										className="font-mono text-[12px]"
+									/>
+								)}
+							</div>
+						))}
+						<div className="flex items-center gap-2">
+							<Button type="button" variant="outline" size="sm" onClick={() => void saveDev()}>{t("common.save")}</Button>
+							{devMsg ? <p className="text-[11px] text-text-faint">{devMsg}</p> : null}
+						</div>
 					</Group>
 
 					<Group icon={Lock} title={t("auth.section")}>

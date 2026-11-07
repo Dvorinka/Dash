@@ -289,6 +289,30 @@ func (GitHub) CloseIssue(ctx context.Context, p Project, token string, number in
 		token, map[string]any{"state": "closed"}, nil)
 }
 
+func (GitHub) ReopenPR(ctx context.Context, p Project, token string, number int) error {
+	return ghDo(ctx, http.MethodPatch,
+		fmt.Sprintf("%s/repos/%s/pulls/%d", GitHub{}.apiBase(p.Host), p.Path, number),
+		token, map[string]any{"state": "open"}, nil)
+}
+
+func (GitHub) ReopenIssue(ctx context.Context, p Project, token string, number int) error {
+	return ghDo(ctx, http.MethodPatch,
+		fmt.Sprintf("%s/repos/%s/issues/%d", GitHub{}.apiBase(p.Host), p.Path, number),
+		token, map[string]any{"state": "open"}, nil)
+}
+
+// CommentIssue and CommentPR share GitHub's issue-comments endpoint —
+// pull requests are issues underneath.
+func (GitHub) CommentIssue(ctx context.Context, p Project, token string, number int, body string) error {
+	return ghDo(ctx, http.MethodPost,
+		fmt.Sprintf("%s/repos/%s/issues/%d/comments", GitHub{}.apiBase(p.Host), p.Path, number),
+		token, map[string]any{"body": body}, nil)
+}
+
+func (GitHub) CommentPR(ctx context.Context, p Project, token string, number int, body string) error {
+	return GitHub{}.CommentIssue(ctx, p, token, number, body)
+}
+
 func (GitHub) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {
 	var raw []struct {
 		FullName string `json:"full_name"`

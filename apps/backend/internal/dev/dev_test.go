@@ -148,3 +148,72 @@ func TestGitLabContributions(t *testing.T) {
 		t.Fatalf("bad days: %+v", days)
 	}
 }
+
+func TestGiteaProvider(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "token gt" {
+			t.Errorf("missing token auth: %q", r.Header.Get("Authorization"))
+		}
+		_, _ = w.Write([]byte(`{"description":"gt","default_branch":"main","language":"Go","stargazers_count":3,"forks_count":1,"open_issues_count":2,"visibility":"public","updated_at":"2026-11-01T00:00:00Z"}`))
+	})
+	mux.HandleFunc("/api/v1/repos/o/r/issues", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[
+			{"index":5,"title":"real issue","state":"open","user":{"login":"zed"},"labels":[{"name":"bug"}],"html_url":"u","comments":1,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"},
+			{"index":6,"title":"leaked pr","state":"open","pull_request":{},"user":{"login":"zed"},"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"}
+		]`))
+	})
+	mux.HandleFunc("/api/v1/repos/o/r/pulls", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[
+			{"index":7,"title":"gt pr","state":"open","draft":false,"merged":false,"user":{"login":"zed"},"head":{"ref":"f"},"base":{"ref":"main"},"additions":5,"deletions":2,"changed_files":1,"mergeable":true,"html_url":"u","comments":0,"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z"},
+			{"index":8,"title":"gt merged","state":"closed","merged":true,"merged_at":"2026-01-05T00:00:00Z","user":{"login":"zed"},"head":{"ref":"g"},"base":{"ref":"main"},"mergeable":null,"html_url":"u","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-05T00:00:00Z"}
+		]`))
+	})
+	mux.HandleFunc("/api/v1/repos/o/r/commits", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"commit":{"author":{"date":"2026-01-02T10:00:00Z"}}}]`))
+	})
+	mux.HandleFunc("/api/v1/user/repos", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"full_name":"o/r","name":"r","private":false}]`))
+	})
+	var lastMethod, lastPath string
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		lastMethod, lastPath = r.Method, r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	p := Project{Provider: "gitea", Host: srv.URL, Path: "o/r"}
+	meta, err := (Gitea{}).Project(context.Background(), p, "gt")
+	if err != nil || meta.Stars != 3 || meta.Language != "Go" {
+		t.Fatalf("bad meta: %v %+v", err, meta)
+	}
+	issues, err := (Gitea{}).Issues(context.Background(), p, "gt")
+	if err != nil || len(issues) != 1 || issues[0].Number != 5 {
+		t.Fatalf("bad issues: %v %+v", err, issues)
+	}
+	prs, err := (Gitea{}).PullRequests(context.Background(), p, "gt")
+	if err != nil || len(prs) != 2 || prs[0].State != "open" || prs[1].State != "merged" {
+		t.Fatalf("bad prs: %v %+v", err, prs)
+	}
+	days, err := (Gitea{}).Contributions(context.Background(), p, "gt")
+	if err != nil || len(days) != 1 || days[0].Date != "2026-01-02" {
+		t.Fatalf("bad days: %v %+v", err, days)
+	}
+	refs, err := (Gitea{}).Discover(context.Background(), srv.URL, "gt")
+	if err != nil || len(refs) != 1 || refs[0].Path != "o/r" {
+		t.Fatalf("bad discover: %v %+v", err, refs)
+	}
+	if _, err := For("gitea"); err != nil {
+		t.Fatal(err)
+	}
+	// action endpoints hit the catch-all and return 204
+	if err := (Gitea{}).ReopenIssue(context.Background(), p, "gt", 5); err != nil {
+		t.Fatal(err)
+	}
+	if err := (Gitea{}).CommentPR(context.Background(), p, "gt", 7, "hi"); err != nil {
+		t.Fatal(err)
+	}
+	_ = lastMethod
+	_ = lastPath
+}

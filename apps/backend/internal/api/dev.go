@@ -93,6 +93,9 @@ func (s *Server) devToken(ctx context.Context, p dev.Project) (string, error) {
 		}
 		inst := p.InstallationID
 		if inst == "" {
+			inst = s.settingStr("dev.githubAppInstallationId")
+		}
+		if inst == "" {
 			// default to the first installation the app can see
 			insts, err := dev.GitHub{}.AppInstallations(ctx, p.Host, appID, key)
 			if err != nil || len(insts) == 0 {
@@ -636,6 +639,80 @@ func (s *Server) devCloseIssue(c *gin.Context) {
 	}
 	go s.syncDevProject(context.Background(), a.Project.ID)
 	c.Status(http.StatusNoContent)
+}
+
+// devItemAction dispatches one provider call against an issue or PR number.
+// needsBody requires a non-empty JSON {body} (comments).
+func (s *Server) devItemAction(c *gin.Context, needsBody bool, call func(a *devAction, n int, body string) error) {
+	a, ok := s.devActionFor(c)
+	if !ok {
+		return
+	}
+	n, err := strconv.Atoi(c.Param("number"))
+	if err != nil {
+		fail(c, http.StatusBadRequest, "bad number")
+		return
+	}
+	var in struct {
+		Body   string `json:"body"`
+		Method string `json:"method"`
+	}
+	_ = c.ShouldBindJSON(&in)
+	if needsBody && strings.TrimSpace(in.Body) == "" {
+		fail(c, http.StatusBadRequest, "body required")
+		return
+	}
+	if err := call(a, n, in.Body); err != nil {
+		fail(c, http.StatusBadGateway, err.Error())
+		return
+	}
+	go s.syncDevProject(context.Background(), a.Project.ID)
+	c.Status(http.StatusNoContent)
+}
+
+func (s *Server) devReopenIssue(c *gin.Context) {
+	s.devItemAction(c, false, func(a *devAction, n int, _ string) error {
+		return a.Provider.ReopenIssue(c.Request.Context(), a.Project, a.Token, n)
+	})
+}
+
+func (s *Server) devReopenPR(c *gin.Context) {
+	s.devItemAction(c, false, func(a *devAction, n int, _ string) error {
+		return a.Provider.ReopenPR(c.Request.Context(), a.Project, a.Token, n)
+	})
+}
+
+func (s *Server) devCommentIssue(c *gin.Context) {
+	s.devItemAction(c, true, func(a *devAction, n int, body string) error {
+		return a.Provider.CommentIssue(c.Request.Context(), a.Project, a.Token, n, body)
+	})
+}
+
+func (s *Server) devCommentPR(c *gin.Context) {
+	s.devItemAction(c, true, func(a *devAction, n int, body string) error {
+		return a.Provider.CommentPR(c.Request.Context(), a.Project, a.Token, n, body)
+	})
+}
+
+// devSyncAll triggers a sync for every enabled project.
+func (s *Server) devSyncAll(c *gin.Context) {
+	rows, err := s.db.Query(`SELECT id FROM dev_projects WHERE enabled=1`)
+	if err != nil {
+		fail(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if rows.Scan(&id) == nil {
+			ids = append(ids, id)
+		}
+	}
+	for _, id := range ids {
+		go s.syncDevProject(context.Background(), id)
+	}
+	c.Status(http.StatusAccepted)
 }
 
 // devDiscover lists repos a token/app can access (auto-detect).

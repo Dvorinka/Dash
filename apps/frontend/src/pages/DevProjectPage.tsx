@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, ExternalLink, GitMerge, GitPullRequest, RefreshCw, Tag } from "lucide-react";
+import { ArrowLeft, ExternalLink, GitMerge, GitPullRequest, MessageSquare, RefreshCw, RotateCcw, Tag } from "lucide-react";
 import { api } from "@/api";
 import type { DevProject, DevIssue, DevPR, DevDayCount } from "@/types";
 import { Heatmap } from "@/components/Heatmap";
@@ -45,6 +45,8 @@ export function DevProjectPage({ id }: { id: string }) {
 	const [issues, setIssues] = useState<DevIssue[]>([]);
 	const [days, setDays] = useState<DevDayCount[]>([]);
 	const [loaded, setLoaded] = useState(false);
+	const [commentFor, setCommentFor] = useState<{ kind: "issue" | "pr"; number: number } | null>(null);
+	const [commentBody, setCommentBody] = useState("");
 
 	const loadMeta = useCallback(async () => {
 		const { data } = await api.GET("/api/dev/projects/{id}", { params: { path: { id } } });
@@ -75,6 +77,37 @@ export function DevProjectPage({ id }: { id: string }) {
 		await fn();
 		await loadList();
 		await loadMeta();
+	}
+
+	function comment() {
+		const body = commentBody.trim();
+		if (!commentFor || !body) return;
+		const { kind, number } = commentFor;
+		const path = kind === "pr"
+			? "/api/dev/projects/{id}/pullrequests/{number}/comment" as const
+			: "/api/dev/projects/{id}/issues/{number}/comment" as const;
+		void act(() => api.POST(path, { params: { path: { id, number } }, body: { body } }));
+		setCommentFor(null);
+		setCommentBody("");
+	}
+
+	function CommentForm({ kind, number }: { kind: "issue" | "pr"; number: number }) {
+		const open = commentFor?.kind === kind && commentFor.number === number;
+		if (!open) return null;
+		return (
+			<div className="mt-2 flex gap-2">
+				<textarea
+					value={commentBody}
+					onChange={(e) => setCommentBody(e.target.value)}
+					placeholder={t("dev.commentPh")}
+					rows={2}
+					className="min-w-0 flex-1 resize-y rounded-[7px] border border-border bg-bg px-2.5 py-1.5 text-[12px] outline-none focus:border-border-strong"
+				/>
+				<Button size="sm" className="h-8 self-end" onClick={comment}>
+					{t("dev.commentSend")}
+				</Button>
+			</div>
+		);
 	}
 
 	const states: ("open" | "merged" | "closed" | "all")[] = tab === "prs" ? ["open", "merged", "closed", "all"] : ["open", "closed", "all"];
@@ -165,28 +198,46 @@ export function DevProjectPage({ id }: { id: string }) {
 								<span className="text-down">−{pr.deletions}</span>
 								<span>{pr.sourceBranch} → {pr.targetBranch}</span>
 								<span>{timeAgo(pr.updatedAt)}</span>
-								{pr.state === "open" && (
-									<span className="ml-auto flex gap-1">
+								<span className="ml-auto flex gap-1">
+									{pr.state === "open" && (
+										<>
+											<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+												onClick={() => {
+													const method = confirm(t("dev.mergeSquashConfirm")) ? "squash" : "merge";
+													void act(() => api.POST("/api/dev/projects/{id}/pullrequests/{number}/merge",
+														{ params: { path: { id, number: pr.number ?? 0 } }, body: { method } }));
+												}}>
+												<GitMerge size={10} /> {t("dev.merge")}
+											</Button>
+											<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+												onClick={() => {
+													if (confirm(t("dev.closeConfirm", { n: pr.number ?? 0 }))) {
+														void act(() => api.POST("/api/dev/projects/{id}/pullrequests/{number}/close",
+															{ params: { path: { id, number: pr.number ?? 0 } } }));
+													}
+												}}>
+												{t("dev.close")}
+											</Button>
+										</>
+									)}
+									{pr.state === "closed" && (
 										<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
 											onClick={() => {
-												const method = confirm(t("dev.mergeSquashConfirm")) ? "squash" : "merge";
-												void act(() => api.POST("/api/dev/projects/{id}/pullrequests/{number}/merge",
-													{ params: { path: { id, number: pr.number ?? 0 } }, body: { method } }));
-											}}>
-											<GitMerge size={10} /> {t("dev.merge")}
-										</Button>
-										<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
-											onClick={() => {
-												if (confirm(t("dev.closeConfirm", { n: pr.number ?? 0 }))) {
-													void act(() => api.POST("/api/dev/projects/{id}/pullrequests/{number}/close",
+												if (confirm(t("dev.reopenConfirm", { n: pr.number ?? 0 }))) {
+													void act(() => api.POST("/api/dev/projects/{id}/pullrequests/{number}/reopen",
 														{ params: { path: { id, number: pr.number ?? 0 } } }));
 												}
 											}}>
-											{t("dev.close")}
+											<RotateCcw size={10} /> {t("dev.reopen")}
 										</Button>
-									</span>
-								)}
+									)}
+									<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+										onClick={() => { setCommentFor({ kind: "pr", number: pr.number ?? 0 }); setCommentBody(""); }}>
+										<MessageSquare size={10} /> {t("dev.comment")}
+									</Button>
+								</span>
 							</div>
+							<CommentForm kind="pr" number={pr.number ?? 0} />
 						</div>
 					))}
 				</div>
@@ -212,18 +263,36 @@ export function DevProjectPage({ id }: { id: string }) {
 								<span>{i.author}</span>
 								{i.comments ? <span>{i.comments} comments</span> : null}
 								<span>{timeAgo(i.updatedAt)}</span>
-								{i.state === "open" && (
-									<Button variant="outline" size="sm" className="ml-auto h-6 px-2 text-[10.5px]"
-										onClick={() => {
-											if (confirm(t("dev.closeConfirm", { n: i.number ?? 0 }))) {
-												void act(() => api.POST("/api/dev/projects/{id}/issues/{number}/close",
-													{ params: { path: { id, number: i.number ?? 0 } } }));
-											}
-										}}>
-										{t("dev.close")}
+								<span className="ml-auto flex gap-1">
+									{i.state === "open" && (
+										<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+											onClick={() => {
+												if (confirm(t("dev.closeConfirm", { n: i.number ?? 0 }))) {
+													void act(() => api.POST("/api/dev/projects/{id}/issues/{number}/close",
+														{ params: { path: { id, number: i.number ?? 0 } } }));
+												}
+											}}>
+											{t("dev.close")}
+										</Button>
+									)}
+									{i.state === "closed" && (
+										<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+											onClick={() => {
+												if (confirm(t("dev.reopenConfirm", { n: i.number ?? 0 }))) {
+													void act(() => api.POST("/api/dev/projects/{id}/issues/{number}/reopen",
+														{ params: { path: { id, number: i.number ?? 0 } } }));
+												}
+											}}>
+											<RotateCcw size={10} /> {t("dev.reopen")}
+										</Button>
+									)}
+									<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+										onClick={() => { setCommentFor({ kind: "issue", number: i.number ?? 0 }); setCommentBody(""); }}>
+										<MessageSquare size={10} /> {t("dev.comment")}
 									</Button>
-								)}
+								</span>
 							</div>
+							<CommentForm kind="issue" number={i.number ?? 0} />
 						</div>
 					))}
 				</div>

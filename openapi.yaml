@@ -1490,6 +1490,98 @@ paths:
         "502":
           $ref: "#/components/responses/BadRequest"
 
+  /api/dev/projects/{id}/pullrequests/{number}/reopen:
+    post:
+      operationId: reopenDevPR
+      summary: Reopen a closed (unmerged) PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Reopened
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/comment:
+    post:
+      operationId: commentDevPR
+      summary: Post a comment on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevCommentInput"
+      responses:
+        "204":
+          description: Comment posted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/issues/{number}/reopen:
+    post:
+      operationId: reopenDevIssue
+      summary: Reopen a closed issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Reopened
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/issues/{number}/comment:
+    post:
+      operationId: commentDevIssue
+      summary: Post a comment on an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevCommentInput"
+      responses:
+        "204":
+          description: Comment posted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/sync:
+    post:
+      operationId: syncAllDevProjects
+      summary: Trigger a sync for every enabled project
+      responses:
+        "202":
+          description: Sync started
+
   /api/dev/discover:
     post:
       operationId: devDiscover
@@ -2495,7 +2587,7 @@ components:
       required: [id, provider, path, enabled]
       properties:
         id: { type: string }
-        provider: { type: string, enum: [github, gitlab] }
+        provider: { type: string, enum: [github, gitlab, gitea] }
         host: { type: string }
         path: { type: string }
         name: { type: string }
@@ -2511,7 +2603,7 @@ components:
       type: object
       required: [provider, path]
       properties:
-        provider: { type: string, enum: [github, gitlab] }
+        provider: { type: string, enum: [github, gitlab, gitea] }
         host: { type: string }
         path: { type: string }
         name: { type: string }
@@ -2577,10 +2669,15 @@ components:
       type: object
       required: [provider]
       properties:
-        provider: { type: string, enum: [github, gitlab] }
+        provider: { type: string, enum: [github, gitlab, gitea] }
         host: { type: string }
         token: { type: string }
         installationId: { type: string }
+    DevCommentInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string }
     DevOverview:
       type: object
       properties:
