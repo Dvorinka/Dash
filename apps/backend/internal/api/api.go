@@ -51,6 +51,7 @@ func NewRouter(ctx context.Context, logger *zap.Logger, db *sql.DB, iconsDir str
 	s := newServer(logger, db, iconsDir)
 	if ctx != nil {
 		go s.runScheduler(ctx.Done())
+		go s.runDevSync(ctx.Done())
 	}
 	return s.routes()
 }
@@ -136,6 +137,21 @@ func (s *Server) routes() *gin.Engine {
 	v1.POST("/import/csv", s.importCSV)
 
 	v1.GET("/status", s.getStatus)
+	v1.GET("/dev/overview", s.devOverview)
+	v1.GET("/dev/projects", s.listDevProjects)
+	v1.POST("/dev/projects", s.createDevProject)
+	v1.GET("/dev/projects/:id", s.getDevProject)
+	v1.PATCH("/dev/projects/:id", s.updateDevProject)
+	v1.DELETE("/dev/projects/:id", s.deleteDevProject)
+	v1.POST("/dev/projects/:id/sync", s.syncDevProjectNow)
+	v1.GET("/dev/projects/:id/issues", s.listDevIssues)
+	v1.GET("/dev/projects/:id/pullrequests", s.listDevPRs)
+	v1.GET("/dev/projects/:id/contributions", s.devContributions)
+	v1.POST("/dev/projects/:id/pullrequests/:number/merge", s.devMergePR)
+	v1.POST("/dev/projects/:id/pullrequests/:number/close", s.devClosePR)
+	v1.POST("/dev/projects/:id/issues/:number/close", s.devCloseIssue)
+	v1.POST("/dev/discover", s.devDiscover)
+	v1.GET("/dev/app/installations", s.devAppInstallations)
 	v1.GET("/widgets/types", s.widgetTypes)
 	v1.GET("/widgets/:id/data", s.widgetData)
 	v1.GET("/settings", s.getSettings)

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Route, useLocation } from "wouter";
-import { Activity, AlertTriangle, Globe, LayoutGrid, Megaphone, Moon, Plus, Search, Server, Settings, Sun } from "lucide-react";
+import { Activity, AlertTriangle, Code2, Globe, LayoutGrid, Megaphone, Moon, Plus, Search, Server, Settings, Sun } from "lucide-react";
 import { BoardProvider, useBoard } from "@/board/store";
 import { BoardSwitcher } from "@/components/BoardSwitcher";
 import { Board } from "@/board/Board";
@@ -17,6 +17,8 @@ import { SystemDetailPage } from "@/pages/SystemDetailPage";
 import { IncidentsPage } from "@/pages/IncidentsPage";
 import { StatusPagesPage } from "@/pages/StatusPagesPage";
 import { StatusPublicPage } from "@/pages/StatusPublicPage";
+import { DevPage } from "@/pages/DevPage";
+import { DevProjectPage } from "@/pages/DevProjectPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { api } from "@/api";
 import { Button } from "@/components/ui/button";
@@ -39,6 +41,7 @@ const NAV: { href: string; labelKey: Key; icon: typeof LayoutGrid }[] = [
 	{ href: "/systems", labelKey: "nav.systems", icon: Server },
 	{ href: "/incidents", labelKey: "nav.incidents", icon: AlertTriangle },
 	{ href: "/status", labelKey: "nav.status", icon: Megaphone },
+	{ href: "/dev", labelKey: "nav.dev", icon: Code2 },
 ];
 
 function Shell() {
@@ -195,6 +198,12 @@ function Shell() {
 			</Route>
 			<Route path="/status/:slug">
 				{(p) => <StatusPublicPage slug={p.slug} />}
+			</Route>
+			<Route path="/dev">
+				<DevPage />
+			</Route>
+			<Route path="/dev/:id">
+				{(p) => <DevProjectPage id={p.id} />}
 			</Route>
 
 			<ServiceDialog open={svcOpen} onOpenChange={setSvcOpen} item={editing?.kind === "service" ? editing : undefined} />

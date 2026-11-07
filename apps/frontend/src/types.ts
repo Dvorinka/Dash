@@ -35,6 +35,16 @@ export type MaintenanceWindow = components["schemas"]["MaintenanceWindow"];
 export type StatusPage = components["schemas"]["StatusPage"];
 export type PublicStatus = components["schemas"]["PublicStatus"];
 
+// Developer integrations (git providers) — generated-schema rule applies.
+export type DevProject = components["schemas"]["DevProject"];
+export type DevProjectInput = components["schemas"]["DevProjectInput"];
+export type DevIssue = components["schemas"]["DevIssue"];
+export type DevPR = components["schemas"]["DevPR"];
+export type DevDayCount = components["schemas"]["DevDayCount"];
+export type DevRepoRef = components["schemas"]["DevRepoRef"];
+export type DevOverview = components["schemas"]["DevOverview"];
+export type DevDiscoverInput = components["schemas"]["DevDiscoverInput"];
+
 export type Theme = "dark" | "light";
 export type RendererName = "bento" | "cards" | "index" | "console";
 
