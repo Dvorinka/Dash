@@ -49,6 +49,7 @@ type Issue struct {
 	Title     string     `json:"title"`
 	State     string     `json:"state"` // open | closed
 	Author    string     `json:"author"`
+	Assignees []string   `json:"assignees"`
 	Labels    []string   `json:"labels"`
 	URL       string     `json:"url"`
 	Body      string     `json:"body"`
@@ -65,6 +66,8 @@ type PullRequest struct {
 	State          string     `json:"state"` // open | merged | closed
 	Draft          bool       `json:"draft"`
 	Author         string     `json:"author"`
+	Assignees      []string   `json:"assignees"`
+	Reviewers      []string   `json:"reviewers"` // requested reviewers
 	SourceBranch   string     `json:"sourceBranch"`
 	TargetBranch   string     `json:"targetBranch"`
 	Additions      int        `json:"additions"`
@@ -140,6 +143,10 @@ type Provider interface {
 	Comments(ctx context.Context, p Project, token string, kind string, number int) ([]ItemComment, error)
 	// PRFiles lists the changed files (with patches where available).
 	PRFiles(ctx context.Context, p Project, token string, number int) ([]DiffFile, error)
+	// SetAssignee adds (assign=true) or removes an assignee. kind: issue | pr.
+	SetAssignee(ctx context.Context, p Project, token string, kind string, number int, username string, assign bool) error
+	// SetReviewer requests (request=true) or removes a PR/MR reviewer.
+	SetReviewer(ctx context.Context, p Project, token string, number int, username string, request bool) error
 	// Discover lists repos the token can see (auto-detect).
 	Discover(ctx context.Context, host, token string) ([]RepoRef, error)
 }

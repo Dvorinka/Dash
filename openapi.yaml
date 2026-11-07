@@ -1637,6 +1637,81 @@ paths:
                 items:
                   $ref: "#/components/schemas/DevDiffFile"
 
+  /api/dev/projects/{id}/issues/{number}/assignees:
+    post:
+      operationId: setDevIssueAssignee
+      summary: Add or remove an assignee on an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevPersonInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/assignees:
+    post:
+      operationId: setDevPRAssignee
+      summary: Add or remove an assignee on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevPersonInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/reviewers:
+    post:
+      operationId: setDevPRReviewer
+      summary: Request or remove a reviewer on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevPersonInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
   /api/dev/hooks/github:
     post:
       operationId: devHookGitHub
@@ -2707,6 +2782,7 @@ components:
         title: { type: string }
         state: { type: string }
         author: { type: string }
+        assignees: { type: array, items: { type: string } }
         labels: { type: array, items: { type: string } }
         url: { type: string }
         body: { type: string }
@@ -2722,6 +2798,8 @@ components:
         state: { type: string, enum: [open, merged, closed] }
         draft: { type: boolean }
         author: { type: string }
+        assignees: { type: array, items: { type: string } }
+        reviewers: { type: array, items: { type: string } }
         sourceBranch: { type: string }
         targetBranch: { type: string }
         additions: { type: integer }
@@ -2761,6 +2839,12 @@ components:
       required: [body]
       properties:
         body: { type: string }
+    DevPersonInput:
+      type: object
+      required: [username, on]
+      properties:
+        username: { type: string }
+        on: { type: boolean }
     DevItemComment:
       type: object
       properties:

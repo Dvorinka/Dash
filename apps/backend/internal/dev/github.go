@@ -107,6 +107,9 @@ type ghIssue struct {
 	Labels []struct {
 		Name string `json:"name"`
 	} `json:"labels"`
+	Assignees []struct {
+		Login string `json:"login"`
+	} `json:"assignees"`
 	HTMLURL     string    `json:"html_url"`
 	Body        string    `json:"body"`
 	Comments    int       `json:"comments"`
@@ -133,9 +136,14 @@ func (GitHub) Issues(ctx context.Context, p Project, token string) ([]Issue, err
 		for _, l := range i.Labels {
 			labels = append(labels, l.Name)
 		}
+		assignees := make([]string, 0, len(i.Assignees))
+		for _, a := range i.Assignees {
+			assignees = append(assignees, a.Login)
+		}
 		out = append(out, Issue{
 			Number: i.Number, Title: i.Title, State: i.State,
-			Author: i.User.Login, Labels: labels, URL: i.HTMLURL, Body: i.Body,
+			Author: i.User.Login, Assignees: assignees, Labels: labels,
+			URL: i.HTMLURL, Body: i.Body,
 			Comments:  i.Comments,
 			CreatedAt: *ParseTime(i.CreatedAt), UpdatedAt: *ParseTime(i.UpdatedAt),
 			ClosedAt: parsePtr(i.ClosedAt),
@@ -158,18 +166,24 @@ type ghPR struct {
 	Base struct {
 		Ref string `json:"ref"`
 	} `json:"base"`
-	Additions    int     `json:"additions"`
-	Deletions    int     `json:"deletions"`
-	ChangedFiles int     `json:"changed_files"`
-	Mergeable    *bool   `json:"mergeable"`
-	MergeableSt  string  `json:"mergeable_state"`
-	HTMLURL      string  `json:"html_url"`
-	Body         string  `json:"body"`
-	Comments     int     `json:"comments"`
-	CreatedAt    string  `json:"created_at"`
-	UpdatedAt    string  `json:"updated_at"`
-	MergedAt     *string `json:"merged_at"`
-	ClosedAt     *string `json:"closed_at"`
+	Additions    int    `json:"additions"`
+	Deletions    int    `json:"deletions"`
+	ChangedFiles int    `json:"changed_files"`
+	Mergeable    *bool  `json:"mergeable"`
+	MergeableSt  string `json:"mergeable_state"`
+	HTMLURL      string `json:"html_url"`
+	Body         string `json:"body"`
+	Comments     int    `json:"comments"`
+	Assignees    []struct {
+		Login string `json:"login"`
+	} `json:"assignees"`
+	RequestedReviewers []struct {
+		Login string `json:"login"`
+	} `json:"requested_reviewers"`
+	CreatedAt string  `json:"created_at"`
+	UpdatedAt string  `json:"updated_at"`
+	MergedAt  *string `json:"merged_at"`
+	ClosedAt  *string `json:"closed_at"`
 }
 
 func prMergeable(m *bool, st string) string {
@@ -199,9 +213,18 @@ func (GitHub) PullRequests(ctx context.Context, p Project, token string) ([]Pull
 		if pr.MergedAt != nil {
 			state = "merged"
 		}
+		assignees := make([]string, 0, len(pr.Assignees))
+		for _, a := range pr.Assignees {
+			assignees = append(assignees, a.Login)
+		}
+		reviewers := make([]string, 0, len(pr.RequestedReviewers))
+		for _, r := range pr.RequestedReviewers {
+			reviewers = append(reviewers, r.Login)
+		}
 		out = append(out, PullRequest{
 			Number: pr.Number, Title: pr.Title, State: state, Draft: pr.Draft,
-			Author: pr.User.Login, SourceBranch: pr.Head.Ref, TargetBranch: pr.Base.Ref,
+			Author: pr.User.Login, Assignees: assignees, Reviewers: reviewers,
+			SourceBranch: pr.Head.Ref, TargetBranch: pr.Base.Ref,
 			Additions: pr.Additions, Deletions: pr.Deletions, ChangedFiles: pr.ChangedFiles,
 			Mergeable: prMergeable(pr.Mergeable, pr.MergeableSt),
 			URL:       pr.HTMLURL, Body: pr.Body, Comments: pr.Comments,
@@ -379,6 +402,27 @@ func (GitHub) PRFiles(ctx context.Context, p Project, token string, number int) 
 		})
 	}
 	return out, nil
+}
+
+// SetAssignee uses the issues assignees endpoint — pull requests share it.
+func (GitHub) SetAssignee(ctx context.Context, p Project, token string, kind string, number int, username string, assign bool) error {
+	method := http.MethodPost
+	if !assign {
+		method = http.MethodDelete
+	}
+	return ghDo(ctx, method,
+		fmt.Sprintf("%s/repos/%s/issues/%d/assignees", GitHub{}.apiBase(p.Host), p.Path, number),
+		token, map[string]any{"assignees": []string{username}}, nil)
+}
+
+func (GitHub) SetReviewer(ctx context.Context, p Project, token string, number int, username string, request bool) error {
+	method := http.MethodPost
+	if !request {
+		method = http.MethodDelete
+	}
+	return ghDo(ctx, method,
+		fmt.Sprintf("%s/repos/%s/pulls/%d/requested_reviewers", GitHub{}.apiBase(p.Host), p.Path, number),
+		token, map[string]any{"reviewers": []string{username}}, nil)
 }
 
 func (GitHub) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {

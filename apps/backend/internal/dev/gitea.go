@@ -98,6 +98,9 @@ type gtIssue struct {
 	Labels []struct {
 		Name string `json:"name"`
 	} `json:"labels"`
+	Assignees []struct {
+		Login string `json:"login"`
+	} `json:"assignees"`
 	HTMLURL   string `json:"html_url"`
 	Body      string `json:"body"`
 	Comments  int    `json:"comments"`
@@ -124,9 +127,14 @@ func (Gitea) Issues(ctx context.Context, p Project, token string) ([]Issue, erro
 		for _, l := range i.Labels {
 			labels = append(labels, l.Name)
 		}
+		assignees := make([]string, 0, len(i.Assignees))
+		for _, a := range i.Assignees {
+			assignees = append(assignees, a.Login)
+		}
 		out = append(out, Issue{
 			Number: i.Index, IID: i.Index, Title: i.Title, State: i.State,
-			Author: i.User.Login, Labels: labels, URL: i.HTMLURL, Body: i.Body,
+			Author: i.User.Login, Assignees: assignees, Labels: labels,
+			URL: i.HTMLURL, Body: i.Body,
 			Comments:  i.Comments,
 			CreatedAt: *ParseTime(i.CreatedAt), UpdatedAt: *ParseTime(i.UpdatedAt),
 		})
@@ -143,6 +151,9 @@ type gtPR struct {
 	User   struct {
 		Login string `json:"login"`
 	} `json:"user"`
+	Assignees []struct {
+		Login string `json:"login"`
+	} `json:"assignees"`
 	Head struct {
 		Ref string `json:"ref"`
 	} `json:"head"`
@@ -184,9 +195,14 @@ func (Gitea) PullRequests(ctx context.Context, p Project, token string) ([]PullR
 				mergeable = "conflict"
 			}
 		}
+		assignees := make([]string, 0, len(pr.Assignees))
+		for _, a := range pr.Assignees {
+			assignees = append(assignees, a.Login)
+		}
 		out = append(out, PullRequest{
 			Number: pr.Index, Title: pr.Title, State: state, Draft: pr.Draft,
-			Author: pr.User.Login, SourceBranch: pr.Head.Ref, TargetBranch: pr.Base.Ref,
+			Author: pr.User.Login, Assignees: assignees,
+			SourceBranch: pr.Head.Ref, TargetBranch: pr.Base.Ref,
 			Additions: pr.Additions, Deletions: pr.Deletions, ChangedFiles: pr.ChangedFiles,
 			Mergeable: mergeable,
 			URL:       pr.HTMLURL, Body: pr.Body, Comments: pr.Comments,
@@ -329,6 +345,44 @@ func (Gitea) PRFiles(ctx context.Context, p Project, token string, number int) (
 		})
 	}
 	return out, nil
+}
+
+// SetAssignee PATCHes the issue's assignee list — Gitea replaces the
+// whole list, so fetch current names and merge. PRs share issue indexes.
+func (Gitea) SetAssignee(ctx context.Context, p Project, token string, kind string, number int, username string, assign bool) error {
+	var cur struct {
+		Assignees []struct {
+			Login string `json:"login"`
+		} `json:"assignees"`
+	}
+	if err := gtDo(ctx, http.MethodGet,
+		fmt.Sprintf("%s/repos/%s/issues/%d", Gitea{}.apiBase(p.Host), p.Path, number),
+		token, nil, &cur); err != nil {
+		return err
+	}
+	names := make([]string, 0, len(cur.Assignees)+1)
+	seen := false
+	for _, a := range cur.Assignees {
+		if a.Login == username {
+			seen = true
+			if assign {
+				names = append(names, a.Login)
+			}
+			continue
+		}
+		names = append(names, a.Login)
+	}
+	if assign && !seen {
+		names = append(names, username)
+	}
+	return gtDo(ctx, http.MethodPatch,
+		fmt.Sprintf("%s/repos/%s/issues/%d", Gitea{}.apiBase(p.Host), p.Path, number),
+		token, map[string]any{"assignees": names}, nil)
+}
+
+// SetReviewer — Gitea/Forgejo has no requested-reviewers concept.
+func (Gitea) SetReviewer(context.Context, Project, string, int, string, bool) error {
+	return fmt.Errorf("reviewers are not supported on gitea/forgejo")
 }
 
 func (Gitea) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {

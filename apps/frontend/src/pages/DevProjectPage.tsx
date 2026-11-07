@@ -82,12 +82,15 @@ export function DevProjectPage({ id }: { id: string }) {
 		setOpenItem((o) => (o?.kind === kind && o.number === number ? null : { kind, number }));
 	}
 
-	// ItemDetail renders the expanded panel: body, comment thread, diff
-	// files (PRs only) and a comment box.
-	function ItemDetail({ kind, number, body }: { kind: "issue" | "pr"; number: number; body: string | undefined }) {
+	// ItemDetail renders the expanded panel: body, people (assignees /
+	// reviewers), comment thread, diff files (PRs only) and a comment box.
+	function ItemDetail({ kind, number, body, assignees, reviewers }:
+		{ kind: "issue" | "pr"; number: number; body: string | undefined;
+		  assignees: string[] | undefined; reviewers: string[] | undefined }) {
 		const [comments, setComments] = useState<DevItemComment[] | undefined>();
 		const [files, setFiles] = useState<DevDiffFile[] | undefined>();
 		const [draft, setDraft] = useState("");
+		const [person, setPerson] = useState("");
 		const [busy, setBusy] = useState(false);
 
 		const refreshComments = useCallback(async () => {
@@ -109,6 +112,22 @@ export function DevProjectPage({ id }: { id: string }) {
 				{ params: { path: { id, number } } }).then(({ data }) => setFiles(data ?? []));
 		}, [id, kind, number]);
 
+		async function togglePerson(username: string, on: boolean, role: "assignee" | "reviewer") {
+			if (busy) return;
+			setBusy(true);
+			if (role === "assignee") {
+				const path = kind === "pr"
+					? "/api/dev/projects/{id}/pullrequests/{number}/assignees" as const
+					: "/api/dev/projects/{id}/issues/{number}/assignees" as const;
+				await api.POST(path, { params: { path: { id, number } }, body: { username, on } });
+			} else {
+				await api.POST("/api/dev/projects/{id}/pullrequests/{number}/reviewers",
+					{ params: { path: { id, number } }, body: { username, on } });
+			}
+			setBusy(false);
+			await loadList();
+		}
+
 		async function send() {
 			const text = draft.trim();
 			if (!text || busy) return;
@@ -129,6 +148,38 @@ export function DevProjectPage({ id }: { id: string }) {
 		return (
 			<div className="mt-2.5 rounded-[8px] border border-border/70 bg-bg/60 p-3">
 				{body && <p className="mb-3 whitespace-pre-wrap text-[12px] leading-relaxed text-text-dim">{body}</p>}
+				<div className="mb-3 flex flex-wrap items-center gap-1.5">
+					{(assignees ?? []).map((u) => (
+						<button key={u} type="button" onClick={() => void togglePerson(u, false, "assignee")}
+							className="rounded-[5px] bg-surface-hover px-1.5 py-0.5 font-mono text-[10px] text-text-dim hover:text-down"
+							title={t("dev.unassign")}>
+							@{u} ×
+						</button>
+					))}
+					{(reviewers ?? []).map((u) => (
+						<button key={u} type="button" onClick={() => void togglePerson(u, false, "reviewer")}
+							className="rounded-[5px] bg-surface-hover px-1.5 py-0.5 font-mono text-[10px] text-text-dim hover:text-down"
+							title={t("dev.unrequest")}>
+							review @{u} ×
+						</button>
+					))}
+					<input
+						value={person}
+						onChange={(e) => setPerson(e.target.value)}
+						placeholder={t("dev.personPh")}
+						className="h-6 w-28 rounded-[6px] border border-border bg-bg px-2 font-mono text-[10.5px] outline-none focus:border-border-strong"
+					/>
+					<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+						disabled={busy || !person.trim()} onClick={() => { void togglePerson(person.trim(), true, "assignee"); setPerson(""); }}>
+						{t("dev.assign")}
+					</Button>
+					{kind === "pr" && (
+						<Button variant="outline" size="sm" className="h-6 px-2 text-[10.5px]"
+							disabled={busy || !person.trim()} onClick={() => { void togglePerson(person.trim(), true, "reviewer"); setPerson(""); }}>
+							{t("dev.requestReview")}
+						</Button>
+					)}
+				</div>
 				{comments === undefined ? (
 					<p className="text-[11px] text-text-faint">…</p>
 				) : comments.length === 0 ? (
@@ -316,7 +367,8 @@ export function DevProjectPage({ id }: { id: string }) {
 								</span>
 							</div>
 							{openItem?.kind === "pr" && openItem.number === (pr.number ?? 0) && (
-								<ItemDetail kind="pr" number={pr.number ?? 0} body={pr.body} />
+								<ItemDetail kind="pr" number={pr.number ?? 0} body={pr.body}
+									assignees={pr.assignees} reviewers={pr.reviewers} />
 							)}
 						</div>
 					))}
@@ -377,7 +429,8 @@ export function DevProjectPage({ id }: { id: string }) {
 								</span>
 							</div>
 							{openItem?.kind === "issue" && openItem.number === (i.number ?? 0) && (
-								<ItemDetail kind="issue" number={i.number ?? 0} body={i.body} />
+								<ItemDetail kind="issue" number={i.number ?? 0} body={i.body}
+									assignees={i.assignees} reviewers={undefined} />
 							)}
 						</div>
 					))}

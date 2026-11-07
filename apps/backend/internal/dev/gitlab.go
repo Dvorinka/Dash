@@ -124,6 +124,10 @@ type glIssue struct {
 	Labels []struct {
 		Title string `json:"title"`
 	} `json:"labels"`
+	Assignees []struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+	} `json:"assignees"`
 	WebURL       string `json:"web_url"`
 	Description  string `json:"description"`
 	UserNotesCnt int    `json:"user_notes_count"`
@@ -150,9 +154,14 @@ func (GitLab) Issues(ctx context.Context, p Project, token string) ([]Issue, err
 		if state == "opened" {
 			state = "open"
 		}
+		assignees := make([]string, 0, len(i.Assignees))
+		for _, a := range i.Assignees {
+			assignees = append(assignees, a.Username)
+		}
 		out = append(out, Issue{
 			Number: i.IID, IID: i.IID, Title: i.Title, State: state,
-			Author: i.Author.Username, Labels: labels, URL: i.WebURL, Body: i.Description,
+			Author: i.Author.Username, Assignees: assignees, Labels: labels,
+			URL: i.WebURL, Body: i.Description,
 			Comments:  i.UserNotesCnt,
 			CreatedAt: *ParseTime(i.CreatedAt), UpdatedAt: *ParseTime(i.UpdatedAt),
 			ClosedAt: parsePtrStr(i.ClosedAt),
@@ -171,6 +180,14 @@ type glMR struct {
 	} `json:"author"`
 	SourceBranch string `json:"source_branch"`
 	TargetBranch string `json:"target_branch"`
+	Assignees    []struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+	} `json:"assignees"`
+	Reviewers []struct {
+		ID       int    `json:"id"`
+		Username string `json:"username"`
+	} `json:"reviewers"`
 	ChangesCount string `json:"changes_count"`
 	UserNotesCnt int    `json:"user_notes_count"`
 	WebURL       string `json:"web_url"`
@@ -216,9 +233,18 @@ func (GitLab) PullRequests(ctx context.Context, p Project, token string) ([]Pull
 			ms = m.DetailedMR.MergeStatus
 		}
 		changes, _ := strconv.Atoi(m.ChangesCount)
+		assignees := make([]string, 0, len(m.Assignees))
+		for _, a := range m.Assignees {
+			assignees = append(assignees, a.Username)
+		}
+		reviewers := make([]string, 0, len(m.Reviewers))
+		for _, r := range m.Reviewers {
+			reviewers = append(reviewers, r.Username)
+		}
 		out = append(out, PullRequest{
 			Number: m.IID, Title: m.Title, State: state, Draft: m.Draft || m.DetailedMR.Draft,
-			Author: m.Author.Username, SourceBranch: m.SourceBranch, TargetBranch: m.TargetBranch,
+			Author: m.Author.Username, Assignees: assignees, Reviewers: reviewers,
+			SourceBranch: m.SourceBranch, TargetBranch: m.TargetBranch,
 			ChangedFiles: changes,
 			Mergeable:    glMergeable(ms),
 			URL:          m.WebURL, Body: m.Description, Comments: m.UserNotesCnt,
@@ -379,6 +405,100 @@ func (GitLab) PRFiles(ctx context.Context, p Project, token string, number int) 
 		})
 	}
 	return out, nil
+}
+
+// glUserID resolves a username to GitLab's numeric user id — assignee and
+// reviewer fields take ids, not names.
+func (GitLab) glUserID(ctx context.Context, host, token, username string) (int, error) {
+	var users []struct {
+		ID int `json:"id"`
+	}
+	err := glDo(ctx, http.MethodGet,
+		GitLab{}.apiBase(host)+"/users?username="+url.QueryEscape(username), token, nil, &users)
+	if err != nil {
+		return 0, err
+	}
+	if len(users) == 0 {
+		return 0, fmt.Errorf("gitlab user %q not found", username)
+	}
+	return users[0].ID, nil
+}
+
+// glPeopleIDs fetches the current numeric ids on an issue or MR so the
+// PUT (which replaces the whole list) can merge in/out one entry.
+func (GitLab) glPeopleIDs(ctx context.Context, p Project, token, kind string, number int, field string) ([]int, error) {
+	coll := "issues"
+	if kind == "pr" {
+		coll = "merge_requests"
+	}
+	var raw map[string]json.RawMessage
+	if err := glDo(ctx, http.MethodGet,
+		fmt.Sprintf("%s/projects/%s/%s/%d", GitLab{}.apiBase(p.Host), projectID(p.Path), coll, number),
+		token, nil, &raw); err != nil {
+		return nil, err
+	}
+	var people []struct {
+		ID int `json:"id"`
+	}
+	if err := json.Unmarshal(raw[field], &people); err != nil {
+		return nil, err
+	}
+	ids := make([]int, 0, len(people))
+	for _, u := range people {
+		ids = append(ids, u.ID)
+	}
+	return ids, nil
+}
+
+func glToggleID(ids []int, id int, on bool) []int {
+	out := ids[:0]
+	seen := false
+	for _, v := range ids {
+		if v == id {
+			seen = true
+			if on {
+				out = append(out, v)
+			}
+			continue
+		}
+		out = append(out, v)
+	}
+	if on && !seen {
+		out = append(out, id)
+	}
+	return out
+}
+
+func (GitLab) SetAssignee(ctx context.Context, p Project, token string, kind string, number int, username string, assign bool) error {
+	uid, err := GitLab{}.glUserID(ctx, p.Host, token, username)
+	if err != nil {
+		return err
+	}
+	ids, err := GitLab{}.glPeopleIDs(ctx, p, token, kind, number, "assignees")
+	if err != nil {
+		return err
+	}
+	coll := "issues"
+	if kind == "pr" {
+		coll = "merge_requests"
+	}
+	return glDo(ctx, http.MethodPut,
+		fmt.Sprintf("%s/projects/%s/%s/%d", GitLab{}.apiBase(p.Host), projectID(p.Path), coll, number),
+		token, map[string]any{"assignee_ids": glToggleID(ids, uid, assign)}, nil)
+}
+
+func (GitLab) SetReviewer(ctx context.Context, p Project, token string, number int, username string, request bool) error {
+	uid, err := GitLab{}.glUserID(ctx, p.Host, token, username)
+	if err != nil {
+		return err
+	}
+	ids, err := GitLab{}.glPeopleIDs(ctx, p, token, "pr", number, "reviewers")
+	if err != nil {
+		return err
+	}
+	return glDo(ctx, http.MethodPut,
+		fmt.Sprintf("%s/projects/%s/merge_requests/%d", GitLab{}.apiBase(p.Host), projectID(p.Path), number),
+		token, map[string]any{"reviewer_ids": glToggleID(ids, uid, request)}, nil)
 }
 
 func (GitLab) Discover(ctx context.Context, host, token string) ([]RepoRef, error) {

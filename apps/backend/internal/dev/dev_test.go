@@ -265,3 +265,104 @@ func TestGitLabCommentsAndFiles(t *testing.T) {
 		t.Fatalf("bad files: %v %+v", err, fs)
 	}
 }
+
+func TestGitHubSetAssigneeAndReviewer(t *testing.T) {
+	var gotMethod, gotPath string
+	var gotBody map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v3/repos/o/r/issues/11/assignees", func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	mux.HandleFunc("/api/v3/repos/o/r/pulls/21/requested_reviewers", func(w http.ResponseWriter, r *http.Request) {
+		gotMethod, gotPath = r.Method, r.URL.Path
+		_ = json.NewDecoder(r.Body).Decode(&gotBody)
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	p := Project{Provider: "github", Host: srv.URL, Path: "o/r"}
+
+	if err := (GitHub{}).SetAssignee(context.Background(), p, "t", "issue", 11, "alice", true); err != nil {
+		t.Fatal(err)
+	}
+	if gotMethod != http.MethodPost || gotPath != "/api/v3/repos/o/r/issues/11/assignees" {
+		t.Fatalf("bad assignee call: %s %s", gotMethod, gotPath)
+	}
+	if err := (GitHub{}).SetAssignee(context.Background(), p, "t", "pr", 11, "alice", false); err != nil {
+		t.Fatal(err)
+	}
+	if gotMethod != http.MethodDelete {
+		t.Fatalf("unassign should DELETE, got %s", gotMethod)
+	}
+	if err := (GitHub{}).SetReviewer(context.Background(), p, "t", 21, "bob", true); err != nil {
+		t.Fatal(err)
+	}
+	if gotPath != "/api/v3/repos/o/r/pulls/21/requested_reviewers" {
+		t.Fatalf("bad reviewer path: %s", gotPath)
+	}
+	if gotBody["reviewers"].([]any)[0] != "bob" {
+		t.Fatalf("bad reviewer body: %v", gotBody)
+	}
+}
+
+func TestGitLabSetAssignee(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v4/users", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`[{"id":42}]`))
+	})
+	mux.HandleFunc("/api/v4/projects/g%2Fp/issues/5", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			_, _ = w.Write([]byte(`{"assignees":[{"id":7,"username":"zed"}]}`))
+			return
+		}
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		ids := body["assignee_ids"].([]any)
+		// zed(7) kept, alice(42) appended → [7,42]
+		if len(ids) != 2 || ids[0] != float64(7) || ids[1] != float64(42) {
+			t.Errorf("bad assignee_ids: %v", ids)
+		}
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	p := Project{Provider: "gitlab", Host: srv.URL, Path: "g/p"}
+	if err := (GitLab{}).SetAssignee(context.Background(), p, "t", "issue", 5, "alice", true); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGiteaSetAssignee(t *testing.T) {
+	var patched []string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v1/repos/o/g/issues/3", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			_, _ = w.Write([]byte(`{"assignees":[{"login":"zed"}]}`))
+			return
+		}
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		for _, v := range body["assignees"].([]any) {
+			patched = append(patched, v.(string))
+		}
+		w.WriteHeader(200)
+		_, _ = w.Write([]byte(`{}`))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	p := Project{Provider: "gitea", Host: srv.URL, Path: "o/g"}
+	if err := (Gitea{}).SetAssignee(context.Background(), p, "t", "issue", 3, "alice", true); err != nil {
+		t.Fatal(err)
+	}
+	if len(patched) != 2 || patched[0] != "zed" || patched[1] != "alice" {
+		t.Fatalf("bad merged assignees: %v", patched)
+	}
+	if err := (Gitea{}).SetReviewer(context.Background(), p, "t", 3, "bob", true); err == nil {
+		t.Fatal("gitea reviewers should error")
+	}
+}
