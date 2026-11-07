@@ -734,34 +734,32 @@ func (s *Server) devDiscover(c *gin.Context) {
 	}
 	token := in.Token
 	if token == "" {
-		if in.Provider == "github" {
-			appID := s.settingStr("dev.githubAppId")
-			key := s.settingStr("dev.githubAppPrivateKey")
-			if appID == "" || key == "" {
-				fail(c, http.StatusBadRequest, "no token or github app configured")
-				return
-			}
-			insts, err := dev.GitHub{}.AppInstallations(c.Request.Context(), in.Host, appID, key)
-			if err != nil {
-				fail(c, http.StatusBadGateway, err.Error())
-				return
-			}
-			if len(insts) == 0 {
-				c.JSON(http.StatusOK, []any{})
-				return
-			}
-			refs, err := dev.GitHub{}.AppDiscover(c.Request.Context(), in.Host, appID, key,
-				strconv.FormatInt(insts[0].ID, 10))
-			if err != nil {
-				fail(c, http.StatusBadGateway, err.Error())
-				return
-			}
-			c.JSON(http.StatusOK, refs)
+		token = s.settingStr("dev." + in.Provider + "Token")
+	}
+	if token == "" && in.Provider == "github" {
+		appID := s.settingStr("dev.githubAppId")
+		key := s.settingStr("dev.githubAppPrivateKey")
+		if appID == "" || key == "" {
+			fail(c, http.StatusBadRequest, "no token or github app configured")
 			return
 		}
-		if tok := s.settingStr("dev." + in.Provider + "Token"); tok != "" {
-			token = tok
+		insts, err := dev.GitHub{}.AppInstallations(c.Request.Context(), in.Host, appID, key)
+		if err != nil {
+			fail(c, http.StatusBadGateway, err.Error())
+			return
 		}
+		if len(insts) == 0 {
+			c.JSON(http.StatusOK, []any{})
+			return
+		}
+		refs, err := dev.GitHub{}.AppDiscover(c.Request.Context(), in.Host, appID, key,
+			strconv.FormatInt(insts[0].ID, 10))
+		if err != nil {
+			fail(c, http.StatusBadGateway, err.Error())
+			return
+		}
+		c.JSON(http.StatusOK, refs)
+		return
 	}
 	if token == "" {
 		fail(c, http.StatusBadRequest, "token required")

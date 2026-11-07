@@ -209,6 +209,23 @@ func (GitHub) PullRequests(ctx context.Context, p Project, token string) ([]Pull
 			MergedAt: parsePtr(pr.MergedAt), ClosedAt: parsePtr(pr.ClosedAt),
 		})
 	}
+	// The list endpoint omits diff stats and mergeable; enrich open PRs
+	// (bounded) with a per-PR fetch.
+	enriched := 0
+	for i := range out {
+		if out[i].State != "open" || enriched >= 25 {
+			continue
+		}
+		enriched++
+		var detail ghPR
+		if err := ghDo(ctx, http.MethodGet,
+			fmt.Sprintf("%s/repos/%s/pulls/%d", GitHub{}.apiBase(p.Host), p.Path, out[i].Number),
+			token, nil, &detail); err == nil {
+			out[i].Additions, out[i].Deletions, out[i].ChangedFiles =
+				detail.Additions, detail.Deletions, detail.ChangedFiles
+			out[i].Mergeable = prMergeable(detail.Mergeable, detail.MergeableSt)
+		}
+	}
 	return out, nil
 }
 
