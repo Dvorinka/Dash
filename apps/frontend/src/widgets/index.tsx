@@ -51,6 +51,15 @@ const registry: WidgetRegistry = {
 	bazarr: { view: ServiceWidget },
 	overseerr: { view: ServiceWidget },
 	jellyseerr: { view: ServiceWidget },
+	jellyfin: { view: ServiceWidget },
+	emby: { view: ServiceWidget },
+	plex: { view: ServiceWidget },
+	sabnzbd: { view: ServiceWidget },
+	nzbget: { view: ServiceWidget },
+	qui: { view: ServiceWidget },
+	uptimekuma: { view: ServiceWidget },
+	traefik: { view: ServiceWidget },
+	maintainerr: { view: ServiceWidget },
 };
 
 export function cfgStr(item: Item, key: string): string {

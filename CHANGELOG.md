@@ -14,6 +14,12 @@ All notable changes to Dash. Format follows
   envelopes), and Overseerr/Jellyseerr (`/api/v1/*`). Each tile shows status,
   version, queue/indexer/request counts, update availability, and health
   warnings via one shared `ServiceWidget` view
+- Second wave of dashbrr-modeled service widgets: Jellyfin, Emby and Plex
+  (media auth schemes, active stream counts), SABnzbd (apikey query param,
+  queue/paused state), NZBGet (JSON-RPC + Basic auth), qui (instance counts),
+  Uptime Kuma (`/metrics` Prometheus parsing), Traefik (`/api/version` +
+  `/api/overview`) and Maintainerr (`/api/app/status`). Tailscale was skipped
+  — it is a cloud API with no local endpoint to configure
 - External monitoring stack `infra/monitoring/` (Prometheus + Grafana +
   prometheus-pve-exporter + Beszel hub) with a `docs/monitoring.md` guide:
   Beszel agents cover the physical hosts, pve-exporter covers all LXCs/VMs

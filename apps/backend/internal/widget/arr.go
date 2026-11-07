@@ -13,11 +13,17 @@ import (
 type svcData struct {
 	Status          string `json:"status"` // online | warning
 	Version         string `json:"version,omitempty"`
+	Name            string `json:"name,omitempty"`
 	QueueTotal      int    `json:"queueTotal,omitempty"`
 	PendingRequests int    `json:"pendingRequests,omitempty"`
 	Indexers        int    `json:"indexers,omitempty"`
 	Releases        int    `json:"releases,omitempty"`
+	Streams         int    `json:"streams,omitempty"`
+	Up              int    `json:"up,omitempty"`
+	Total           int    `json:"total,omitempty"`
+	Speed           string `json:"speed,omitempty"`
 	UpdateAvailable bool   `json:"updateAvailable,omitempty"`
+	Paused          bool   `json:"paused,omitempty"`
 	Issues          int    `json:"issues"`
 	Warning         string `json:"warning,omitempty"`
 }

@@ -156,6 +156,9 @@ export const en = {
 	"widget.releases": "{n} releases",
 	"widget.issues": "{n} issues",
 	"widget.update": "update available",
+	"widget.streams": "{n} streams",
+	"widget.upOf": "{up}/{total} up",
+	"widget.paused": "paused",
 
 	"renderer.localTime": "Local time",
 	"renderer.down": "Down",

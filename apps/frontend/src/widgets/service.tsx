@@ -31,15 +31,26 @@ export function ServiceWidget({ item, data, error }: {
 	const issues = num(data, "issues") ?? 0;
 	const update = data?.updateAvailable === true;
 
+	const name = str(data, "name");
 	const stats: string[] = [];
 	const queue = num(data, "queueTotal");
 	const pending = num(data, "pendingRequests");
 	const indexers = num(data, "indexers");
 	const releases = num(data, "releases");
+	const streams = num(data, "streams");
+	const up = num(data, "up");
+	const total = num(data, "total");
+	const speed = str(data, "speed");
+	const paused = data?.paused === true;
+	if (name) stats.push(name);
 	if (queue) stats.push(t("widget.queue", { n: queue }));
 	if (pending) stats.push(t("widget.pending", { n: pending }));
 	if (indexers) stats.push(t("widget.indexers", { n: indexers }));
 	if (releases) stats.push(t("widget.releases", { n: releases }));
+	if (streams) stats.push(t("widget.streams", { n: streams }));
+	if (up !== undefined && total !== undefined && total > 0) stats.push(t("widget.upOf", { up, total }));
+	if (speed) stats.push(speed);
+	if (paused) stats.push(t("widget.paused"));
 	if (issues) stats.push(t("widget.issues", { n: issues }));
 	if (update) stats.push(t("widget.update"));
 
