@@ -79,7 +79,7 @@ function SectionView({ section, index, onToggle, onDelete, children }: SectionVi
 				<button
 					type="button"
 					aria-label={t("renderer.dragSection")}
-					className="cursor-grab self-center text-text-faint opacity-0 transition-opacity group-hover/sec:opacity-100 active:cursor-grabbing"
+					className="show-on-hover cursor-grab self-center text-text-faint transition-opacity active:cursor-grabbing"
 					{...dnd.attributes}
 					{...dnd.listeners}
 				>
@@ -108,7 +108,7 @@ function SectionView({ section, index, onToggle, onDelete, children }: SectionVi
 					type="button"
 					aria-label={t("renderer.deleteSection")}
 					onClick={onDelete}
-					className="self-center text-text-faint opacity-0 transition-opacity hover:text-destructive group-hover/sec:opacity-100"
+					className="show-on-hover self-center text-text-faint transition-opacity hover:text-destructive"
 				>
 					<Trash2 size={12} />
 				</button>
@@ -133,7 +133,7 @@ function ItemView({ item, index, sectionId, status, onEdit }: ItemViewProps) {
 					{...dnd.listeners}
 					onClick={open}
 					className={cn(
-						"group/row relative grid cursor-grab grid-cols-[26px_30px_minmax(0,1fr)_64px] items-center gap-3.5",
+						"group/row touch-pad-action relative grid cursor-grab grid-cols-[26px_30px_minmax(0,1fr)_64px] items-center gap-3.5",
 						"border-b border-border px-1.5 py-[11px] transition-colors hover:bg-surface-hover",
 						"min-[760px]:grid-cols-[30px_34px_minmax(0,1.4fr)_minmax(0,1fr)_auto_108px_22px]",
 						dnd.isDragging && "opacity-35",
@@ -156,13 +156,13 @@ function ItemView({ item, index, sectionId, status, onEdit }: ItemViewProps) {
 						) : null)}
 					</span>
 					{item.urls.length > 0 ? (
-						<span className="flex items-center gap-1.5 justify-self-end font-mono text-[10.5px] tracking-[0.05em] text-text-dim transition-opacity group-hover/row:opacity-0">
+						<span className="hide-on-hover flex items-center gap-1.5 justify-self-end font-mono text-[10.5px] tracking-[0.05em] text-text-dim transition-opacity">
 							<span className={cn("size-[5px] rounded-full", state === "up" ? "bg-up" : state === "down" ? "bg-down" : "bg-text-faint/40")} />
 							{state ?? "…"}
 							{latency ? <span className="hidden text-text-faint min-[760px]:inline">{latency}</span> : null}
 						</span>
 					) : <span />}
-					<span className="hidden justify-self-end text-text-faint opacity-0 transition-all group-hover/row:opacity-100 min-[760px]:block">→</span>
+					<span className="show-on-hover hidden justify-self-end text-text-faint transition-all min-[760px]:block">→</span>
 					<button
 						type="button"
 						aria-label={`Edit ${item.name}`}
@@ -170,7 +170,7 @@ function ItemView({ item, index, sectionId, status, onEdit }: ItemViewProps) {
 							e.stopPropagation();
 							onEdit();
 						}}
-						className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded bg-popover p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/row:opacity-100"
+						className="show-on-hover absolute right-2.5 top-1/2 -translate-y-1/2 rounded bg-popover p-1 text-text-faint transition-opacity hover:text-text"
 					>
 						<Pencil size={11} />
 					</button>
@@ -189,7 +189,7 @@ function WidgetView({ item, index, sectionId, onEdit }: ItemViewProps) {
 			{...dnd.attributes}
 			{...dnd.listeners}
 			className={cn(
-				"group/row relative grid cursor-grab grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-3.5",
+				"group/row touch-pad-action relative grid cursor-grab grid-cols-[26px_30px_minmax(0,1fr)] items-center gap-3.5",
 				"border-b border-border px-1.5 py-[11px] transition-colors hover:bg-surface-hover",
 				"min-[760px]:grid-cols-[30px_34px_minmax(0,0.8fr)_minmax(0,1.2fr)]",
 				dnd.isDragging && "opacity-35",
@@ -210,7 +210,7 @@ function WidgetView({ item, index, sectionId, onEdit }: ItemViewProps) {
 					e.stopPropagation();
 					onEdit();
 				}}
-				className="absolute right-2.5 top-2 rounded bg-popover p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/row:opacity-100"
+				className="show-on-hover absolute right-2.5 top-2 rounded bg-popover p-1 text-text-faint transition-opacity hover:text-text"
 			>
 				<Pencil size={11} />
 			</button>

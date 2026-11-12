@@ -36,7 +36,7 @@ func call(ctx context.Context, method, rawURL string, headers map[string]string,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, nil, nil, fmt.Errorf("upstream unreachable")
+		return 0, nil, nil, fmt.Errorf("upstream unreachable: %w", err)
 	}
 	defer resp.Body.Close()
 	b, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))

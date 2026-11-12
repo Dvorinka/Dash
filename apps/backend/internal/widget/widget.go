@@ -88,7 +88,7 @@ func getRaw(ctx context.Context, url string, headers map[string]string) (int, []
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, nil, fmt.Errorf("upstream unreachable")
+		return 0, nil, fmt.Errorf("upstream unreachable: %w", err)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
@@ -114,7 +114,7 @@ func postJSON(ctx context.Context, url string, headers map[string]string, body a
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("upstream unreachable")
+		return fmt.Errorf("upstream unreachable: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

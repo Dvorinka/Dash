@@ -30,7 +30,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 				<button
 					type="button"
 					aria-label={t("renderer.dragSection")}
-					className="cursor-grab text-text-faint opacity-0 transition-opacity group-hover/sec:opacity-100 active:cursor-grabbing"
+					className="show-on-hover cursor-grab text-text-faint transition-opacity active:cursor-grabbing"
 					{...dnd.attributes}
 					{...dnd.listeners}
 				>
@@ -57,7 +57,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 					type="button"
 					aria-label={t("renderer.deleteSection")}
 					onClick={onDelete}
-					className="text-text-faint opacity-0 transition-opacity hover:text-destructive group-hover/sec:opacity-100"
+					className="show-on-hover text-text-faint transition-opacity hover:text-destructive"
 				>
 					<Trash2 size={12} />
 				</button>
@@ -80,7 +80,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 					{...dnd.listeners}
 					onClick={open}
 					className={cn(
-						"group/tile relative col-span-1 flex min-h-[70px] cursor-grab items-center gap-3",
+						"group/tile touch-pad-action relative col-span-1 flex min-h-[70px] cursor-grab items-center gap-3",
 						"rounded-[10px] border border-border bg-surface px-[15px] py-[13px]",
 						"transition-colors hover:border-border-strong hover:bg-surface-hover active:scale-[0.98]",
 						"min-[620px]:col-span-2",
@@ -100,7 +100,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 							e.stopPropagation();
 							onEdit();
 						}}
-						className="absolute right-2 top-2 rounded p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/tile:opacity-100"
+						className="show-on-hover absolute right-2 top-2 rounded p-1 text-text-faint transition-opacity hover:text-text"
 					>
 						<Pencil size={11} />
 					</button>
@@ -121,7 +121,7 @@ function WidgetView({ item, sectionId, onEdit }: ItemViewProps) {
 			{...dnd.attributes}
 			{...dnd.listeners}
 			className={cn(
-				"group/tile relative col-span-2 flex min-h-[70px] cursor-grab items-center gap-3",
+				"group/tile touch-pad-action relative col-span-2 flex min-h-[70px] cursor-grab items-center gap-3",
 				"rounded-[10px] border border-border bg-surface px-[15px] py-[13px]",
 				"transition-colors hover:border-border-strong hover:bg-surface-hover active:scale-[0.98]",
 				"min-[620px]:col-span-2 min-[900px]:col-span-3",
@@ -136,7 +136,7 @@ function WidgetView({ item, sectionId, onEdit }: ItemViewProps) {
 					e.stopPropagation();
 					onEdit();
 				}}
-				className="absolute right-2 top-2 rounded p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/tile:opacity-100"
+				className="show-on-hover absolute right-2 top-2 rounded p-1 text-text-faint transition-opacity hover:text-text"
 			>
 				<Pencil size={11} />
 			</button>

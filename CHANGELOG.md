@@ -6,6 +6,8 @@ All notable changes to Dash. Format follows
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-11-12
+
 ### Added
 
 - Overview page at `/overview`: board services down, monitors down, domains
@@ -29,15 +31,6 @@ All notable changes to Dash. Format follows
   Uptime Kuma (`/metrics` Prometheus parsing), Traefik (`/api/version` +
   `/api/overview`) and Maintainerr (`/api/app/status`). Tailscale was skipped
   — it is a cloud API with no local endpoint to configure
-- External monitoring stack `infra/monitoring/` (Prometheus + Grafana +
-  prometheus-pve-exporter + Beszel hub) with a `docs/monitoring.md` guide:
-  Beszel agents cover the physical hosts, pve-exporter covers all LXCs/VMs
-  via the PVE API, and existing JSON-path/embed widgets plus monitors
-  consume the data — no app code required
-- CasaOS deployment file `infra/compose.casaos.yaml` with app-store
-  (`x-casaos`) metadata and a persistent `/DATA/AppData/dash` bind mount;
-  the repo compose's relative `./data` fails under CasaOS, which runs
-  compose from `/tmp` and loses it on reboot
 - Developer dashboard (`/dev`): GitHub, GitLab and Gitea/Forgejo projects
   with manual add and token/app-based discovery, a GitHub-style
   contribution heatmap (GraphQL `contributionsCollection` on GitHub),
@@ -55,6 +48,7 @@ All notable changes to Dash. Format follows
 - Overview, Index, and the terminal board wait until every service with a
   URL has a probe before they call the board all-clear. A known outage
   still shows while the rest are in flight.
+- Widget fetch failures keep the underlying network error.
 
 ### Changed
 
@@ -65,6 +59,27 @@ All notable changes to Dash. Format follows
   Page content uses the same width and padding as the board. Search, theme,
   and settings are 40px hit targets. The Index stat strip uses the active
   language
+- Edit, delete, and drag controls stay visible on touch and when focused.
+  A pointer that can hover still reveals them on hover
+
+## [2.4.0] — 2026-10-03
+
+### Added
+
+- External monitoring stack `infra/monitoring/` (Prometheus + Grafana +
+  prometheus-pve-exporter + Beszel hub) with a `docs/monitoring.md` guide:
+  Beszel agents cover the physical hosts, pve-exporter covers all LXCs/VMs
+  via the PVE API, and existing JSON-path/embed widgets plus monitors
+  consume the data — no app code required
+
+## [2.3.0] — 2026-10-03
+
+### Added
+
+- CasaOS deployment file `infra/compose.casaos.yaml` with app-store
+  (`x-casaos`) metadata and a persistent `/DATA/AppData/dash` bind mount;
+  the repo compose's relative `./data` fails under CasaOS, which runs
+  compose from `/tmp` and loses it on reboot
 
 ## [2.1.0] — 2026-09-23
 
@@ -186,7 +201,10 @@ All notable changes to Dash. Format follows
 - Single Go binary serving the embedded React UI; SQLite via goose migrations;
   Docker image on distroless
 
-[Unreleased]: https://github.com/Dvorinka/Dash/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/Dvorinka/Dash/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/Dvorinka/Dash/compare/v2.4.2...v2.5.0
+[2.4.0]: https://github.com/Dvorinka/Dash/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/Dvorinka/Dash/compare/v2.2.0...v2.3.0
 [2.1.0]: https://github.com/Dvorinka/Dash/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Dvorinka/Dash/compare/v0.7.0...v2.0.0
 [0.7.0]: https://github.com/Dvorinka/Dash/compare/v0.6.0...v0.7.0

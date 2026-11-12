@@ -34,7 +34,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 				<button
 					type="button"
 					aria-label={t("renderer.dragSection")}
-					className="cursor-grab text-text-faint opacity-0 transition-opacity group-hover/sec:opacity-100 active:cursor-grabbing"
+					className="show-on-hover cursor-grab text-text-faint transition-opacity active:cursor-grabbing"
 					{...dnd.attributes}
 					{...dnd.listeners}
 				>
@@ -44,7 +44,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 					type="button"
 					aria-label={t("renderer.deleteSection")}
 					onClick={onDelete}
-					className="text-text-faint opacity-0 transition-opacity hover:text-destructive group-hover/sec:opacity-100"
+					className="show-on-hover text-text-faint transition-opacity hover:text-destructive"
 				>
 					<Trash2 size={12} />
 				</button>
@@ -71,7 +71,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 					{...dnd.listeners}
 					onClick={open}
 					className={cn(
-						"group/card relative flex cursor-grab items-center gap-3",
+						"group/card touch-pad-action relative flex cursor-grab items-center gap-3",
 						"rounded-[10px] border border-border bg-surface px-3.5 py-3",
 						"transition-colors hover:border-border-strong hover:bg-surface-hover active:scale-[0.98]",
 						dnd.isDragging && "opacity-40",
@@ -95,7 +95,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 							e.stopPropagation();
 							onEdit();
 						}}
-						className="absolute -right-1 -top-1 rounded-full border border-border bg-popover p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/card:opacity-100"
+						className="show-on-hover absolute -right-1 -top-1 rounded-full border border-border bg-popover p-1 text-text-faint transition-opacity hover:text-text"
 					>
 						<Pencil size={10} />
 					</button>
@@ -114,7 +114,7 @@ function WidgetView({ item, sectionId, onEdit }: ItemViewProps) {
 			{...dnd.attributes}
 			{...dnd.listeners}
 			className={cn(
-				"group/card relative col-span-2 flex cursor-grab items-center gap-3",
+				"group/card touch-pad-action relative col-span-2 flex cursor-grab items-center gap-3",
 				"rounded-[10px] border border-border bg-surface px-3.5 py-3",
 				"transition-colors hover:border-border-strong hover:bg-surface-hover active:scale-[0.98]",
 				dnd.isDragging && "opacity-40",
@@ -128,7 +128,7 @@ function WidgetView({ item, sectionId, onEdit }: ItemViewProps) {
 					e.stopPropagation();
 					onEdit();
 				}}
-				className="absolute -right-1 -top-1 rounded-full border border-border bg-popover p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/card:opacity-100"
+				className="show-on-hover absolute -right-1 -top-1 rounded-full border border-border bg-popover p-1 text-text-faint transition-opacity hover:text-text"
 			>
 				<Pencil size={10} />
 			</button>

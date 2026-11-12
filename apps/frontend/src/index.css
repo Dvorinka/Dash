@@ -160,3 +160,33 @@
     }
   }
 }
+
+/* Row actions stay visible on touch and on keyboard focus.
+   A pointer that can hover keeps them quiet until the row is hovered. */
+@media (hover: hover) {
+  .show-on-hover {
+    opacity: 0;
+  }
+  .group\/sec:hover .show-on-hover,
+  .group\/row:hover .show-on-hover,
+  .group\/card:hover .show-on-hover,
+  .group\/tile:hover .show-on-hover,
+  .group\/sec:focus-within .show-on-hover,
+  .group\/row:focus-within .show-on-hover,
+  .group\/card:focus-within .show-on-hover,
+  .group\/tile:focus-within .show-on-hover,
+  .show-on-hover:focus-visible {
+    opacity: 1;
+  }
+
+  .group\/row:hover .hide-on-hover,
+  .group\/row:focus-within .hide-on-hover {
+    opacity: 0;
+  }
+}
+
+@media (hover: none) {
+  .touch-pad-action {
+    padding-right: 2.25rem;
+  }
+}

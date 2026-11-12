@@ -110,7 +110,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 				<button
 					type="button"
 					aria-label={t("renderer.dragSection")}
-					className="cursor-grab text-text-faint opacity-0 transition-opacity group-hover/sec:opacity-100 active:cursor-grabbing"
+					className="show-on-hover cursor-grab text-text-faint transition-opacity active:cursor-grabbing"
 					{...dnd.attributes}
 					{...dnd.listeners}
 				>
@@ -120,7 +120,7 @@ function SectionView({ section, onToggle, onDelete, children }: SectionViewProps
 					type="button"
 					aria-label={t("renderer.deleteSection")}
 					onClick={onDelete}
-					className="text-text-faint opacity-0 transition-opacity hover:text-destructive group-hover/sec:opacity-100"
+					className="show-on-hover text-text-faint transition-opacity hover:text-destructive"
 				>
 					<Trash2 size={11} />
 				</button>
@@ -147,7 +147,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 					{...dnd.listeners}
 					onClick={open}
 					className={cn(
-						"group/row relative grid cursor-grab grid-cols-[16px_24px_minmax(0,1fr)_auto] items-center gap-3",
+						"group/row touch-pad-action relative grid cursor-grab grid-cols-[16px_24px_minmax(0,1fr)_auto] items-center gap-3",
 						"border-b border-border px-3 py-2 text-[12.5px] transition-colors last:border-b-0 hover:bg-surface-hover",
 						"min-[760px]:grid-cols-[20px_26px_minmax(0,1.2fr)_minmax(0,1fr)_auto]",
 						dnd.isDragging && "opacity-35",
@@ -165,7 +165,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 					{item.urls.length > 0 ? (
 						<span
 							className={cn(
-								"justify-self-end text-[10.5px] tracking-[0.04em] transition-opacity group-hover/row:opacity-0",
+								"hide-on-hover justify-self-end text-[10.5px] tracking-[0.04em] transition-opacity",
 								state === "up" ? "text-up" : state === "down" ? "text-down" : "text-text-faint",
 							)}
 						>
@@ -179,7 +179,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 							e.stopPropagation();
 							onEdit();
 						}}
-						className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded bg-popover p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/row:opacity-100"
+						className="show-on-hover absolute right-2.5 top-1/2 -translate-y-1/2 rounded bg-popover p-1 text-text-faint transition-opacity hover:text-text"
 					>
 						<Pencil size={10} />
 					</button>
@@ -198,7 +198,7 @@ function WidgetView({ item, sectionId, onEdit }: ItemViewProps) {
 			{...dnd.attributes}
 			{...dnd.listeners}
 			className={cn(
-				"group/row relative grid cursor-grab grid-cols-[16px_24px_minmax(0,1fr)] items-center gap-3",
+				"group/row touch-pad-action relative grid cursor-grab grid-cols-[16px_24px_minmax(0,1fr)] items-center gap-3",
 				"border-b border-border px-3 py-2 text-[12.5px] transition-colors last:border-b-0 hover:bg-surface-hover",
 				"min-[760px]:grid-cols-[20px_26px_minmax(0,0.8fr)_minmax(0,1.2fr)]",
 				dnd.isDragging && "opacity-35",
@@ -217,7 +217,7 @@ function WidgetView({ item, sectionId, onEdit }: ItemViewProps) {
 					e.stopPropagation();
 					onEdit();
 				}}
-				className="absolute right-2.5 top-2 rounded bg-popover p-1 text-text-faint opacity-0 transition-opacity hover:text-text group-hover/row:opacity-100"
+				className="show-on-hover absolute right-2.5 top-2 rounded bg-popover p-1 text-text-faint transition-opacity hover:text-text"
 			>
 				<Pencil size={10} />
 			</button>
