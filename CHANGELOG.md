@@ -8,10 +8,13 @@ All notable changes to Dash. Format follows
 
 ### Added
 
-- Overview page at `/overview`: monitors down, domains expiring, systems
-  offline, open incidents, and open pull requests on one screen. Primary
+- Overview page at `/overview`: board services down, monitors down, domains
+  expiring, systems offline, open incidents, and open pull requests on one
+  screen. A source that fails to load shows a dash instead of zero. Primary
   navigation moves to a sidebar so board actions stay on the board, and
   public status pages render without the admin shell
+- Index renderer stat strip fills its last cell on a narrow screen instead of
+  leaving an empty tile
 - Service widgets for qBittorrent, Proxmox, Portainer, Nginx Proxy Manager,
   Home Assistant, and Syncthing. They use the shared service tile
 - Service widgets for the *arr ecosystem, modelled on dashbrr's integration

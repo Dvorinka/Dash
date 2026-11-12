@@ -18,7 +18,7 @@ export const en = {
 	"header.widget": "Widget",
 
 	"overview.title": "Overview",
-	"overview.desc": "Monitors, domains, systems, incidents, and code, in one place.",
+	"overview.desc": "Services, monitors, domains, systems, incidents, and code, in one place.",
 	"overview.down": "down",
 	"overview.expiring": "expiring",
 	"overview.offline": "offline",

@@ -57,8 +57,8 @@ function BoardView({ children }: BoardViewProps) {
 			</header>
 
 			<div className="mb-10 grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-border bg-border min-[760px]:grid-cols-5">
-				{cells.map(([k, v, s]) => (
-					<div key={k} className="bg-surface px-4 py-3.5">
+				{cells.map(([k, v, s], i) => (
+					<div key={k} className={cn("bg-surface px-4 py-3.5", i === cells.length - 1 && "col-span-2 min-[760px]:col-span-1")}>
 						<div className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">{k}</div>
 						<div className="mt-1 font-mono text-[24px] font-medium leading-none tracking-tight tabular-nums">{v}</div>
 						<div className="mt-1.5 truncate text-[10.5px] text-text-faint">{s}</div>

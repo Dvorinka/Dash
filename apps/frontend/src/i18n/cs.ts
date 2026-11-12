@@ -19,7 +19,7 @@ export const cs: Partial<Record<Key, string>> = {
 	"header.widget": "Widget",
 
 	"overview.title": "Přehled",
-	"overview.desc": "Monitory, domény, systémy, incidenty a kód na jednom místě.",
+	"overview.desc": "Služby, monitory, domény, systémy, incidenty a kód na jednom místě.",
 	"overview.down": "mimo",
 	"overview.expiring": "končí",
 	"overview.offline": "offline",
