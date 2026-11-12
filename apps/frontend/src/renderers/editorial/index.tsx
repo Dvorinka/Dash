@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { t } from "@/i18n";
 import { useItemDnd, useSectionDnd } from "@/board/dnd";
 import { useBoard } from "@/board/store";
-import { IconImg, ItemAnchor, formatLatency, hostOf } from "@/board/primitives";
+import { IconImg, ItemAnchor, formatLatency, hostOf, probeCounts } from "@/board/primitives";
 import { WidgetContent } from "@/widgets";
 import type {
 	BoardViewProps,
@@ -27,8 +27,8 @@ function BoardView({ children }: BoardViewProps) {
 
 	const services = board.sections.flatMap((s) => s.items).filter((i) => i.kind !== "widget");
 	const widgets = board.sections.flatMap((s) => s.items).filter((i) => i.kind === "widget");
-	const up = services.filter((i) => board.statuses[i.id]?.status === "up").length;
-	const down = services.filter((i) => board.statuses[i.id]?.status === "down").length;
+	const { up, down, pending } = probeCounts(services, board.statuses);
+	const settled = (n: number) => (pending > 0 && n === 0 ? "-" : String(n));
 
 	const time = new Intl.DateTimeFormat(undefined, {
 		hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
@@ -40,8 +40,8 @@ function BoardView({ children }: BoardViewProps) {
 	const cells: [string, string, string][] = [
 		[t("renderer.localTime"), time, date.split(",")[0] ?? ""],
 		[t("renderer.services"), String(services.length), t(board.sections.length === 1 ? "renderer.section" : "renderer.sections", { n: board.sections.length })],
-		[t("renderer.up"), String(up), t("renderer.responding")],
-		[t("renderer.down"), String(down), down === 0 ? t("renderer.allGreen") : t("renderer.offline")],
+		[t("renderer.up"), settled(up), t("renderer.responding")],
+		[t("renderer.down"), settled(down), down > 0 ? t("renderer.offline") : pending > 0 ? t("common.loading") : t("renderer.allGreen")],
 		[t("renderer.widgets"), String(widgets.length), t("renderer.registered")],
 	];
 

@@ -52,6 +52,9 @@ All notable changes to Dash. Format follows
 
 - Service reachability uses GET. An app that rejects HEAD is no longer
   reported down while its page still loads.
+- Overview, Index, and the terminal board wait until every service with a
+  URL has a probe before they call the board all-clear. A known outage
+  still shows while the rest are in flight.
 
 ### Changed
 

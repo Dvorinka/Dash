@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { t } from "@/i18n";
 import { useItemDnd, useSectionDnd } from "@/board/dnd";
 import { useBoard } from "@/board/store";
-import { IconImg, ItemAnchor, formatLatency, hostOf } from "@/board/primitives";
+import { IconImg, ItemAnchor, formatLatency, hostOf, probeCounts } from "@/board/primitives";
 import { WidgetContent } from "@/widgets";
 import type {
 	BoardViewProps,
@@ -29,9 +29,9 @@ function BoardView({ children }: BoardViewProps) {
 	const services = items.filter((i) => i.kind !== "widget");
 	const widgets = items.filter((i) => i.kind === "widget");
 	const endpoints = services.reduce((n, i) => n + i.urls.length, 0);
-	const up = services.filter((i) => board.statuses[i.id]?.status === "up").length;
-	const down = services.filter((i) => board.statuses[i.id]?.status === "down").length;
+	const { up, down, pending } = probeCounts(services, board.statuses);
 	const probed = up + down;
+	const settled = (n: number) => (pending > 0 && n === 0 ? "-" : String(n));
 
 	const time = new Intl.DateTimeFormat(undefined, {
 		hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
@@ -42,8 +42,8 @@ function BoardView({ children }: BoardViewProps) {
 
 	const panels: { head: string; v: string; s: string; live?: boolean; wide?: boolean }[] = [
 		{ head: "clock --local", v: time, s: date, live: true, wide: true },
-		{ head: "services --up", v: String(up), s: `of ${probed} probed` },
-		{ head: "services --down", v: String(down), s: down === 0 ? t("renderer.allGreen") : t("renderer.needsAttention") },
+		{ head: "services --up", v: settled(up), s: `of ${probed} probed` },
+		{ head: "services --down", v: settled(down), s: down > 0 ? t("renderer.needsAttention") : pending > 0 ? t("common.loading") : t("renderer.allGreen") },
 		{ head: "widgets", v: String(widgets.length), s: "registered" },
 		{ head: "endpoints", v: String(endpoints), s: "urls indexed" },
 		{ head: "uptime --probes", v: probed > 0 ? `${Math.round((up / probed) * 100)}%` : "—", s: `${up}/${probed} responding` },
@@ -57,7 +57,7 @@ function BoardView({ children }: BoardViewProps) {
 				<span className="font-medium text-text-dim">{services.length} services</span>
 				{` indexed · `}
 				<span className="text-up">{up} up</span>
-				{down > 0 ? <span>{` · `}<span className="text-down">{t("renderer.downCount", { n: down })}</span></span> : ` · ${t("renderer.allGreen")}`}
+				{down > 0 ? <span>{` · `}<span className="text-down">{t("renderer.downCount", { n: down })}</span></span> : pending > 0 ? ` · ${t("common.loading")}` : ` · ${t("renderer.allGreen")}`}
 				{` · `}
 				<span className="font-medium text-text-dim">{widgets.length} widgets</span>
 				{`\ndrag rows to reorder · click rows with multiple endpoints to choose`}

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { Item, Status } from "@/types";
+import type { Item, Status, StatusMap } from "@/types";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { clickIsDragTail } from "@/board/dnd";
 
@@ -43,6 +43,22 @@ export function formatLatency(ms: number | undefined): string {
 	if (ms === undefined || ms < 0) return "";
 	if (ms < 1000) return `${ms}ms`;
 	return `${(ms / 1000).toFixed(1)}s`;
+}
+
+/** probeCounts splits services that have a URL into up, down, and not-yet-probed.
+    A service with no URL is never probed, so it is left out of all three. */
+export function probeCounts(items: Pick<Item, "id" | "urls">[], statuses: StatusMap) {
+	let up = 0;
+	let down = 0;
+	let watched = 0;
+	for (const item of items) {
+		if (item.urls.length === 0) continue;
+		watched += 1;
+		const status = statuses[item.id]?.status;
+		if (status === "up") up += 1;
+		else if (status === "down") down += 1;
+	}
+	return { up, down, pending: watched - up - down };
 }
 
 /** StatusChip — the only color on the board. Green up, amber down, faint when

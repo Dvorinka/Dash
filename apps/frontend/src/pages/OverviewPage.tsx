@@ -78,9 +78,9 @@ export function OverviewPage() {
 	const services = board.sections.flatMap((s) =>
 		s.items.filter((i) => i.kind !== "widget" && i.urls.length > 0).map((item) => ({ item, section: s.name ?? "" })),
 	);
-	const statusReady = services.length === 0 || services.some((s) => board.statuses[s.item.id]);
-	const boardDown = statusReady ? services.filter((s) => board.statuses[s.item.id]?.status === "down") : [];
-	const boardUp = statusReady ? services.filter((s) => board.statuses[s.item.id]?.status === "up") : [];
+	const statusReady = services.every((s) => board.statuses[s.item.id]);
+	const boardDown = services.filter((s) => board.statuses[s.item.id]?.status === "down");
+	const boardUp = services.filter((s) => board.statuses[s.item.id]?.status === "up");
 	const activity = (pulse?.dev?.activity ?? []).slice(0, 6);
 	const showActivity = activity.length > 0;
 	const sourcesOk = !!ok && ok.monitors && ok.domains && ok.systems && ok.incidents && ok.dev;
