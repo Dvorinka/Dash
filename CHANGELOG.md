@@ -48,8 +48,14 @@ All notable changes to Dash. Format follows
   resyncs; global provider tokens and webhook secrets live in Settings →
   Developer
 
+### Fixed
+
+- Service reachability uses GET. An app that rejects HEAD is no longer
+  reported down while its page still loads.
+
 ### Changed
 
+- Board rows and the overview show how long the reachability probe took.
 - Overview lists board services that are up, and hides the code column
   when there is nothing in it.
 - Secondary labels are darker in both themes so 12px text stays readable.

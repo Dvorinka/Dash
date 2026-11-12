@@ -38,6 +38,13 @@ export function IconImg({ item, size = 40, className }: { item: Item; size?: num
 	);
 }
 
+/** Compact probe time. Empty when the probe has not reported one. */
+export function formatLatency(ms: number | undefined): string {
+	if (ms === undefined || ms < 0) return "";
+	if (ms < 1000) return `${ms}ms`;
+	return `${(ms / 1000).toFixed(1)}s`;
+}
+
 /** StatusChip — the only color on the board. Green up, amber down, faint when
     unknown (no URLs or status not yet probed). */
 export function StatusChip({ status, variant = "chip" }: { status?: Status | undefined; variant?: "chip" | "dot" }) {
@@ -53,6 +60,7 @@ export function StatusChip({ status, variant = "chip" }: { status?: Status | und
 			/>
 		);
 	}
+	const latency = state ? formatLatency(status?.latencyMs) : "";
 	return (
 		<span
 			className={cn(
@@ -62,6 +70,7 @@ export function StatusChip({ status, variant = "chip" }: { status?: Status | und
 		>
 			<span className={cn("size-[5px] rounded-full", state === "up" ? "bg-up" : state === "down" ? "bg-down" : "bg-text-faint/40")} />
 			<span className="max-[620px]:hidden">{state ?? "…"}</span>
+			{latency ? <span className="max-[620px]:hidden">{latency}</span> : null}
 		</span>
 	);
 }

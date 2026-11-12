@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { t } from "@/i18n";
 import { useItemDnd, useSectionDnd } from "@/board/dnd";
 import { useBoard } from "@/board/store";
-import { IconImg, ItemAnchor, hostOf } from "@/board/primitives";
+import { IconImg, ItemAnchor, formatLatency, hostOf } from "@/board/primitives";
 import { WidgetContent } from "@/widgets";
 import type {
 	BoardViewProps,
@@ -136,6 +136,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 	const dnd = useItemDnd(sectionId, item.id);
 	const host = item.urls[0] ? hostOf(item.urls[0].url) : "";
 	const state = status?.status;
+	const latency = state ? formatLatency(status?.latencyMs) : "";
 	return (
 		<ItemAnchor item={item} onEdit={onEdit}>
 			{(open) => (
@@ -168,7 +169,7 @@ function ItemView({ item, sectionId, status, onEdit }: ItemViewProps) {
 								state === "up" ? "text-up" : state === "down" ? "text-down" : "text-text-faint",
 							)}
 						>
-							[ {state ?? "…"} ]
+							[ {state ?? "…"}{latency ? ` ${latency}` : ""} ]
 						</span>
 					) : <span />}
 					<button

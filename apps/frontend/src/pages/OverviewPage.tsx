@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { api } from "@/api";
 import { useBoard } from "@/board/store";
 import type { DevOverview, DomainView, Incident, MonitorView, System } from "@/types";
+import { formatLatency } from "@/board/primitives";
 import { cn } from "@/lib/utils";
 import { t } from "@/i18n";
 
@@ -123,7 +124,7 @@ export function OverviewPage() {
 										blank={!!item.urls[0]}
 										name={item.name}
 										kind={section || t("nav.board")}
-										detail={hostOf(item.urls[0]?.url ?? "")}
+										detail={probeDetail(item.urls[0]?.url ?? "", board.statuses[item.id]?.latencyMs)}
 										hot
 									/>
 								))}
@@ -177,7 +178,7 @@ export function OverviewPage() {
 									blank={!!item.urls[0]}
 									name={item.name}
 									kind={section || t("nav.board")}
-									detail={hostOf(item.urls[0]?.url ?? "")}
+									detail={probeDetail(item.urls[0]?.url ?? "", board.statuses[item.id]?.latencyMs)}
 									up
 								/>
 							))}
@@ -195,6 +196,13 @@ function hostOf(url: string) {
 	} catch {
 		return "";
 	}
+}
+
+function probeDetail(url: string, ms: number | undefined) {
+	const host = hostOf(url);
+	const latency = formatLatency(ms);
+	if (host && latency) return `${host} · ${latency}`;
+	return host || latency;
 }
 
 function expiryDetail(d: DomainView) {

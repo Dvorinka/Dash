@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { t } from "@/i18n";
 import { useItemDnd, useSectionDnd } from "@/board/dnd";
 import { useBoard } from "@/board/store";
-import { IconImg, ItemAnchor, hostOf } from "@/board/primitives";
+import { IconImg, ItemAnchor, formatLatency, hostOf } from "@/board/primitives";
 import { WidgetContent } from "@/widgets";
 import type {
 	BoardViewProps,
@@ -122,6 +122,7 @@ function ItemView({ item, index, sectionId, status, onEdit }: ItemViewProps) {
 	const dnd = useItemDnd(sectionId, item.id);
 	const host = item.urls[0] ? hostOf(item.urls[0].url) : "";
 	const state = status?.status;
+	const latency = state ? formatLatency(status?.latencyMs) : "";
 	return (
 		<ItemAnchor item={item} onEdit={onEdit}>
 			{(open) => (
@@ -134,7 +135,7 @@ function ItemView({ item, index, sectionId, status, onEdit }: ItemViewProps) {
 					className={cn(
 						"group/row relative grid cursor-grab grid-cols-[26px_30px_minmax(0,1fr)_64px] items-center gap-3.5",
 						"border-b border-border px-1.5 py-[11px] transition-colors hover:bg-surface-hover",
-						"min-[760px]:grid-cols-[30px_34px_minmax(0,1.4fr)_minmax(0,1fr)_auto_70px_22px]",
+						"min-[760px]:grid-cols-[30px_34px_minmax(0,1.4fr)_minmax(0,1fr)_auto_108px_22px]",
 						dnd.isDragging && "opacity-35",
 					)}
 				>
@@ -158,6 +159,7 @@ function ItemView({ item, index, sectionId, status, onEdit }: ItemViewProps) {
 						<span className="flex items-center gap-1.5 justify-self-end font-mono text-[10.5px] tracking-[0.05em] text-text-dim transition-opacity group-hover/row:opacity-0">
 							<span className={cn("size-[5px] rounded-full", state === "up" ? "bg-up" : state === "down" ? "bg-down" : "bg-text-faint/40")} />
 							{state ?? "…"}
+							{latency ? <span className="hidden text-text-faint min-[760px]:inline">{latency}</span> : null}
 						</span>
 					) : <span />}
 					<span className="hidden justify-self-end text-text-faint opacity-0 transition-all group-hover/row:opacity-100 min-[760px]:block">→</span>
