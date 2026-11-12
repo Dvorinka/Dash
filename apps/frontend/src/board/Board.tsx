@@ -26,12 +26,12 @@ export function Board({ onEditItem }: { onEditItem: (item: Item) => void }) {
 	}
 
 	if (!board.loaded) {
-		return <main className="mx-auto max-w-[1140px] px-7 pb-24 pt-9" />;
+		return <main className="mx-auto max-w-[1140px] px-4 pb-24 pt-9 md:px-7" />;
 	}
 
 	if (board.sections.length === 0) {
 		return (
-			<main className="mx-auto flex max-w-[1140px] flex-col items-center gap-4 px-7 pb-24 pt-24">
+			<main className="mx-auto flex max-w-[1140px] flex-col items-center gap-4 px-4 pb-24 pt-24 md:px-7">
 				<p className="text-[13px] text-text-faint">{t("board.empty")}</p>
 				<AddSectionRow
 					open={addingSection} setOpen={setAddingSection}
@@ -42,7 +42,7 @@ export function Board({ onEditItem }: { onEditItem: (item: Item) => void }) {
 	}
 
 	return (
-		<main className="mx-auto max-w-[1140px] px-7 pb-24 pt-9">
+		<main className="mx-auto max-w-[1140px] px-4 pb-24 pt-2 md:px-7">
 			<BoardDnd>
 				<SectionSortList ids={board.sections.map((s) => s.id)}>
 					<views.BoardView>

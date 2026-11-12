@@ -1,6 +1,7 @@
 package api
 
 import (
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -15,8 +16,9 @@ type statusEntry struct {
 	CheckedAt time.Time `json:"checkedAt"`
 }
 
-// statusCache is a TTL map of url -> probe result. Pings are HEAD requests;
-// any HTTP response < 500 means the host answered, so the service is up.
+// statusCache is a TTL map of url -> probe result. Pings are GET requests.
+// Some apps reject HEAD and look down while the page itself loads. Any HTTP
+// response below 500 means the host answered, so the service is up.
 // ponytail: pings the primary URL only — extend to all urls if demanded.
 type statusCache struct {
 	mu      sync.Mutex
@@ -54,7 +56,7 @@ func (sc *statusCache) ping(url string) statusEntry {
 	start := time.Now()
 	e := statusEntry{Status: "down", CheckedAt: start}
 
-	req, err := http.NewRequest(http.MethodHead, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return e
 	}
@@ -64,6 +66,8 @@ func (sc *statusCache) ping(url string) statusEntry {
 		return e
 	}
 	defer resp.Body.Close()
+	// Drain a little so the shared client can reuse the connection.
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1024))
 	if resp.StatusCode < 500 {
 		e.Status = "up"
 	}

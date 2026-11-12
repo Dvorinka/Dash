@@ -1250,6 +1250,593 @@ paths:
         "204":
           description: Disabled
 
+  /api/dev/overview:
+    get:
+      operationId: devOverview
+      summary: Aggregated dev stats + cross-project activity feed
+      responses:
+        "200":
+          description: Overview payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DevOverview"
+
+  /api/dev/projects:
+    get:
+      operationId: listDevProjects
+      summary: Tracked git projects with sync state and open counts
+      responses:
+        "200":
+          description: Project list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevProject"
+    post:
+      operationId: createDevProject
+      summary: Track a new repository; sync starts immediately
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevProjectInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}:
+    get:
+      operationId: getDevProject
+      summary: One project with counts
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DevProject"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateDevProject
+      summary: Update name/token/installation/enabled
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevProjectPatch"
+      responses:
+        "204":
+          description: Updated
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      operationId: deleteDevProject
+      summary: Stop tracking; removes synced issues and PRs
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/dev/projects/{id}/sync:
+    post:
+      operationId: syncDevProject
+      summary: Trigger an immediate sync
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "202":
+          description: Sync started
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/dev/projects/{id}/issues:
+    get:
+      operationId: listDevIssues
+      summary: Synced issues for a project
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: state
+          in: query
+          schema:
+            type: string
+            enum: [open, merged, closed, all]
+            default: open
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 200
+      responses:
+        "200":
+          description: Issues, most recently updated first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevIssue"
+
+  /api/dev/projects/{id}/pullrequests:
+    get:
+      operationId: listDevPRs
+      summary: Synced pull requests / merge requests
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: state
+          in: query
+          schema:
+            type: string
+            enum: [open, merged, closed, all]
+            default: open
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 200
+      responses:
+        "200":
+          description: PRs, most recently updated first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevPR"
+
+  /api/dev/projects/{id}/contributions:
+    get:
+      operationId: devContributions
+      summary: Per-day contribution counts for the heatmap (~5min cache)
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        "200":
+          description: Day counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevDayCount"
+        "502":
+          description: Upstream provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/dev/projects/{id}/pullrequests/{number}/merge:
+    post:
+      operationId: mergeDevPR
+      summary: "Merge an open PR/MR (method: merge|squash|rebase)"
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                method:
+                  type: string
+                  enum: [merge, squash, rebase]
+      responses:
+        "204":
+          description: Merge requested
+        "502":
+          description: Provider rejected the merge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/dev/projects/{id}/pullrequests/{number}/close:
+    post:
+      operationId: closeDevPR
+      summary: Close an open PR/MR without merging
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Closed
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/issues/{number}/close:
+    post:
+      operationId: closeDevIssue
+      summary: Close an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Closed
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/reopen:
+    post:
+      operationId: reopenDevPR
+      summary: Reopen a closed (unmerged) PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Reopened
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/comment:
+    post:
+      operationId: commentDevPR
+      summary: Post a comment on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevCommentInput"
+      responses:
+        "204":
+          description: Comment posted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/issues/{number}/reopen:
+    post:
+      operationId: reopenDevIssue
+      summary: Reopen a closed issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Reopened
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/issues/{number}/comment:
+    post:
+      operationId: commentDevIssue
+      summary: Post a comment on an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevCommentInput"
+      responses:
+        "204":
+          description: Comment posted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/issues/{number}/comments:
+    get:
+      operationId: listDevIssueComments
+      summary: Comments on an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevItemComment"
+
+  /api/dev/projects/{id}/pullrequests/{number}/comments:
+    get:
+      operationId: listDevPRComments
+      summary: Comments on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevItemComment"
+
+  /api/dev/projects/{id}/pullrequests/{number}/files:
+    get:
+      operationId: listDevPRFiles
+      summary: Changed files with patches for a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevDiffFile"
+
+  /api/dev/projects/{id}/issues/{number}/assignees:
+    post:
+      operationId: setDevIssueAssignee
+      summary: Add or remove an assignee on an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevPersonInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/assignees:
+    post:
+      operationId: setDevPRAssignee
+      summary: Add or remove an assignee on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevPersonInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/reviewers:
+    post:
+      operationId: setDevPRReviewer
+      summary: Request or remove a reviewer on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevPersonInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/issues/{number}/labels:
+    post:
+      operationId: setDevIssueLabels
+      summary: Replace the label set on an issue
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevLabelsInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/projects/{id}/pullrequests/{number}/labels:
+    post:
+      operationId: setDevPRLabels
+      summary: Replace the label set on a PR/MR
+      parameters:
+        - $ref: "#/components/parameters/id"
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevLabelsInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "502":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/dev/hooks/github:
+    post:
+      operationId: devHookGitHub
+      summary: GitHub webhook receiver (HMAC-verified, public)
+      responses:
+        "200":
+          description: Accepted
+        "401":
+          description: Bad signature
+
+  /api/dev/hooks/gitlab:
+    post:
+      operationId: devHookGitLab
+      summary: GitLab webhook receiver (token-verified, public)
+      responses:
+        "200":
+          description: Accepted
+        "401":
+          description: Bad token
+
+  /api/dev/sync:
+    post:
+      operationId: syncAllDevProjects
+      summary: Trigger a sync for every enabled project
+      responses:
+        "202":
+          description: Sync started
+
+  /api/dev/discover:
+    post:
+      operationId: devDiscover
+      summary: List repos a token or GitHub App installation can access
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DevDiscoverInput"
+      responses:
+        "200":
+          description: Discoverable repos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DevRepoRef"
+        "502":
+          description: Provider error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/dev/app/installations:
+    get:
+      operationId: devAppInstallations
+      summary: GitHub App installations (empty when no app configured)
+      responses:
+        "200":
+          description: Installations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    account:
+                      type: string
+                    repository_selection:
+                      type: string
+
 components:
   securitySchemes:
     bearerAuth:
@@ -2190,3 +2777,162 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Board"
+
+    DevProjectMeta:
+      type: object
+      properties:
+        description: { type: string }
+        defaultBranch: { type: string }
+        language: { type: string }
+        stars: { type: integer }
+        forks: { type: integer }
+        openIssues: { type: integer }
+        visibility: { type: string }
+        homepage: { type: string }
+        pushedAt: { type: string }
+    DevProject:
+      type: object
+      required: [id, provider, path, enabled]
+      properties:
+        id: { type: string }
+        provider: { type: string, enum: [github, gitlab, gitea] }
+        host: { type: string }
+        path: { type: string }
+        name: { type: string }
+        enabled: { type: boolean }
+        position: { type: number }
+        lastSyncAt: { type: string, format: date-time, nullable: true }
+        lastSyncError: { type: string }
+        meta: { $ref: "#/components/schemas/DevProjectMeta" }
+        openIssues: { type: integer }
+        openPRs: { type: integer }
+        createdAt: { type: string, format: date-time }
+    DevProjectInput:
+      type: object
+      required: [provider, path]
+      properties:
+        provider: { type: string, enum: [github, gitlab, gitea] }
+        host: { type: string }
+        path: { type: string }
+        name: { type: string }
+        token: { type: string }
+        installationId: { type: string }
+    DevProjectPatch:
+      type: object
+      properties:
+        name: { type: string }
+        token: { type: string }
+        installationId: { type: string }
+        enabled: { type: boolean }
+    DevIssue:
+      type: object
+      properties:
+        number: { type: integer }
+        iid: { type: integer }
+        title: { type: string }
+        state: { type: string }
+        author: { type: string }
+        assignees: { type: array, items: { type: string } }
+        labels: { type: array, items: { type: string } }
+        url: { type: string }
+        body: { type: string }
+        comments: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        closedAt: { type: string, nullable: true }
+    DevPR:
+      type: object
+      properties:
+        number: { type: integer }
+        title: { type: string }
+        state: { type: string, enum: [open, merged, closed] }
+        draft: { type: boolean }
+        author: { type: string }
+        assignees: { type: array, items: { type: string } }
+        reviewers: { type: array, items: { type: string } }
+        labels: { type: array, items: { type: string } }
+        sourceBranch: { type: string }
+        targetBranch: { type: string }
+        additions: { type: integer }
+        deletions: { type: integer }
+        changedFiles: { type: integer }
+        mergeable: { type: string }
+        reviewDecision: { type: string }
+        url: { type: string }
+        body: { type: string }
+        comments: { type: integer }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        mergedAt: { type: string, nullable: true }
+        closedAt: { type: string, nullable: true }
+    DevDayCount:
+      type: object
+      properties:
+        date: { type: string }
+        count: { type: integer }
+    DevRepoRef:
+      type: object
+      properties:
+        path: { type: string }
+        name: { type: string }
+        host: { type: string }
+        private: { type: boolean }
+    DevDiscoverInput:
+      type: object
+      required: [provider]
+      properties:
+        provider: { type: string, enum: [github, gitlab, gitea] }
+        host: { type: string }
+        token: { type: string }
+        installationId: { type: string }
+    DevCommentInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string }
+    DevPersonInput:
+      type: object
+      required: [username, on]
+      properties:
+        username: { type: string }
+        on: { type: boolean }
+    DevLabelsInput:
+      type: object
+      required: [labels]
+      properties:
+        labels: { type: array, items: { type: string } }
+    DevItemComment:
+      type: object
+      properties:
+        author: { type: string }
+        body: { type: string }
+        createdAt: { type: string, format: date-time }
+        url: { type: string }
+    DevDiffFile:
+      type: object
+      properties:
+        filename: { type: string }
+        status: { type: string }
+        additions: { type: integer }
+        deletions: { type: integer }
+        patch: { type: string }
+    DevOverview:
+      type: object
+      properties:
+        projects: { type: integer }
+        openIssues: { type: integer }
+        openPRs: { type: integer }
+        mergedPRs: { type: integer }
+        activity:
+          type: array
+          items:
+            type: object
+            properties:
+              projectId: { type: string }
+              kind: { type: string }
+              number: { type: integer }
+              title: { type: string }
+              state: { type: string }
+              author: { type: string }
+              updatedAt: { type: string }
+              url: { type: string }

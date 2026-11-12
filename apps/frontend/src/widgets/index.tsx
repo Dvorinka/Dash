@@ -9,6 +9,7 @@ import { DomainWidget } from "@/widgets/domain";
 import { SystemWidget } from "@/widgets/system";
 import { EmbedWidget } from "@/widgets/embed";
 import { JsonPathWidget } from "@/widgets/jsonpath";
+import { ServiceWidget } from "@/widgets/service";
 
 // WidgetHost seam: renderers own the tile chrome; this maps config.type to
 // the component that fills it. Adding a widget = one fetcher in Go + one
@@ -39,6 +40,32 @@ const registry: WidgetRegistry = {
 	system: { view: SystemWidget },
 	embed: { local: true, view: EmbedWidget },
 	jsonpath: { view: JsonPathWidget },
+	// *arr family + request/subtitle apps — one shared fetcher shape, one view.
+	sonarr: { view: ServiceWidget },
+	radarr: { view: ServiceWidget },
+	lidarr: { view: ServiceWidget },
+	readarr: { view: ServiceWidget },
+	whisparr: { view: ServiceWidget },
+	prowlarr: { view: ServiceWidget },
+	autobrr: { view: ServiceWidget },
+	bazarr: { view: ServiceWidget },
+	overseerr: { view: ServiceWidget },
+	jellyseerr: { view: ServiceWidget },
+	jellyfin: { view: ServiceWidget },
+	emby: { view: ServiceWidget },
+	plex: { view: ServiceWidget },
+	sabnzbd: { view: ServiceWidget },
+	nzbget: { view: ServiceWidget },
+	qui: { view: ServiceWidget },
+	uptimekuma: { view: ServiceWidget },
+	traefik: { view: ServiceWidget },
+	maintainerr: { view: ServiceWidget },
+	qbittorrent: { view: ServiceWidget },
+	proxmox: { view: ServiceWidget },
+	portainer: { view: ServiceWidget },
+	nginxpm: { view: ServiceWidget },
+	homeassistant: { view: ServiceWidget },
+	syncthing: { view: ServiceWidget },
 };
 
 export function cfgStr(item: Item, key: string): string {

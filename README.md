@@ -47,6 +47,9 @@ No YAML, no external database; auth is optional and off by default.
 ## Features
 
 - **Service boards** — multiple boards, sections, drag-and-drop, multi-URL services, icon upload, four renderers (Bento, Cards, Index, Console), dark/light themes, custom accent/wallpaper/CSS.
+- **Overview** — one screen for board services down and up, how long each board check took, monitors down, expiring domains, offline systems, open incidents, and open pull requests.
+- **Service widgets** — Pi-hole, AdGuard, Immich, the *arr apps, download clients, media servers, plus qBittorrent, Proxmox, Portainer, Nginx Proxy Manager, Home Assistant, and Syncthing.
+- **Developer** — GitHub, GitLab, and Gitea/Forgejo projects, issues, pull requests, and a contribution heatmap.
 - **Uptime monitors** — HTTP, TCP, ping, DNS, keyword, JSON-path, and push checks on a schedule; heartbeat history, uptime graphs, per-monitor alert rules.
 - **Domain watch** — WHOIS/RDAP, TLS certificate, host geolocation, and CT-log subdomain discovery; every DNS record is attributed to its vendor (Cloudflare, Google Workspace, Purelymail, …) with provider badges across registrar, DNS, hosting, email, and CA.
 - **System monitoring** — lightweight `dash-agent` pushes CPU, memory, disk, network, load, temperatures, per-container stats, and SMART/ZFS/GPU when available; rendered as stacked per-container charts, per-sensor temperature lines, and load/bandwidth series.

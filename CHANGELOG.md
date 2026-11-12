@@ -6,6 +6,64 @@ All notable changes to Dash. Format follows
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-11-12
+
+### Added
+
+- Overview page at `/overview`: board services down, monitors down, domains
+  expiring, systems offline, open incidents, and open pull requests on one
+  screen. A source that fails to load shows a dash instead of zero. Primary
+  navigation moves to a sidebar so board actions stay on the board, and
+  public status pages render without the admin shell
+- Index renderer stat strip fills its last cell on a narrow screen instead of
+  leaving an empty tile
+- Service widgets for qBittorrent, Proxmox, Portainer, Nginx Proxy Manager,
+  Home Assistant, and Syncthing. They use the shared service tile
+- Service widgets for the *arr ecosystem, modelled on dashbrr's integration
+  layer: Sonarr, Radarr, Lidarr, Readarr, Whisparr, Prowlarr (`X-Api-Key`,
+  `/api/<v1|v3>/*`), Autobrr (`X-Api-Token`), Bazarr (`X-API-KEY`, `{data}`
+  envelopes), and Overseerr/Jellyseerr (`/api/v1/*`). Each tile shows status,
+  version, queue/indexer/request counts, update availability, and health
+  warnings via one shared `ServiceWidget` view
+- Second wave of dashbrr-modeled service widgets: Jellyfin, Emby and Plex
+  (media auth schemes, active stream counts), SABnzbd (apikey query param,
+  queue/paused state), NZBGet (JSON-RPC + Basic auth), qui (instance counts),
+  Uptime Kuma (`/metrics` Prometheus parsing), Traefik (`/api/version` +
+  `/api/overview`) and Maintainerr (`/api/app/status`). Tailscale was skipped
+  — it is a cloud API with no local endpoint to configure
+- Developer dashboard (`/dev`): GitHub, GitLab and Gitea/Forgejo projects
+  with manual add and token/app-based discovery, a GitHub-style
+  contribution heatmap (GraphQL `contributionsCollection` on GitHub),
+  synced issue/PR/MR lists, and management actions — merge, close, reopen
+  and comment — plus expandable threads with comment history and PR diff
+  files. GitHub App auth (JWT → installation token) and provider webhooks
+  (`/api/dev/hooks/github`, `/api/dev/hooks/gitlab`) trigger instant
+  resyncs; global provider tokens and webhook secrets live in Settings →
+  Developer
+
+### Fixed
+
+- Service reachability uses GET. An app that rejects HEAD is no longer
+  reported down while its page still loads.
+- Overview, Index, and the terminal board wait until every service with a
+  URL has a probe before they call the board all-clear. A known outage
+  still shows while the rest are in flight.
+- Widget fetch failures keep the underlying network error.
+
+### Changed
+
+- Board rows and the overview show how long the reachability probe took.
+- Overview lists board services that are up, and hides the code column
+  when there is nothing in it.
+- Secondary labels are darker in both themes so 12px text stays readable.
+  Page content uses the same width and padding as the board. Search, theme,
+  and settings are 40px hit targets. The Index stat strip uses the active
+  language
+- Edit, delete, and drag controls stay visible on touch and when focused.
+  A pointer that can hover still reveals them on hover
+
+## [2.4.0] — 2026-10-03
+
 ### Added
 
 - External monitoring stack `infra/monitoring/` (Prometheus + Grafana +
@@ -13,6 +71,11 @@ All notable changes to Dash. Format follows
   Beszel agents cover the physical hosts, pve-exporter covers all LXCs/VMs
   via the PVE API, and existing JSON-path/embed widgets plus monitors
   consume the data — no app code required
+
+## [2.3.0] — 2026-10-03
+
+### Added
+
 - CasaOS deployment file `infra/compose.casaos.yaml` with app-store
   (`x-casaos`) metadata and a persistent `/DATA/AppData/dash` bind mount;
   the repo compose's relative `./data` fails under CasaOS, which runs
@@ -138,7 +201,10 @@ All notable changes to Dash. Format follows
 - Single Go binary serving the embedded React UI; SQLite via goose migrations;
   Docker image on distroless
 
-[Unreleased]: https://github.com/Dvorinka/Dash/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/Dvorinka/Dash/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/Dvorinka/Dash/compare/v2.4.2...v2.5.0
+[2.4.0]: https://github.com/Dvorinka/Dash/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/Dvorinka/Dash/compare/v2.2.0...v2.3.0
 [2.1.0]: https://github.com/Dvorinka/Dash/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Dvorinka/Dash/compare/v0.7.0...v2.0.0
 [0.7.0]: https://github.com/Dvorinka/Dash/compare/v0.6.0...v0.7.0

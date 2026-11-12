@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -65,16 +66,55 @@ var client = &http.Client{Timeout: 6 * time.Second}
 // getJSON fetches url and decodes the body into out. headers adds auth etc.
 // The caller's config is never logged — errors carry only status codes.
 func getJSON(ctx context.Context, url string, headers map[string]string, out any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	code, body, err := getRaw(ctx, url, headers)
 	if err != nil {
 		return err
+	}
+	if code != http.StatusOK {
+		return fmt.Errorf("upstream returned %d", code)
+	}
+	return json.Unmarshal(body, out)
+}
+
+// getRaw fetches url and returns the status code and body (capped at 4 MiB).
+// For endpoints that answer non-200 success codes or plain text.
+func getRaw(ctx context.Context, url string, headers map[string]string) (int, []byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, nil, err
 	}
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("upstream unreachable")
+		return 0, nil, fmt.Errorf("upstream unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	if err != nil {
+		return resp.StatusCode, nil, err
+	}
+	return resp.StatusCode, body, nil
+}
+
+// postJSON POSTs a JSON body and decodes the response into out.
+func postJSON(ctx context.Context, url string, headers map[string]string, body any, out any) error {
+	raw, err := json.Marshal(body)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(string(raw)))
+	if err != nil {
+		return err
+	}
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("upstream unreachable: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

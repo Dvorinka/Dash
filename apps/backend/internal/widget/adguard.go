@@ -53,7 +53,7 @@ func (adguard) Fetch(ctx context.Context, cfg json.RawMessage) (any, error) {
 	req.SetBasicAuth(user, pass)
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("upstream unreachable")
+		return nil, fmt.Errorf("upstream unreachable: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {

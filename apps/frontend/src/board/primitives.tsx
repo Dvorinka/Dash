@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import type { Item, Status } from "@/types";
+import type { Item, Status, StatusMap } from "@/types";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { clickIsDragTail } from "@/board/dnd";
 
@@ -38,6 +38,29 @@ export function IconImg({ item, size = 40, className }: { item: Item; size?: num
 	);
 }
 
+/** Compact probe time. Empty when the probe has not reported one. */
+export function formatLatency(ms: number | undefined): string {
+	if (ms === undefined || ms < 0) return "";
+	if (ms < 1000) return `${ms}ms`;
+	return `${(ms / 1000).toFixed(1)}s`;
+}
+
+/** probeCounts splits services that have a URL into up, down, and not-yet-probed.
+    A service with no URL is never probed, so it is left out of all three. */
+export function probeCounts(items: Pick<Item, "id" | "urls">[], statuses: StatusMap) {
+	let up = 0;
+	let down = 0;
+	let watched = 0;
+	for (const item of items) {
+		if (item.urls.length === 0) continue;
+		watched += 1;
+		const status = statuses[item.id]?.status;
+		if (status === "up") up += 1;
+		else if (status === "down") down += 1;
+	}
+	return { up, down, pending: watched - up - down };
+}
+
 /** StatusChip — the only color on the board. Green up, amber down, faint when
     unknown (no URLs or status not yet probed). */
 export function StatusChip({ status, variant = "chip" }: { status?: Status | undefined; variant?: "chip" | "dot" }) {
@@ -53,6 +76,7 @@ export function StatusChip({ status, variant = "chip" }: { status?: Status | und
 			/>
 		);
 	}
+	const latency = state ? formatLatency(status?.latencyMs) : "";
 	return (
 		<span
 			className={cn(
@@ -62,6 +86,7 @@ export function StatusChip({ status, variant = "chip" }: { status?: Status | und
 		>
 			<span className={cn("size-[5px] rounded-full", state === "up" ? "bg-up" : state === "down" ? "bg-down" : "bg-text-faint/40")} />
 			<span className="max-[620px]:hidden">{state ?? "…"}</span>
+			{latency ? <span className="max-[620px]:hidden">{latency}</span> : null}
 		</span>
 	);
 }

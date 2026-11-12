@@ -122,6 +122,7 @@ func publicAPI(path string) bool {
 		strings.HasPrefix(path, "/api/push/"),
 		path == "/api/systems/ingest",
 		strings.HasPrefix(path, "/api/badge/"),
+		strings.HasPrefix(path, "/api/dev/hooks/"),
 		path == "/api/metrics",
 		strings.HasPrefix(path, "/api/healthz"),
 		strings.HasSuffix(path, "/public"):

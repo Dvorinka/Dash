@@ -32,12 +32,12 @@ export function SystemDetailPage({ id }: { id: string }) {
 	}, [load]);
 
 	if (notFound) return (
-		<main className="mx-auto max-w-5xl px-7 py-8 text-[13px] text-text-faint">
+		<main className="mx-auto max-w-[1140px] px-4 py-6 md:px-7 md:py-8 text-[13px] text-text-faint">
 			<Link href="/systems" className="inline-flex items-center gap-1.5 hover:text-text"><ArrowLeft size={12} /> {t("nav.systems")}</Link>
 			<p className="mt-4">{t("systems.notFound")}</p>
 		</main>
 	);
-	if (!sys) return <main className="mx-auto max-w-5xl px-7 py-8 text-[13px] text-text-faint">{t("common.loading")}</main>;
+	if (!sys) return <main className="mx-auto max-w-[1140px] px-4 py-6 md:px-7 md:py-8 text-[13px] text-text-faint">{t("common.loading")}</main>;
 
 	const l = sys.latest;
 	const spanMs = hours * 3600_000;
@@ -109,7 +109,7 @@ export function SystemDetailPage({ id }: { id: string }) {
 	const vramSeries: Series[] = gpuNames.map((n, i) => ({ key: `v:${n}`, label: n, color: chartColor(i) }));
 
 	return (
-		<main className="mx-auto w-full max-w-5xl px-7 py-8">
+		<main className="mx-auto w-full max-w-[1140px] px-4 py-6 md:px-7 md:py-8">
 			<Link href="/systems" className="mb-4 inline-flex items-center gap-1.5 text-[12px] text-text-faint hover:text-text">
 				<ArrowLeft size={12} /> {t("nav.systems")}
 			</Link>
