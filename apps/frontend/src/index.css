@@ -106,6 +106,7 @@
   --color-up: var(--up);
   --color-down: var(--down);
   --color-destructive: var(--destructive);
+  --color-danger: var(--destructive);
   --color-icon-bg: var(--icon-bg);
   --color-popover: var(--popover);
 

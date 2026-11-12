@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Route, useLocation } from "wouter";
-import { Activity, AlertTriangle, Code2, Globe, LayoutGrid, Megaphone, Moon, Plus, Search, Server, Settings, Sun } from "lucide-react";
+import { Activity, AlertTriangle, Code2, Gauge, Globe, LayoutGrid, Megaphone, Moon, Plus, Search, Server, Settings, Sun } from "lucide-react";
 import { BoardProvider, useBoard } from "@/board/store";
 import { BoardSwitcher } from "@/components/BoardSwitcher";
 import { Board } from "@/board/Board";
@@ -17,6 +17,7 @@ import { SystemDetailPage } from "@/pages/SystemDetailPage";
 import { IncidentsPage } from "@/pages/IncidentsPage";
 import { StatusPagesPage } from "@/pages/StatusPagesPage";
 import { StatusPublicPage } from "@/pages/StatusPublicPage";
+import { OverviewPage } from "@/pages/OverviewPage";
 import { DevPage } from "@/pages/DevPage";
 import { DevProjectPage } from "@/pages/DevProjectPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -36,6 +37,7 @@ export default function App() {
 
 const NAV: { href: string; labelKey: Key; icon: typeof LayoutGrid }[] = [
 	{ href: "/", labelKey: "nav.board", icon: LayoutGrid },
+	{ href: "/overview", labelKey: "nav.overview", icon: Gauge },
 	{ href: "/monitors", labelKey: "nav.monitors", icon: Activity },
 	{ href: "/domains", labelKey: "nav.domains", icon: Globe },
 	{ href: "/systems", labelKey: "nav.systems", icon: Server },
@@ -43,6 +45,64 @@ const NAV: { href: string; labelKey: Key; icon: typeof LayoutGrid }[] = [
 	{ href: "/status", labelKey: "nav.status", icon: Megaphone },
 	{ href: "/dev", labelKey: "nav.dev", icon: Code2 },
 ];
+
+function Mark() {
+	return (
+		<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+			<rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor" />
+			<rect x="10" y="1" width="7" height="7" rx="1.5" fill="currentColor" opacity=".45" />
+			<rect x="1" y="10" width="7" height="7" rx="1.5" fill="currentColor" opacity=".45" />
+			<rect x="10" y="10" width="7" height="7" rx="1.5" fill="currentColor" />
+		</svg>
+	);
+}
+
+function ChromeTools({ onSearch, onTheme, onSettings, dark }: {
+	onSearch(): void;
+	onTheme(): void;
+	onSettings(): void;
+	dark: boolean;
+}) {
+	return (
+		<>
+			<Button variant="outline" size="icon" aria-label={t("header.search")} className="size-8" onClick={onSearch}>
+				<Search size={14} strokeWidth={1.8} />
+			</Button>
+			<Button variant="outline" size="icon" aria-label={t("header.theme")} className="size-8" onClick={onTheme}>
+				{dark ? <Moon size={14} strokeWidth={1.8} /> : <Sun size={14} strokeWidth={1.8} />}
+			</Button>
+			<Button variant="outline" size="icon" aria-label={t("header.settings")} className="size-8" onClick={onSettings}>
+				<Settings size={14} strokeWidth={1.8} />
+			</Button>
+		</>
+	);
+}
+
+function navActive(href: string, loc: string) {
+	if (href === "/") return loc === "/" || loc.startsWith("/b/");
+	return loc === href || loc.startsWith(href + "/");
+}
+
+function NavItems({ loc, testid }: { loc: string; testid?: boolean }) {
+	return NAV.map((n) => {
+		const active = navActive(n.href, loc);
+		return (
+			<Link
+				key={n.href}
+				href={n.href}
+				data-testid={testid ? `nav-${n.labelKey}` : undefined}
+				aria-current={active ? "page" : undefined}
+				className={cn(
+					"flex shrink-0 items-center gap-2 rounded-[7px] px-2.5 py-[7px] text-[12.5px] transition-colors",
+					active ? "bg-surface-hover text-text" : "text-text-dim hover:bg-surface-hover hover:text-text",
+				)}
+			>
+				<n.icon size={14} strokeWidth={1.8} />
+				{t(n.labelKey)}
+			</Link>
+		);
+	});
+}
 
 function Shell() {
 	const board = useBoard();
@@ -93,77 +153,72 @@ function Shell() {
 		else setSvcOpen(true);
 	}
 
-	// Public status pages stay reachable when auth is on — the backend serves
-	// their API unauthenticated, so the SPA must let the route through too.
+	// Public status pages stay reachable when auth is on, and they render
+	// without the admin shell — the URL is meant to be shared.
 	const publicPage = loc.startsWith("/status/");
-	if (auth?.enabled && !auth.authed && !publicPage) {
+	if (publicPage) {
+		return <StatusPublicPage slug={decodeURIComponent(loc.slice("/status/".length).split("/")[0] ?? "")} />;
+	}
+	if (auth === null) {
+		return <div className="min-h-dvh bg-bg" />;
+	}
+	if (auth.enabled && !auth.authed) {
 		return <LoginPage setup={!!auth.setup} onDone={() => location.reload()} />;
 	}
 
+	const onBoard = loc === "/" || loc.startsWith("/b/");
+	const toolProps = {
+		dark: board.theme === "dark",
+		onSearch: () => setPaletteOpen(true),
+		onTheme: () => void board.setSetting("theme", board.theme === "dark" ? "light" : "dark"),
+		onSettings: () => setSettingsOpen(true),
+	};
+
 	return (
-		<div className="font-sans">
-			<header className="sticky top-0 z-10 flex items-center gap-3.5 border-b border-border bg-bg/80 px-7 py-3.5 backdrop-blur-md">
-				<div className="flex items-center gap-2.5 text-[15px] font-semibold tracking-tight">
-					<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-						<rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor" />
-						<rect x="10" y="1" width="7" height="7" rx="1.5" fill="currentColor" opacity=".45" />
-						<rect x="1" y="10" width="7" height="7" rx="1.5" fill="currentColor" opacity=".45" />
-						<rect x="10" y="10" width="7" height="7" rx="1.5" fill="currentColor" />
-					</svg>
+		<div className="min-h-dvh bg-bg font-sans md:grid md:grid-cols-[208px_minmax(0,1fr)]">
+			<aside className="sticky top-0 hidden h-dvh flex-col border-r border-border px-3 py-4 md:flex">
+				<Link href="/" className="mb-5 flex shrink-0 items-center gap-2.5 px-2 text-[15px] font-semibold tracking-tight">
+					<Mark />
 					Dash
-				</div>
-				<BoardSwitcher />
-				<nav className="ml-4 flex items-center gap-1" aria-label="Primary">
-					{NAV.map((n) => {
-						const active = n.href === "/" ? loc === "/" || loc.startsWith("/b/") : loc.startsWith(n.href);
-						return (
-							<Link
-								key={n.href}
-								href={n.href}
-								className={cn(
-									"flex items-center gap-1.5 rounded-[7px] px-2.5 py-1.5 text-[12.5px] transition-colors",
-									active ? "bg-surface-hover text-text" : "text-text-faint hover:text-text",
-								)}
-							>
-								<n.icon size={13} strokeWidth={1.8} />
-								{t(n.labelKey)}
-							</Link>
-						);
-					})}
+				</Link>
+				<nav className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto" aria-label="Primary">
+					<NavItems loc={loc} testid />
 				</nav>
-				<div className="ml-auto flex items-center gap-2">
-					<Button
-						variant="outline" aria-label={t("header.search")}
-						onClick={() => setPaletteOpen(true)}
-						className="gap-1.5 text-text-faint"
-					>
-						<Search size={14} strokeWidth={1.8} />
-						<kbd className="hidden font-mono text-[10px] min-[620px]:inline">⌘K</kbd>
-					</Button>
-					<Button
-						variant="outline" size="icon" aria-label={t("header.settings")}
-						onClick={() => setSettingsOpen(true)}
-					>
-						<Settings size={15} strokeWidth={1.8} />
-					</Button>
-					<Button
-						variant="outline" size="icon" aria-label={t("header.theme")}
-						onClick={() => void board.setSetting("theme", board.theme === "dark" ? "light" : "dark")}
-					>
-						{board.theme === "dark" ? <Moon size={15} strokeWidth={1.8} /> : <Sun size={15} strokeWidth={1.8} />}
-					</Button>
-					<Button
-						variant="outline" aria-label={t("header.addWidget")}
-						onClick={() => { setEditing(undefined); setWdgOpen(true); }}
-					>
-						<LayoutGrid size={13} strokeWidth={2} />
-						{t("header.widget")}
-					</Button>
-					<Button onClick={() => { setEditing(undefined); setSvcOpen(true); }}>
-						<Plus size={13} strokeWidth={2.2} />
-						{t("header.addService")}
-					</Button>
+				<div className="mt-3 flex shrink-0 items-center gap-1 border-t border-border pt-3">
+					<ChromeTools {...toolProps} />
 				</div>
+			</aside>
+
+			<div className="min-w-0">
+			<header className="sticky top-0 z-10 border-b border-border bg-bg/85 backdrop-blur-md md:static md:border-0 md:bg-transparent md:backdrop-blur-none">
+				<div className="flex items-center gap-2 px-4 py-2.5 md:hidden">
+					<Link href="/" className="flex items-center gap-2 text-[14px] font-semibold tracking-tight">
+						<Mark />
+						Dash
+					</Link>
+					<div className="ml-auto flex items-center gap-1"><ChromeTools {...toolProps} /></div>
+				</div>
+				<nav className="flex gap-1 overflow-x-auto px-3 pb-2 [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)] md:hidden" aria-label="Primary">
+					<NavItems loc={loc} />
+				</nav>
+				{onBoard && (
+					<div className="mx-auto flex w-full max-w-[1140px] items-center gap-2 px-4 py-3 md:px-7 md:pt-5">
+						<BoardSwitcher />
+						<div className="ml-auto flex items-center gap-2">
+							<Button
+								variant="outline" aria-label={t("header.addWidget")}
+								onClick={() => { setEditing(undefined); setWdgOpen(true); }}
+							>
+								<LayoutGrid size={13} strokeWidth={2} />
+								{t("header.widget")}
+							</Button>
+							<Button onClick={() => { setEditing(undefined); setSvcOpen(true); }}>
+								<Plus size={13} strokeWidth={2.2} />
+								{t("header.addService")}
+							</Button>
+						</div>
+					</div>
+				)}
 			</header>
 
 			<Route path="/">
@@ -171,6 +226,9 @@ function Shell() {
 			</Route>
 			<Route path="/b/:slug">
 				<Board onEditItem={openEditor} />
+			</Route>
+			<Route path="/overview">
+				<OverviewPage />
 			</Route>
 			<Route path="/monitors">
 				<MonitorsPage />
@@ -196,9 +254,6 @@ function Shell() {
 			<Route path="/status">
 				<StatusPagesPage />
 			</Route>
-			<Route path="/status/:slug">
-				{(p) => <StatusPublicPage slug={p.slug} />}
-			</Route>
 			<Route path="/dev">
 				<DevPage />
 			</Route>
@@ -216,6 +271,7 @@ function Shell() {
 				onAddWidget={() => { setEditing(undefined); setWdgOpen(true); }}
 				onSettings={() => setSettingsOpen(true)}
 			/>
+			</div>
 		</div>
 	);
 }

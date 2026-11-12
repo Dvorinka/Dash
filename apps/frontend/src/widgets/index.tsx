@@ -60,6 +60,12 @@ const registry: WidgetRegistry = {
 	uptimekuma: { view: ServiceWidget },
 	traefik: { view: ServiceWidget },
 	maintainerr: { view: ServiceWidget },
+	qbittorrent: { view: ServiceWidget },
+	proxmox: { view: ServiceWidget },
+	portainer: { view: ServiceWidget },
+	nginxpm: { view: ServiceWidget },
+	homeassistant: { view: ServiceWidget },
+	syncthing: { view: ServiceWidget },
 };
 
 export function cfgStr(item: Item, key: string): string {

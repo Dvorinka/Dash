@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Activity, AlertTriangle, ArrowRight, Download, Globe, LayoutGrid, Megaphone, Moon, Plus, Server, Settings, Sun } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, Code2, Download, Gauge, Globe, LayoutGrid, Megaphone, Moon, Plus, Server, Settings, Sun } from "lucide-react";
 import { useBoard } from "@/board/store";
 import { hostOf, IconImg } from "@/board/primitives";
 import { rendererLabels, rendererList } from "@/renderers";
@@ -44,11 +44,13 @@ export function CommandPalette({
 	const commands = useMemo<Command[]>(() => {
 		const cmds: Command[] = [
 			{ id: "nav-board", group: "actions", glyph: LayoutGrid, label: t("palette.goTo", { page: t("nav.board") }), run: () => navigate("/") },
+			{ id: "nav-overview", group: "actions", glyph: Gauge, label: t("palette.goTo", { page: t("nav.overview") }), run: () => navigate("/overview") },
 			{ id: "nav-monitors", group: "actions", glyph: Activity, label: t("palette.goTo", { page: t("nav.monitors") }), run: () => navigate("/monitors") },
 			{ id: "nav-domains", group: "actions", glyph: Globe, label: t("palette.goTo", { page: t("nav.domains") }), run: () => navigate("/domains") },
 			{ id: "nav-systems", group: "actions", glyph: Server, label: t("palette.goTo", { page: t("nav.systems") }), run: () => navigate("/systems") },
 			{ id: "nav-incidents", group: "actions", glyph: AlertTriangle, label: t("palette.goTo", { page: t("nav.incidents") }), run: () => navigate("/incidents") },
 			{ id: "nav-status", group: "actions", glyph: Megaphone, label: t("palette.goTo", { page: t("statusPages.title") }), run: () => navigate("/status") },
+			{ id: "nav-dev", group: "actions", glyph: Code2, label: t("palette.goTo", { page: t("nav.dev") }), run: () => navigate("/dev") },
 			{ id: "add-service", group: "actions", glyph: Plus, label: t("header.addService"), hint: t("palette.hintNew"), run: onAddService },
 			{ id: "add-widget", group: "actions", glyph: Plus, label: t("header.addWidget"), hint: t("palette.hintNew"), run: onAddWidget },
 			{ id: "settings", group: "actions", glyph: Settings, label: t("palette.openSettings"), run: onSettings },

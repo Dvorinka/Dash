@@ -42,7 +42,7 @@ export function Board({ onEditItem }: { onEditItem: (item: Item) => void }) {
 	}
 
 	return (
-		<main className="mx-auto max-w-[1140px] px-7 pb-24 pt-9">
+		<main className="mx-auto max-w-[1140px] px-5 pb-24 pt-2 md:px-7">
 			<BoardDnd>
 				<SectionSortList ids={board.sections.map((s) => s.id)}>
 					<views.BoardView>

@@ -2,6 +2,7 @@
 // Add a locale by copying this file — keys must match exactly.
 export const en = {
 	"nav.board": "Board",
+	"nav.overview": "Overview",
 	"nav.monitors": "Monitors",
 	"nav.domains": "Domains",
 	"nav.systems": "Systems",
@@ -15,6 +16,22 @@ export const en = {
 	"header.addWidget": "Add widget",
 	"header.addService": "Add service",
 	"header.widget": "Widget",
+
+	"overview.title": "Overview",
+	"overview.desc": "Monitors, domains, systems, incidents, and code, in one place.",
+	"overview.down": "down",
+	"overview.expiring": "expiring",
+	"overview.offline": "offline",
+	"overview.open": "open",
+	"overview.prs": "pull requests",
+	"overview.of": "{n} tracked",
+	"overview.ackIncluded": "open and acknowledged",
+	"overview.issues": "{n} open issues",
+	"overview.attention": "Needs attention",
+	"overview.activity": "Recent code",
+	"overview.allClear": "Nothing needs attention.",
+	"overview.noActivity": "No tracked projects yet.",
+	"overview.partial": "Some sources did not respond.",
 
 	"common.add": "Add",
 	"common.edit": "Edit",

@@ -8,6 +8,12 @@ All notable changes to Dash. Format follows
 
 ### Added
 
+- Overview page at `/overview`: monitors down, domains expiring, systems
+  offline, open incidents, and open pull requests on one screen. Primary
+  navigation moves to a sidebar so board actions stay on the board, and
+  public status pages render without the admin shell
+- Service widgets for qBittorrent, Proxmox, Portainer, Nginx Proxy Manager,
+  Home Assistant, and Syncthing. They use the shared service tile
 - Service widgets for the *arr ecosystem, modelled on dashbrr's integration
   layer: Sonarr, Radarr, Lidarr, Readarr, Whisparr, Prowlarr (`X-Api-Key`,
   `/api/<v1|v3>/*`), Autobrr (`X-Api-Token`), Bazarr (`X-API-KEY`, `{data}`

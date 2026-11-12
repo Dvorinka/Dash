@@ -19,7 +19,7 @@ type svcData struct {
 	Indexers        int    `json:"indexers,omitempty"`
 	Releases        int    `json:"releases,omitempty"`
 	Streams         int    `json:"streams,omitempty"`
-	Up              int    `json:"up,omitempty"`
+	Up              int    `json:"up"` // zero is meaningful: 0 of N running
 	Total           int    `json:"total,omitempty"`
 	Speed           string `json:"speed,omitempty"`
 	UpdateAvailable bool   `json:"updateAvailable,omitempty"`

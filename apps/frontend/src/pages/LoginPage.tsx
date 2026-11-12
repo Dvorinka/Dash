@@ -44,7 +44,7 @@ export function LoginPage({ setup, onDone }: { setup: boolean; onDone: () => voi
 					Dash
 				</div>
 				<h1 className="mb-1 text-[14px] font-medium">{setup ? t("auth.setupTitle") : t("auth.signInTitle")}</h1>
-				<p className="mb-4 text-[12px] text-text-faint">{setup ? t("auth.setupHint") : t("auth.signInHint")}</p>
+				<p className="mb-4 text-[12px] text-text-dim">{setup ? t("auth.setupHint") : t("auth.signInHint")}</p>
 				<div className="grid gap-3">
 					<div className="grid gap-1.5">
 						<Label htmlFor="auth-user">{t("auth.username")}</Label>
@@ -61,7 +61,7 @@ export function LoginPage({ setup, onDone }: { setup: boolean; onDone: () => voi
 							value={password} onChange={(e) => setPassword(e.target.value)}
 						/>
 					</div>
-					{err && <p className="text-[12px] text-danger">{err}</p>}
+					{err && <p className="text-[12px] text-destructive">{err}</p>}
 					<Button type="submit" disabled={busy || !username.trim() || password.length < 8} className="mt-1">
 						{setup ? t("auth.createAccount") : t("auth.signIn")}
 					</Button>
