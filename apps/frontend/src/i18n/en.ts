@@ -179,6 +179,13 @@ export const en = {
 	"widget.paused": "paused",
 
 	"renderer.localTime": "Local time",
+	"renderer.services": "Services",
+	"renderer.section": "{n} section",
+	"renderer.sections": "{n} sections",
+	"renderer.up": "Up",
+	"renderer.responding": "responding",
+	"renderer.widgets": "Widgets",
+	"renderer.registered": "registered",
 	"renderer.down": "Down",
 	"renderer.allGreen": "all green",
 	"renderer.offline": "offline",

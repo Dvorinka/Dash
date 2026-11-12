@@ -84,7 +84,7 @@ export function OverviewPage() {
 	const clear = sourcesOk && statusReady && !anyRow;
 
 	return (
-		<main className="mx-auto w-full max-w-5xl px-5 py-8 md:px-7">
+		<main className="mx-auto w-full max-w-[1140px] px-4 py-6 md:px-7 md:py-8">
 			<div className="mb-6">
 				<h1 className="text-[15px] font-semibold tracking-tight">{t("overview.title")}</h1>
 				<p className="text-[12px] text-text-faint">{t("overview.desc")}</p>
@@ -194,7 +194,7 @@ function Stat({ href, label, value, unit, meta, hot }: {
 		<Link href={href} className="rounded-[10px] border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-hover">
 			<div className="font-mono text-[10px] uppercase tracking-[0.1em] text-text-faint">{label}</div>
 			<div className="mt-2 flex items-baseline gap-1.5">
-				<span className={cn("font-mono text-[22px] leading-none", hot ? "text-down" : "text-text")}>{value === null ? "-" : value}</span>
+				<span className={cn("font-mono text-[22px] leading-none tabular-nums", hot ? "text-down" : "text-text")}>{value === null ? "-" : value}</span>
 				<span className="text-[12px] text-text-dim">{unit}</span>
 			</div>
 			<div className="mt-1.5 text-[11px] leading-snug text-text-faint">{meta}</div>

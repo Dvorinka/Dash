@@ -39,10 +39,10 @@ function BoardView({ children }: BoardViewProps) {
 
 	const cells: [string, string, string][] = [
 		[t("renderer.localTime"), time, date.split(",")[0] ?? ""],
-		["Services", String(services.length), `${board.sections.length} sections`],
-		["Up", String(up), "responding"],
+		[t("renderer.services"), String(services.length), t(board.sections.length === 1 ? "renderer.section" : "renderer.sections", { n: board.sections.length })],
+		[t("renderer.up"), String(up), t("renderer.responding")],
 		[t("renderer.down"), String(down), down === 0 ? t("renderer.allGreen") : t("renderer.offline")],
-		["Widgets", String(widgets.length), "registered"],
+		[t("renderer.widgets"), String(widgets.length), t("renderer.registered")],
 	];
 
 	return (

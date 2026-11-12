@@ -171,6 +171,13 @@ export const cs: Partial<Record<Key, string>> = {
 	"widget.embedHint": "Nastavte URL v konfiguraci widgetu.",
 
 	"renderer.localTime": "Místní čas",
+	"renderer.services": "Služby",
+	"renderer.section": "{n} sekce",
+	"renderer.sections": "{n} sekcí",
+	"renderer.up": "Dostupné",
+	"renderer.responding": "odpovídá",
+	"renderer.widgets": "Widgety",
+	"renderer.registered": "registrováno",
 	"renderer.down": "Nedostupné",
 	"renderer.allGreen": "vše v pořádku",
 	"renderer.offline": "offline",

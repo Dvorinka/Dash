@@ -108,12 +108,12 @@ export function DomainDetailPage({ id }: { id: string }) {
 
 	useEffect(() => { void load(); }, [load]);
 
-	if (!d) return <main className="mx-auto max-w-5xl px-7 py-8 text-[13px] text-text-faint">{t("common.loading")}</main>;
+	if (!d) return <main className="mx-auto max-w-[1140px] px-4 py-6 md:px-7 md:py-8 text-[13px] text-text-faint">{t("common.loading")}</main>;
 
 	const expiring = d.expiring || (d.daysUntilExpiry ?? Infinity) < 0;
 
 	return (
-		<main className="mx-auto w-full max-w-5xl px-7 py-8">
+		<main className="mx-auto w-full max-w-[1140px] px-4 py-6 md:px-7 md:py-8">
 			<Link href="/domains" className="mb-4 inline-flex items-center gap-1.5 text-[12px] text-text-faint hover:text-text">
 				<ArrowLeft size={12} /> {t("nav.domains")}
 			</Link>

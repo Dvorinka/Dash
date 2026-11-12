@@ -48,6 +48,13 @@ All notable changes to Dash. Format follows
   resyncs; global provider tokens and webhook secrets live in Settings →
   Developer
 
+### Changed
+
+- Secondary labels are darker in both themes so 12px text stays readable.
+  Page content uses the same width and padding as the board. Search, theme,
+  and settings are 40px hit targets. The Index stat strip uses the active
+  language
+
 ## [2.1.0] — 2026-09-23
 
 ### Added

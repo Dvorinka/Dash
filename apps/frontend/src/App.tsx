@@ -65,14 +65,14 @@ function ChromeTools({ onSearch, onTheme, onSettings, dark }: {
 }) {
 	return (
 		<>
-			<Button variant="outline" size="icon" aria-label={t("header.search")} className="size-8" onClick={onSearch}>
-				<Search size={14} strokeWidth={1.8} />
+			<Button variant="ghost" size="icon" aria-label={t("header.search")} className="size-10" onClick={onSearch}>
+				<Search size={15} strokeWidth={1.8} />
 			</Button>
-			<Button variant="outline" size="icon" aria-label={t("header.theme")} className="size-8" onClick={onTheme}>
-				{dark ? <Moon size={14} strokeWidth={1.8} /> : <Sun size={14} strokeWidth={1.8} />}
+			<Button variant="ghost" size="icon" aria-label={t("header.theme")} className="size-10" onClick={onTheme}>
+				{dark ? <Moon size={15} strokeWidth={1.8} /> : <Sun size={15} strokeWidth={1.8} />}
 			</Button>
-			<Button variant="outline" size="icon" aria-label={t("header.settings")} className="size-8" onClick={onSettings}>
-				<Settings size={14} strokeWidth={1.8} />
+			<Button variant="ghost" size="icon" aria-label={t("header.settings")} className="size-10" onClick={onSettings}>
+				<Settings size={15} strokeWidth={1.8} />
 			</Button>
 		</>
 	);
@@ -93,7 +93,7 @@ function NavItems({ loc, testid }: { loc: string; testid?: boolean }) {
 				data-testid={testid ? `nav-${n.labelKey}` : undefined}
 				aria-current={active ? "page" : undefined}
 				className={cn(
-					"flex shrink-0 items-center gap-2 rounded-[7px] px-2.5 py-[7px] text-[12.5px] transition-colors",
+					"flex min-h-10 shrink-0 items-center gap-2 rounded-[7px] px-2.5 text-[12.5px] transition-colors",
 					active ? "bg-surface-hover text-text" : "text-text-dim hover:bg-surface-hover hover:text-text",
 				)}
 			>

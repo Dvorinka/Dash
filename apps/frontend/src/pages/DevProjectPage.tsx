@@ -281,7 +281,7 @@ export function DevProjectPage({ id }: { id: string }) {
 	const states: ("open" | "merged" | "closed" | "all")[] = tab === "prs" ? ["open", "merged", "closed", "all"] : ["open", "closed", "all"];
 
 	return (
-		<main className="mx-auto w-full max-w-5xl px-7 py-8">
+		<main className="mx-auto w-full max-w-[1140px] px-4 py-6 md:px-7 md:py-8">
 			<Link href="/dev" className="mb-3 inline-flex items-center gap-1.5 text-[12px] text-text-faint hover:text-text">
 				<ArrowLeft size={12} /> {t("dev.back")}
 			</Link>
