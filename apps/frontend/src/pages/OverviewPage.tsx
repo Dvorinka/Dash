@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 import { t } from "@/i18n";
 
 // Overview joins the board's reachability probes with the other sections.
-// Each page still owns its detail; this one only lists what is down, expiring, or open.
+// Each page still owns its detail. This one lists what is down, expiring, or open,
+// and the board services that are up.
 
 interface SourceOk {
 	monitors: boolean;
@@ -78,7 +79,9 @@ export function OverviewPage() {
 	);
 	const statusReady = services.length === 0 || services.some((s) => board.statuses[s.item.id]);
 	const boardDown = statusReady ? services.filter((s) => board.statuses[s.item.id]?.status === "down") : [];
+	const boardUp = statusReady ? services.filter((s) => board.statuses[s.item.id]?.status === "up") : [];
 	const activity = (pulse?.dev?.activity ?? []).slice(0, 6);
+	const showActivity = activity.length > 0;
 	const sourcesOk = !!ok && ok.monitors && ok.domains && ok.systems && ok.incidents && ok.dev;
 	const anyRow = boardDown.length + down.length + expiring.length + offline.length + openIncidents.length > 0;
 	const clear = sourcesOk && statusReady && !anyRow;
@@ -103,7 +106,7 @@ export function OverviewPage() {
 				<Stat href="/dev" label={t("nav.dev")} value={ok?.dev ? (pulse?.dev?.openPRs ?? 0) : null} unit={t("overview.prs")} meta={ok?.dev ? t("overview.issues", { n: pulse?.dev?.openIssues ?? 0 }) : ""} hot={(pulse?.dev?.openPRs ?? 0) > 0} />
 			</div>
 
-			<div className="mt-8 grid gap-6 lg:grid-cols-2">
+			<div className={cn("mt-8 grid gap-6", showActivity && "lg:grid-cols-2")}>
 				<section>
 					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("overview.attention")}</h2>
 					<div className="overflow-hidden rounded-[10px] border border-border">
@@ -143,26 +146,44 @@ export function OverviewPage() {
 					</div>
 				</section>
 
-				<section>
-					<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("overview.activity")}</h2>
-					<div className="overflow-hidden rounded-[10px] border border-border">
-						{activity.length === 0 ? (
-							<p className="px-4 py-6 text-[13px] text-text-dim">{t("overview.noActivity")}</p>
-						) : activity.map((a) => (
-							<a
-								key={`${a.projectId ?? ""}-${a.kind ?? ""}-${a.number ?? 0}`}
-								href={a.url ?? "/dev"}
-								target={a.url ? "_blank" : undefined}
-								rel={a.url ? "noreferrer" : undefined}
-								className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 last:border-0 hover:bg-surface-hover/60"
-							>
-								<span className="w-14 shrink-0 font-mono text-[10px] uppercase tracking-[0.06em] text-text-faint">{a.kind}</span>
-								<span className="min-w-0 flex-1 truncate text-[13px]">{a.title}</span>
-								<span className="shrink-0 font-mono text-[10.5px] text-text-faint">{a.state}</span>
-							</a>
-						))}
-					</div>
-				</section>
+				{showActivity && (
+					<section>
+						<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("overview.activity")}</h2>
+						<div className="overflow-hidden rounded-[10px] border border-border">
+							{activity.map((a) => (
+								<a
+									key={`${a.projectId ?? ""}-${a.kind ?? ""}-${a.number ?? 0}`}
+									href={a.url ?? "/dev"}
+									target={a.url ? "_blank" : undefined}
+									rel={a.url ? "noreferrer" : undefined}
+									className="flex items-center gap-3 border-b border-border/60 px-4 py-2.5 last:border-0 hover:bg-surface-hover/60"
+								>
+									<span className="w-14 shrink-0 font-mono text-[10px] uppercase tracking-[0.06em] text-text-faint">{a.kind}</span>
+									<span className="min-w-0 flex-1 truncate text-[13px]">{a.title}</span>
+									<span className="shrink-0 font-mono text-[10.5px] text-text-faint">{a.state}</span>
+								</a>
+							))}
+						</div>
+					</section>
+				)}
+				{boardUp.length > 0 && (
+					<section className={cn(showActivity && "lg:col-span-2")}>
+						<h2 className="mb-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-faint">{t("overview.running")}</h2>
+						<div className="overflow-hidden rounded-[10px] border border-border">
+							{boardUp.map(({ item, section }) => (
+								<Row
+									key={`up-${item.id}`}
+									href={item.urls[0]?.url ?? "/"}
+									blank={!!item.urls[0]}
+									name={item.name}
+									kind={section || t("nav.board")}
+									detail={hostOf(item.urls[0]?.url ?? "")}
+									up
+								/>
+							))}
+						</div>
+					</section>
+				)}
 			</div>
 		</main>
 	);
@@ -202,18 +223,19 @@ function Stat({ href, label, value, unit, meta, hot }: {
 	);
 }
 
-function Row({ href, name, kind, detail, hot, blank }: {
+function Row({ href, name, kind, detail, hot, up, blank }: {
 	href: string;
 	name: string;
 	kind: string;
 	detail: string;
 	hot?: boolean;
+	up?: boolean;
 	blank?: boolean;
 }) {
 	const className = "flex items-center gap-3 border-b border-border/60 px-4 py-2.5 last:border-0 hover:bg-surface-hover/60";
 	const body = (
 		<>
-			<span className={cn("size-1.5 shrink-0 rounded-full", hot ? "bg-down" : "bg-text-faint/50")} />
+			<span className={cn("size-1.5 shrink-0 rounded-full", hot ? "bg-down" : up ? "bg-up" : "bg-text-faint/50")} />
 			<span className="min-w-0 flex-1 truncate text-[13px]">{name}</span>
 			<span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.06em] text-text-faint">{kind}</span>
 			<span className="max-w-[46%] shrink-0 truncate text-right font-mono text-[10.5px] text-text-dim">{detail}</span>

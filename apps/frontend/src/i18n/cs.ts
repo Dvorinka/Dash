@@ -30,8 +30,8 @@ export const cs: Partial<Record<Key, string>> = {
 	"overview.issues": "{n} otevřených issues",
 	"overview.attention": "Potřebuje pozornost",
 	"overview.activity": "Nedávný kód",
+	"overview.running": "Běží",
 	"overview.allClear": "Nic nepotřebuje pozornost.",
-	"overview.noActivity": "Zatím žádné sledované projekty.",
 	"overview.partial": "Některé zdroje neodpověděly.",
 
 	"common.add": "Přidat",

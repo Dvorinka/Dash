@@ -29,8 +29,8 @@ export const en = {
 	"overview.issues": "{n} open issues",
 	"overview.attention": "Needs attention",
 	"overview.activity": "Recent code",
+	"overview.running": "Running",
 	"overview.allClear": "Nothing needs attention.",
-	"overview.noActivity": "No tracked projects yet.",
 	"overview.partial": "Some sources did not respond.",
 
 	"common.add": "Add",
